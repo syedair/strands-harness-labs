@@ -64,9 +64,10 @@ def test_every_block_says_nothing_ran(monkeypatch, probs_seen):
     assert "didn't run" in action.feedback and "Don't report" in action.feedback
 
 
-def test_intent_question_accepts_a_step_towards_the_answer():
-    # a weather lookup is a sensible step for a packing request; the older wording blocked it on Qwen
-    assert "step towards answering" in lab7.QUESTIONS["matches_intent"]
+def test_intent_question_is_concrete_about_weather_helping_with_packing():
+    # a weather lookup helps a packing request; "a sensible step towards answering" scored 0.21-0.43 on Kev
+    question = lab7.QUESTIONS["matches_intent"]
+    assert "help answer" in question and "weather forecast helps decide what to pack" in question
 
 
 def test_the_web_app_gate_never_waits_for_enter():

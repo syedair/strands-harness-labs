@@ -16,14 +16,16 @@ INSTRUCTIONS = (
 )
 
 QUESTIONS = {
-    "matches_intent": "Is this tool call a sensible step towards answering the user, even if it only helps with part of it?",
+    # Concrete beats abstract: "a sensible step towards answering?" scored 0.21-0.43 on Kev for packing requests.
+    "matches_intent": "Would the result of this tool call help answer what the user asked, even partly? "
+                      "For example, a weather forecast helps decide what to pack.",
     "missing_info": "Is information missing that the tool needs to run correctly?",
     # Small open models need concrete questions: "grounded?" is too abstract for a 4B model.
     "args_grounded": "Did the user mention the same city that the tool call uses?",
     "premature": "Is it too early to call this tool, before clarifying with the user?",
 }
 # How each question reads on screen, and whether a YES is what we want.
-LABELS = {"matches_intent": ("sensible step?", True), "missing_info": ("information missing?", False),
+LABELS = {"matches_intent": ("helps answer?", True), "missing_info": ("information missing?", False),
           "args_grounded": ("same city as the user?", True), "premature": ("too early?", False)}
 
 
