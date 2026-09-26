@@ -9,8 +9,8 @@ load_dotenv()
 
 MAIN_MODEL = os.environ.get("MAIN_MODEL", "bedrock/moonshotai.kimi-k2.5")
 SYSTEM1_MODEL = os.environ.get("SYSTEM1_MODEL", "qwen3.5:4b")
-SMALL_MODEL = os.environ.get("SMALL_MODEL", "qwen3.5:9b")
-BIG_MODEL = os.environ.get("BIG_MODEL", "gpt-oss:20b")
+SMALL_MODEL = os.environ.get("SMALL_MODEL", "bedrock/moonshotai.kimi-k2.5")
+BIG_MODEL = os.environ.get("BIG_MODEL", "bedrock/us.moonshotai.kimi-k3")
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
 
 
@@ -34,3 +34,17 @@ def check_ollama(*models: str) -> None:
         if model not in pulled and f"{model}:latest" not in pulled:
             print(f"Model {model} isn't pulled. Run: ollama pull {model}")
             sys.exit(1)
+
+
+def build_model(spec: str):
+    """Turn "bedrock/<id>" or "ollama/<name>" into a Strands model (lab 9 needs model objects)."""
+    provider, _, name = spec.partition("/")
+    if provider == "bedrock":
+        from strands.models.bedrock import BedrockModel
+
+        return BedrockModel(model_id=name)
+    if provider == "ollama":
+        from strands.models.ollama import OllamaModel
+
+        return OllamaModel(host=OLLAMA_HOST, model_id=name)
+    raise ValueError(f"Model {spec!r} must start with bedrock/ or ollama/")

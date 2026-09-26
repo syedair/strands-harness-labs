@@ -29,3 +29,20 @@ def test_check_ollama_accepts_latest_tag(monkeypatch):
 def test_check_ollama_ignores_non_ollama_main_model(monkeypatch):
     monkeypatch.setattr(config, "_pulled_models", lambda: set())
     config.check_ollama("bedrock/us.anthropic.claude-sonnet-5")  # no exit
+
+
+def test_build_model_bedrock():
+    model = config.build_model("bedrock/us.moonshotai.kimi-k3")
+    assert type(model).__name__ == "BedrockModel"
+    assert model.get_config()["model_id"] == "us.moonshotai.kimi-k3"
+
+
+def test_build_model_ollama():
+    model = config.build_model("ollama/gpt-oss:20b")
+    assert type(model).__name__ == "OllamaModel"
+    assert model.get_config()["model_id"] == "gpt-oss:20b"
+
+
+def test_build_model_rejects_unknown_provider():
+    with pytest.raises(ValueError, match="bedrock/ or ollama/"):
+        config.build_model("openai/gpt-5")
