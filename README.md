@@ -166,6 +166,9 @@ The finished travel assistant as a web app that shows everything the harness doe
 - **Connectors** — turn on MCP servers (AWS Documentation, the chat's files, or your own command).
 - **Skills** — add one from the Skills tab: a `SKILL.md`, or the skill folder as a `.zip` with its references.
 - **Inside the harness** — tools, skills, session, connectors, and every System 1 decision.
+- **How it works** — a click-through of one turn: the Agent at the centre, calling the session, memory, skills,
+  System 1, the LLM and tools in order, one step per click.
+- **Clear all** — delete every chat from the sidebar, or every memory from the Memory tab.
 - **The memory core** — a rotating nebula of your memories. Recalled notes fire in green (hover a chip to
   see what was searched and each note's score); newly saved notes arrive in violet; forget any note.
   System 1 decides what to recall: for each note it answers *"would this fact help answer the message?"*,
@@ -221,6 +224,7 @@ Runtime data (chats, sessions, files, memory) lives in `lab11/data/`; `./cleanup
 
 ![Lab 11: chat history, recalled memories and System 1 decisions](docs/lab11.png)
 ![The memory core](docs/lab11-memory.png)
+![How it works: one turn, step by step](docs/lab11-architecture.png)
 
 ## 🧠 What is a System 1 model?
 
