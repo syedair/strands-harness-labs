@@ -78,7 +78,7 @@ export default function MemoryGlobe({ graph, fired, stored, forgot, recall, stat
           {graph.knowledge && (
         <p className="text-xs text-ink-2">
           Also recalls from <span className="font-mono text-ink">{graph.knowledge.dir}</span> · {graph.knowledge.sections} sections,
-          read-only (the pale stars)
+          read-only (the pale outer shell)
         </p>
       )}
       <ul className="mt-1 space-y-0.5 font-mono">
@@ -147,7 +147,7 @@ export default function MemoryGlobe({ graph, fired, stored, forgot, recall, stat
           </div>
           <div className="absolute bottom-10 left-10">{caption}</div>
           <ul className="absolute bottom-10 right-10 space-y-1.5 font-mono text-[0.7rem] text-ink-2">
-            {[["#6EE7B7", "Recalled — fired this turn"], ["#A8F0D9", "Primed — linked to a recalled memory"],
+            {[["#6EE7B7", "Recalled — fired this turn"], ["#A8F0D9", "Primed — linked to a recalled memory"], ["#CBD5E1", "Outer shell — your knowledge folders, read-only"],
               ["#A78BFA", "Storing — a new memory"], ["#22D3EE", "Resting"]].map(([color, label]) => (
               <li key={label} className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full" style={{ background: color, boxShadow: `0 0 8px ${color}` }} /> {label}

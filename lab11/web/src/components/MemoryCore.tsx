@@ -92,7 +92,8 @@ export function MemoryCore({ graph, fired, stored, forgotten = [], state, height
       dense = density(g.nodes.length);
       disposeTree(anchors); // the previous notes and links
       stars = g.nodes.map((n) => {
-        const p = notePoint(n.id, RADIUS * 0.72); // by id, so notes stay put when others come and go
+        // by id, so notes stay put when others come and go; knowledge sections form a fainter outer shell
+        const p = notePoint(n.id, RADIUS * 0.72, n.kind === "knowledge" ? 1.3 : 1);
         const sprite = new THREE.Sprite(new THREE.SpriteMaterial(glowing(CYAN, 1, texture)));
         sprite.userData.knowledge = n.kind === "knowledge";
         sprite.position.set(p.x, p.y, p.z);

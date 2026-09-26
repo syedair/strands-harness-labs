@@ -130,3 +130,20 @@ describe("knowledge notes", () => {
     expect(memoriesOnly(graph).map((n) => n.id)).toEqual(["a.md"]);
   });
 });
+
+describe("notePoint spread", () => {
+  it("scatters ids that differ only at the end, instead of lining them up", () => {
+    const ys = Array.from({ length: 200 }, (_, i) => notePoint(`kb:USER.md#${i}`, 1).y);
+    const bins = [0, 0, 0, 0];
+    for (const y of ys) bins[Math.min(3, Math.floor((y + 1) * 2))]++;
+    for (const b of bins) expect(b).toBeGreaterThan(30); // roughly 50 per quarter of the sphere
+    const angles = Array.from({ length: 200 }, (_, i) => { const p = notePoint(`kb:USER.md#${i}`, 1); return Math.atan2(p.z, p.x); });
+    const steps = angles.slice(1).map((a, i) => Math.abs(a - angles[i]));
+    expect(steps.filter((d) => d < 0.05).length).toBeLessThan(20); // neighbours don't sit next to each other
+  });
+
+  it("puts knowledge on an outer shell", () => {
+    const p = notePoint("kb:x#0", 50, 1.25);
+    expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(62.5);
+  });
+});
