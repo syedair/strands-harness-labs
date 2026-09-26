@@ -35,6 +35,16 @@ Ollama.
 The classifier always runs on Ollama. Lab 9 also reads `SMALL_MODEL` /
 `BIG_MODEL` for routing.
 
+## The use case: a travel assistant
+
+By lab 9 the assistant handles a request like "I'm going to Istanbul next
+week, what should I pack?": it looks up the forecast, remembers the user
+lives in Dubai, uses its packing-list skill, asks before saving the list to a
+file, and runs on the small model because the request is easy. Travel was
+chosen because it needs real tools, has personal facts worth remembering, and
+produces natural "guessed argument" (lab 7) and "incomplete answer" (lab 8)
+moments; it also lines up with the weather example in Mike's video.
+
 ## Lab list
 
 The travel assistant evolves through the labs.
