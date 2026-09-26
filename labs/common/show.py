@@ -27,10 +27,13 @@ def _conversation_line(conversation: str) -> str:
     return _paint(said.removeprefix("user: "), "bold") + (_paint(f"   ({rest})", "dim") if rest else "")
 
 
+PAUSES = True  # --chat turns these off: there, the terminal is for your messages
+
+
 def wait(prompt: str = "press Enter to ask") -> None:
-    """Wait for Enter, so you can explain what's on screen first. Only in a real terminal: piped or tested
-    runs go straight through."""
-    if sys.stdin.isatty():
+    """Wait for Enter, so you can explain what's on screen first. Only in a real terminal, and not while
+    chatting: piped, tested and chat runs go straight through."""
+    if PAUSES and sys.stdin.isatty():
         input(_paint(f"  {prompt} ", "dim"))
 
 

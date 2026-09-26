@@ -14,8 +14,20 @@ INSTRUCTIONS = (
 )
 
 
+FEEDBACK = "Your answer skipped part of the request. Answer every part the user asked for."
+
+
 def text_of(message: dict) -> str:
     return "\n".join(block["text"] for block in message["content"] if "text" in block)
+
+
+def latest_request(messages: list[dict]) -> str:
+    """What the user asked most recently: skips tool results and our own Guide feedback."""
+    for message in reversed(messages):
+        text = text_of(message) if message["role"] == "user" else ""
+        if text and FEEDBACK not in text:
+            return text
+    return ""
 
 
 class CompletionCheck(InterventionHandler):
@@ -25,16 +37,19 @@ class CompletionCheck(InterventionHandler):
     PAUSE = True  # wait for Enter before asking System 1 (only in a terminal)
 
     def __init__(self):
-        self.guides = 0  # one agent call per run, so never reset
+        self.guides = 0  # retries used on the current request
+        self.judging = None  # the request those retries belong to
 
     def after_model_call(self, event):
         response = event.stop_response
         if response is None or response.stop_reason != "end_turn":
             return Proceed()  # only judge final answers, not tool-use turns
 
-        request = text_of(event.agent.messages[0])
+        request = latest_request(event.agent.messages)
+        if request != self.judging:  # a new request (in a chat) gets its retries back
+            self.judging, self.guides = request, 0
         answer = text_of(response.message)
-        if answer.rstrip().endswith("?"):  # asking the user something back is a fine way to end a turn
+        if "?" in answer:  # it asks the user something back (e.g. "which city?"): a fine way to end a turn
             print("\n  check → Proceed: it asked you a question, nothing to judge")
             return Proceed()
         short = " ".join(answer.split())
@@ -54,7 +69,7 @@ class CompletionCheck(InterventionHandler):
             return Proceed()
         self.guides += 1
         print(f"  check → Guide ({self.guides}/{self.MAX_GUIDES}): finish the rest of the request")
-        return Guide(feedback="Your answer skipped part of the request. Answer every part the user asked for.")
+        return Guide(feedback=FEEDBACK)
 
 
 def main() -> None:

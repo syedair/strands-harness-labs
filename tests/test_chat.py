@@ -41,3 +41,12 @@ def test_chat_stops_on_ctrl_c():
 
     chat(agent, read=interrupted)
     assert agent.prompts == []
+
+
+def test_chat_turns_off_the_demo_pauses():
+    from common import show
+    from common.chat import chat
+
+    show.PAUSES = True
+    chat(object(), read=lambda _: "exit")
+    assert show.PAUSES is False
