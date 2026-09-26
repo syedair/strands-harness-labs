@@ -1,20 +1,22 @@
 import { Plug, Plus, X } from "lucide-react";
 import { useState } from "react";
 import type { Connector } from "../api";
+import { connectorRows, type Switching } from "../connectors";
+import { ConnectorSwitch, STATE_LABEL } from "./ConnectorSwitch";
 
 type Props = {
   connectors: Connector[];
   enabled: string[];
   errors: { id: string; error: string }[];
+  switching: Switching;
   onToggle: (id: string, on: boolean) => void;
   onAdd: (label: string, command: string, args: string[]) => void;
 };
 
-export function ConnectorsMenu({ connectors, enabled, errors, onToggle, onAdd }: Props) {
+export function ConnectorsMenu({ connectors, enabled, errors, switching, onToggle, onAdd }: Props) {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ label: "", command: "", args: "" });
-  const failed = new Map(errors.map((e) => [e.id, e.error]));
 
   return (
     <div className="relative">
@@ -29,19 +31,18 @@ export function ConnectorsMenu({ connectors, enabled, errors, onToggle, onAdd }:
             <p className="eyebrow text-[0.6rem]">MCP connectors</p>
             <button aria-label="Close" onClick={() => setOpen(false)} className="press text-ink-2 hover:text-ink"><X size={14} /></button>
           </div>
-          {connectors.map((c) => {
-            const on = enabled.includes(c.id);
-            return (
-              <label key={c.id} className="flex cursor-pointer items-start gap-3 rounded-xl p-2 hover:bg-white/5">
-                <input type="checkbox" checked={on} onChange={(e) => onToggle(c.id, e.target.checked)} className="mt-1 accent-[#6EE7B7]" />
-                <span className="min-w-0 text-sm">
-                  <span className="block">{c.label}</span>
-                  <span className="block truncate text-xs text-ink-2">{c.description}</span>
-                  {on && failed.has(c.id) && <span className="block text-xs text-warn">Didn't start: {failed.get(c.id)}</span>}
+          {connectorRows(connectors, { tools: [], connectors: { enabled, errors } }, switching).map((c) => (
+            <label key={c.id} className={`flex items-start gap-3 rounded-xl p-2 hover:bg-white/5 ${switching ? "cursor-wait" : "cursor-pointer"}`}>
+              <ConnectorSwitch row={c} locked={switching !== null} onToggle={onToggle} />
+              <span className="min-w-0 text-sm">
+                <span className="block">{c.label}
+                  {(c.state === "starting" || c.state === "stopping") && <span className="ml-2 text-xs text-accent">{STATE_LABEL[c.state]}</span>}
                 </span>
-              </label>
-            );
-          })}
+                <span className="block truncate text-xs text-ink-2">{c.description}</span>
+                {c.error && <span className="block text-xs text-warn">Didn't start: {c.error}</span>}
+              </span>
+            </label>
+          ))}
           {adding ? (
             <form className="space-y-2 rounded-xl border border-white/10 p-2"
                   onSubmit={(e) => { e.preventDefault(); onAdd(form.label, form.command, form.args.split(" ").filter(Boolean)); setAdding(false); setForm({ label: "", command: "", args: "" }); }}>

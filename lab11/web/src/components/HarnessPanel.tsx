@@ -7,7 +7,8 @@ import { DecisionChip } from "./DecisionChip";
 import type { CoreState } from "./MemoryCore";
 import type { Recall } from "./MemoryGlobe";
 import type { Burst } from "../globe";
-import { connectorRows } from "../connectors";
+import { connectorRows, type Switching } from "../connectors";
+import { ConnectorSwitch, STATE_LABEL } from "./ConnectorSwitch";
 
 const MemoryGlobe = lazy(() => import("./MemoryGlobe")); // three.js loads only when this tab opens
 
@@ -20,7 +21,7 @@ const TABS: [Tab, string, LucideIcon][] = [
 
 type Props = {
   harness: Harness | null; memory: MemoryGraph; fired: Burst; stored: Burst; recall: Recall | null;
-  connectors: Connector[]; onToggleConnector: (id: string, on: boolean) => void;
+  connectors: Connector[]; switching: Switching; onToggleConnector: (id: string, on: boolean) => void;
   decisions: Decision[]; state: CoreState; onForget: (id: string) => void;
 };
 
@@ -32,7 +33,7 @@ function toolSource(tool: string, connectors: string[]): string {
   return "built-in";
 }
 
-export function HarnessPanel({ harness, connectors, onToggleConnector, memory, fired, stored, recall, decisions, state, onForget }: Props) {
+export function HarnessPanel({ harness, connectors, switching, onToggleConnector, memory, fired, stored, recall, decisions, state, onForget }: Props) {
   const [tab, setTab] = useState<Tab>("memory");
   return (
     <aside className="flex h-full w-[26rem] shrink-0 flex-col border-l border-white/10">
@@ -74,14 +75,13 @@ export function HarnessPanel({ harness, connectors, onToggleConnector, memory, f
         )}
         {harness && tab === "connectors" && (
           <ul className="space-y-2">
-            {connectorRows(connectors, harness).map((c) => (
-              <li key={c.id} className="flex items-start gap-3 rounded-lg bg-black/20 px-3 py-2">
-                <input type="checkbox" checked={c.state !== "off"} aria-label={`Turn ${c.label} on or off`}
-                       onChange={(e) => onToggleConnector(c.id, e.target.checked)} className="mt-1 accent-[#6EE7B7]" />
+            {connectorRows(connectors, harness, switching).map((c) => (
+              <li key={c.id} className={`flex items-start gap-3 rounded-lg bg-black/20 px-3 py-2 ${switching && switching.id !== c.id ? "opacity-60" : ""}`}>
+                <ConnectorSwitch row={c} locked={switching !== null} onToggle={onToggleConnector} />
                 <div className="min-w-0">
                   <p className="text-sm">{c.label}{" "}
                     <span className={`font-mono text-[0.65rem] ${c.state === "failed" ? "text-warn" : c.state === "on" ? "text-accent" : "text-ink-2"}`}>
-                      {c.state === "on" ? `on · ${c.tools.length} tools` : c.state}
+                      {c.state === "on" ? `on · ${c.tools.length} tools` : STATE_LABEL[c.state]}
                     </span>
                   </p>
                   {c.error && <p className="text-xs text-warn">{c.error}</p>}

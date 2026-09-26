@@ -10,6 +10,7 @@ import { Header } from "./components/Header";
 import { Message } from "./components/Message";
 import type { Recall } from "./components/MemoryGlobe";
 import { NO_BURST, type Burst } from "./globe";
+import type { Switching } from "./connectors";
 import { Sidebar } from "./components/Sidebar";
 
 const firstAvailable = (choices: api.Choice[], preferred: string) =>
@@ -32,6 +33,7 @@ export default function App() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [serverDown, setServerDown] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
+  const [switching, setSwitching] = useState<Switching>(null); // a connector starting or stopping
   const [sending, setSending] = useState(false); // from send until the stream closes (memory is saved after "done")
   const busy = sending || turns.some((t) => t.role === "assistant" && t.streaming);
   const last = turns[turns.length - 1];
@@ -135,10 +137,16 @@ export default function App() {
   }
 
   async function toggleConnector(id: string, on: boolean) {
-    const chatId = await ensureChat();
-    const enabled = on ? [...(harness?.connectors.enabled ?? []), id] : (harness?.connectors.enabled ?? []).filter((c) => c !== id);
-    await api.setConnectors(chatId, enabled);
-    setHarness(await api.fetchHarness(chatId)); // starting an MCP server can take a few seconds
+    if (switching) return;
+    setSwitching({ id, on });
+    try {
+      const chatId = await ensureChat();
+      const enabled = on ? [...(harness?.connectors.enabled ?? []), id] : (harness?.connectors.enabled ?? []).filter((c) => c !== id);
+      await api.setConnectors(chatId, enabled);
+      setHarness(await api.fetchHarness(chatId)); // starting an MCP server can take a few seconds
+    } finally {
+      setSwitching(null);
+    }
   }
 
   async function addConnector(label: string, command: string, args: string[]) {
@@ -177,13 +185,13 @@ export default function App() {
                        system1={options?.system1.options ?? []} system1Model={system1} onSystem1={setSystem1}
                        connectors={connectors} enabledConnectors={harness?.connectors.enabled ?? []}
                        connectorErrors={harness?.connectors.errors ?? []}
-                       onToggleConnector={toggleConnector} onAddConnector={addConnector}
+                       switching={switching} onToggleConnector={toggleConnector} onAddConnector={addConnector}
                        attached={attached} onAttach={attach}
                        onSend={send} />
         </div>
       </div>
       <div className={`${panelOpen ? "fixed inset-y-0 right-0 z-30 bg-bg-1/95 backdrop-blur" : "hidden"} lg:static lg:block`}>
-        <HarnessPanel harness={harness} connectors={connectors} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} recall={recall} decisions={decisions} state={coreState} onForget={forget} />
+        <HarnessPanel harness={harness} connectors={connectors} switching={switching} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} recall={recall} decisions={decisions} state={coreState} onForget={forget} />
       </div>
     </div>
   );

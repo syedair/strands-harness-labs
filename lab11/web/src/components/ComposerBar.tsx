@@ -1,6 +1,7 @@
 import { Cpu, FileText, LoaderCircle, Paperclip, SendHorizontal, Sparkles } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Choice, Connector, FileInfo } from "../api";
+import type { Switching } from "../connectors";
 import { ConnectorsMenu } from "./ConnectorsMenu";
 import { Picker } from "./Picker";
 
@@ -16,6 +17,7 @@ type Props = {
   connectors: Connector[];
   enabledConnectors: string[];
   connectorErrors: { id: string; error: string }[];
+  switching: Switching;
   onToggleConnector: (id: string, on: boolean) => void;
   onAddConnector: (label: string, command: string, args: string[]) => void;
   attached: FileInfo[];
@@ -62,7 +64,7 @@ export function ComposerBar(props: Props) {
       <div className="flex flex-wrap items-center gap-2">
         <Picker label="Language model" icon={Sparkles} choices={props.models} value={props.model} onChange={props.onModel} />
         <Picker label="System 1 model" icon={Cpu} choices={props.system1} value={props.system1Model} onChange={props.onSystem1} />
-        <ConnectorsMenu connectors={props.connectors} enabled={props.enabledConnectors} errors={props.connectorErrors}
+        <ConnectorsMenu connectors={props.connectors} enabled={props.enabledConnectors} errors={props.connectorErrors} switching={props.switching}
                         onToggle={props.onToggleConnector} onAdd={props.onAddConnector} />
       </div>
     </div>

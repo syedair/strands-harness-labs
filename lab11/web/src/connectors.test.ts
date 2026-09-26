@@ -18,3 +18,13 @@ describe("connectorRows", () => {
     expect(rows[2].error).toBe("command not found");
   });
 });
+
+describe("a connector being switched", () => {
+  it("shows the state it's going to, as starting or stopping, until the harness is rebuilt", () => {
+    const harness = { tools: [], connectors: { enabled: ["files"], errors: [] } };
+    const starting = connectorRows(listing, harness, { id: "aws-docs", on: true });
+    expect(starting[0].state).toBe("starting");
+    const stopping = connectorRows(listing, harness, { id: "files", on: false });
+    expect(stopping[1].state).toBe("stopping");
+  });
+});
