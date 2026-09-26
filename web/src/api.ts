@@ -2,7 +2,14 @@
 export type ChatEvent =
   | { type: "text"; delta: string }
   | { type: "tool"; name: string; input: Record<string, unknown> }
-  | { type: "decision"; source: "gate" | "check"; action: "guide" | "deny" | "proceed"; probs: Record<string, number> }
+  | {
+      type: "decision";
+      source: "gate" | "check";
+      action: "guide" | "deny" | "proceed";
+      why: string | null; // which rule fired, e.g. "ask the user instead of guessing"
+      p: number | null; // the probability behind that rule
+      probs: Record<string, number>;
+    }
   | { type: "done" }
   | { type: "error"; message: string };
 

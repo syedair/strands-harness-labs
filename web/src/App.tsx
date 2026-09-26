@@ -18,7 +18,9 @@ export default function App() {
   useEffect(() => {
     fetchSystem1().then((r) => { setOptions(r.options); setSystem1(r.default); }).catch(() => setServerDown(true));
   }, []);
-  useEffect(() => bottom.current?.scrollIntoView({ behavior: "smooth" }), [turns]);
+  useEffect(() => {
+    bottom.current?.scrollIntoView({ behavior: "smooth" }); // braces: an effect must not return a value
+  }, [turns]);
 
   async function send(text: string) {
     setTurns((t) => [...t, { role: "user", text }, newAssistantTurn()]);

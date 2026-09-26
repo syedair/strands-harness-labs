@@ -42,3 +42,10 @@ def test_gate_records_last_probs(monkeypatch):
     gate = lab7.ToolCallGate()
     gate.before_tool_call(event("Seattle"))
     assert gate.last_probs["args_grounded"] == 0.2
+
+
+def test_block_carries_its_reason(monkeypatch):
+    monkeypatch.setattr(lab7, "yes_no_many", lambda s, q: {"matches_intent": 0.3, "missing_info": 0.1,
+                                                          "args_grounded": 0.9, "premature": 0.1})
+    action = lab7.ToolCallGate().before_tool_call(event("Paris"))
+    assert action.reason == "the tool doesn't match the request"

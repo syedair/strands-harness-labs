@@ -23,10 +23,20 @@ INSTRUCTIONS = (
 SYSTEM1_CHOICES = [("ollama/qwen3.5:4b", "Qwen stand-in"), ("jev", "Jev"), ("kev", "Kev"), ("laya", "Laya")]
 
 
+# Which probability explains each gate decision (the reasons come from lab 7's ToolCallGate.block).
+RULE_PROB = {
+    "the tool doesn't match the request": "matches_intent",
+    "ask the user instead of guessing": "args_grounded",
+    "too early, clarify first": "premature",
+}
+
+
 def decision(source: str, action, probs: dict[str, float]) -> dict:
     kind = "proceed" if isinstance(action, Proceed) else "deny" if isinstance(action, Deny) else "guide"
-    return {"type": "decision", "source": source, "action": kind,
-            "probs": {key: round(value, 2) for key, value in probs.items()}}
+    why = getattr(action, "reason", None) if kind == "guide" else None
+    key = "answered_everything" if source == "check" else RULE_PROB.get(why, "args_grounded")
+    return {"type": "decision", "source": source, "action": kind, "why": why,
+            "p": round(probs[key], 2) if key in probs else None, "probs": {k: round(v, 2) for k, v in probs.items()}}
 
 
 class WebGate(ToolCallGate):
@@ -37,8 +47,10 @@ class WebGate(ToolCallGate):
         self.events = events
 
     def before_tool_call(self, event):
-        action = super().before_tool_call(event)
         self.events.append({"type": "tool", "name": event.tool_use["name"], "input": event.tool_use.get("input", {})})
+        if event.tool_use["name"] != "web_fetch":
+            return Proceed()  # only judge calls whose arguments should come from the user
+        action = super().before_tool_call(event)
         self.events.append(decision("gate", action, self.last_probs))
         return action
 

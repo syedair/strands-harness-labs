@@ -14,7 +14,7 @@ INSTRUCTIONS = (
 )
 
 QUESTIONS = {
-    "matches_intent": "Does the proposed tool match what the user is asking for?",
+    "matches_intent": "Could this tool call help with what the user asked for?",
     "missing_info": "Is information missing that the tool needs to run correctly?",
     # Small open models need concrete questions: "grounded?" is too abstract for a 4B model.
     "args_grounded": "Did the user mention the same city that the tool call uses?",
@@ -64,7 +64,7 @@ class ToolCallGate(InterventionHandler):
             print(f"[gate] -> Deny: {why} (blocked {self.MAX_BLOCKS}x already)")
             return Deny(reason=feedback)
         print(f"[gate] -> Guide ({self.blocks}/{self.MAX_BLOCKS}): {why}")
-        return Guide(feedback=feedback)
+        return Guide(feedback=feedback, reason=why)
 
 
 def main() -> None:

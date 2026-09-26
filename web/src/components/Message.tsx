@@ -1,3 +1,4 @@
+import Markdown from "react-markdown";
 import type { Turn } from "../chat";
 import { DecisionChip } from "./DecisionChip";
 import { ToolCard } from "./ToolCard";
@@ -15,10 +16,13 @@ export function Message({ turn }: { turn: Turn }) {
       {turn.parts.map((part, i) => {
         if (part.kind === "tool") return <ToolCard key={i} name={part.name} input={part.input} />;
         if (part.kind === "decision") return <DecisionChip key={i} decision={part} />;
+        if (part.discarded) {
+          return <p key={i} className="text-ink-2 line-through opacity-50">{part.text}</p>;
+        }
         return (
-          <p key={i} className={part.discarded ? "text-ink-2 line-through opacity-50" : "whitespace-pre-wrap leading-relaxed"}>
-            {part.text}
-          </p>
+          <div key={i} className="reply leading-relaxed">
+            <Markdown>{part.text}</Markdown>
+          </div>
         );
       })}
       {turn.streaming && <span className="inline-block h-4 w-2 animate-pulse bg-accent align-middle" />}

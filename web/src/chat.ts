@@ -4,7 +4,7 @@ import type { ChatEvent } from "./api";
 export type Part =
   | { kind: "text"; text: string; discarded: boolean }
   | { kind: "tool"; name: string; input: Record<string, unknown> }
-  | { kind: "decision"; source: "gate" | "check"; action: "guide" | "deny" | "proceed"; probs: Record<string, number> };
+  | ({ kind: "decision" } & Omit<Extract<ChatEvent, { type: "decision" }>, "type">);
 
 export type AssistantTurn = { role: "assistant"; parts: Part[]; streaming: boolean; error?: string };
 export type UserTurn = { role: "user"; text: string };
@@ -28,7 +28,8 @@ export function applyEvent(turn: AssistantTurn, event: ChatEvent): AssistantTurn
         const i = parts.findLastIndex((p) => p.kind === "text" && !p.discarded);
         if (i >= 0) parts[i] = { ...(parts[i] as Extract<Part, { kind: "text" }>), discarded: true };
       }
-      return { ...turn, parts: [...parts, { kind: "decision", source: event.source, action: event.action, probs: event.probs }] };
+      return { ...turn, parts: [...parts, { kind: "decision", source: event.source, action: event.action,
+                                             why: event.why, p: event.p, probs: event.probs }] };
     case "done":
       return { ...turn, streaming: false };
     case "error":

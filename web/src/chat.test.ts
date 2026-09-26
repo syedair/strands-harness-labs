@@ -12,7 +12,7 @@ describe("applyEvent", () => {
   it("marks the streamed draft as sent back when the check guides", () => {
     let turn = newAssistantTurn();
     turn = applyEvent(turn, { type: "text", delta: "It's 21°C." });
-    turn = applyEvent(turn, { type: "decision", source: "check", action: "guide", probs: { answered_everything: 0.16 } });
+    turn = applyEvent(turn, { type: "decision", source: "check", action: "guide", why: null, p: 0.16, probs: { answered_everything: 0.16 } });
     turn = applyEvent(turn, { type: "text", delta: "It's 21°C. Pack a jacket." });
     expect(turn.parts[0]).toEqual({ kind: "text", text: "It's 21°C.", discarded: true });
     expect(turn.parts[1].kind).toBe("decision");
@@ -23,10 +23,11 @@ describe("applyEvent", () => {
     let turn = newAssistantTurn();
     turn = applyEvent(turn, { type: "text", delta: "Checking." });
     turn = applyEvent(turn, { type: "tool", name: "web_fetch", input: { url: "https://wttr.in/Seattle" } });
-    turn = applyEvent(turn, { type: "decision", source: "gate", action: "guide", probs: { args_grounded: 0.34 } });
+    turn = applyEvent(turn, { type: "decision", source: "gate", action: "guide", why: "ask the user instead of guessing", p: 0.34, probs: { args_grounded: 0.34 } });
     turn = applyEvent(turn, { type: "text", delta: "Which city?" });
     expect(turn.parts.map((p) => p.kind)).toEqual(["text", "tool", "decision", "text"]);
     expect(turn.parts[0]).toMatchObject({ discarded: false });
+    expect(turn.parts[2]).toMatchObject({ why: "ask the user instead of guessing", p: 0.34 });
   });
 
   it("stops streaming on done and on error", () => {
