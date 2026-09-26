@@ -1,7 +1,7 @@
 // "How it works": one turn through the app, a click at a time. Parts appear the first time a step uses them.
 import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
-import { BOX, HARNESS, NODES, STEPS, VIEW, linkEnds, sceneAt, type Step, type Tone } from "../architecture";
+import { BOX, HARNESS, NODES, STEPS, VIEW, labelSpot, linkEnds, sceneAt, type Step, type Tone } from "../architecture";
 
 const TONE: Record<Tone, string> = { plain: "#F8FAFC", s1: "#6EE7B7", llm: "#22D3EE", save: "#A78BFA" };
 const byId = new Map(NODES.map((n) => [n.id, n]));
@@ -10,6 +10,8 @@ function Link({ step, live }: { step: Step; live: boolean }) {
   const { x1, y1, x2, y2 } = linkEnds(byId.get(step.from)!, byId.get(step.to)!);
   const color = live ? TONE[step.tone] : "rgba(248,250,252,0.22)";
   const path = `M${x1} ${y1} L${x2} ${y2}`;
+  const width = step.label.length * 7.2 + 20;
+  const spot = labelSpot({ x1, y1, x2, y2 }, width, 22);
   return (
     <g>
       <path d={path} stroke={color} strokeWidth={live ? 2.5 : 1.5} fill="none" markerEnd={`url(#arrow-${live ? step.tone : "past"})`}
@@ -19,9 +21,8 @@ function Link({ step, live }: { step: Step; live: boolean }) {
           <circle r="5" fill={color}>
             <animateMotion dur="1.1s" repeatCount="indefinite" path={path} />
           </circle>
-          <g transform={`translate(${(x1 + x2) / 2} ${(y1 + y2) / 2 - 14})`}>
-            <rect x={-step.label.length * 3.6 - 10} y="-11" width={step.label.length * 7.2 + 20} height="22" rx="11"
-                  fill="#0B1120" stroke={color} strokeOpacity="0.6" />
+          <g transform={`translate(${spot.x} ${spot.y})`}>
+            <rect x={-width / 2} y="-11" width={width} height="22" rx="11" fill="#0B1120" stroke={color} strokeOpacity="0.6" />
             <text textAnchor="middle" dy="4" fill={color} fontSize="11" fontFamily="var(--font-mono)">{step.label}</text>
           </g>
         </>
@@ -56,11 +57,11 @@ export function Architecture() {
              aria-label={scene.current ? scene.current.title : "The app, before a message is sent"}>
           <defs>
             {(["plain", "s1", "llm", "save"] as Tone[]).map((t) => (
-              <marker key={t} id={`arrow-${t}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <marker key={t} id={`arrow-${t}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
                 <path d="M0 0L10 5L0 10z" fill={TONE[t]} />
               </marker>
             ))}
-            <marker id="arrow-past" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <marker id="arrow-past" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
               <path d="M0 0L10 5L0 10z" fill="rgba(248,250,252,0.3)" />
             </marker>
           </defs>

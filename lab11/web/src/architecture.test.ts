@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NODES, STEPS, linkEnds, sceneAt } from "./architecture";
+import { NODES, STEPS, labelSpot, linkEnds, sceneAt } from "./architecture";
 
 describe("the architecture walkthrough", () => {
   it("starts with only the browser on screen", () => {
@@ -41,5 +41,21 @@ describe("the diagram's layout", () => {
       const { x1, y1, x2, y2 } = linkEnds(at.get(step.from)!, at.get(step.to)!);
       expect(Math.hypot(x2 - x1, y2 - y1), `${step.from} → ${step.to}`).toBeGreaterThanOrEqual(44);
     }
+  });
+});
+
+describe("labelSpot", () => {
+  // how far the label's box stays from the (infinite) line through the link, in any direction
+  const clearance = (x1: number, y1: number, x2: number, y2: number, w: number, h: number) => {
+    const spot = labelSpot({ x1, y1, x2, y2 }, w, h);
+    const len = Math.hypot(x2 - x1, y2 - y1), nx = -(y2 - y1) / len, ny = (x2 - x1) / len;
+    const centre = Math.abs((spot.x - x1) * nx + (spot.y - y1) * ny);
+    return centre - (Math.abs(nx) * w) / 2 - (Math.abs(ny) * h) / 2;
+  };
+
+  it("keeps the label clear of its line whatever the angle", () => {
+    expect(clearance(0, 0, 120, 0, 70, 22)).toBeGreaterThanOrEqual(8); // horizontal
+    expect(clearance(0, 0, 0, 120, 70, 22)).toBeGreaterThanOrEqual(8); // vertical
+    expect(clearance(0, 0, 90, -140, 90, 22)).toBeGreaterThanOrEqual(8); // diagonal
   });
 });

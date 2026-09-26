@@ -68,3 +68,12 @@ export function linkEnds(a: ArchNode, b: ArchNode, gap = 6) {
   const reach = Math.min((BOX.width / 2 + gap) / Math.abs(dx || 1e-9), (BOX.height / 2 + gap) / Math.abs(dy || 1e-9));
   return { x1: a.x + dx * reach, y1: a.y + dy * reach, x2: b.x - dx * reach, y2: b.y - dy * reach };
 }
+
+/** Where a link's label sits: beside the middle of the line, pushed far enough that its box never touches it. */
+export function labelSpot(ends: { x1: number; y1: number; x2: number; y2: number }, width: number, height: number, clear = 10) {
+  const dx = ends.x2 - ends.x1, dy = ends.y2 - ends.y1, len = Math.hypot(dx, dy) || 1;
+  let nx = -dy / len, ny = dx / len; // a normal to the line
+  if (ny > 0 || (ny === 0 && nx > 0)) { nx = -nx; ny = -ny; } // prefer above, then to the left (vertical links are on the right edge)
+  const push = (Math.abs(nx) * width) / 2 + (Math.abs(ny) * height) / 2 + clear;
+  return { x: (ends.x1 + ends.x2) / 2 + nx * push, y: (ends.y1 + ends.y2) / 2 + ny * push };
+}
