@@ -32,7 +32,8 @@ export default function App() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [serverDown, setServerDown] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
-  const busy = turns.some((t) => t.role === "assistant" && t.streaming);
+  const [sending, setSending] = useState(false); // from send until the stream closes (memory is saved after "done")
+  const busy = sending || turns.some((t) => t.role === "assistant" && t.streaming);
   const last = turns[turns.length - 1];
   const status = last?.role === "assistant" ? statusOf(last) : "done";
   const coreState = status === "done" ? "idle" : status; // the memory core reacts to what the agent is doing
@@ -64,6 +65,7 @@ export default function App() {
   }, [turns]);
 
   async function openChat(id: string) {
+    if (busy) return; // the reply still streaming belongs to this chat
     const opened = await api.openChat(id);
     setChat(opened);
     setTurns(turnsFromHistory(opened.turns));
@@ -77,6 +79,7 @@ export default function App() {
   }
 
   async function newChat() {
+    if (busy) return;
     setChat(null);
     setTurns([]);
     setAttached([]);
@@ -93,6 +96,15 @@ export default function App() {
   }
 
   async function send(text: string) {
+    setSending(true);
+    try {
+      await stream(text);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function stream(text: string) {
     const chatId = await ensureChat();
     setTurns((t) => [...t, { role: "user", text }, newAssistantTurn()]);
     setAttached([]);
@@ -147,7 +159,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar chats={chats} activeId={chat?.id ?? null} onOpen={openChat} onNew={newChat} onDelete={removeChat} />
+      <Sidebar chats={chats} activeId={chat?.id ?? null} busy={busy} onOpen={openChat} onNew={newChat} onDelete={removeChat} />
       <div className="flex min-w-0 flex-1 flex-col gap-4 px-6 py-6">
         <Header title={chat?.title && chat.title !== "New chat" ? chat.title : "Travel assistant"} onTogglePanel={() => setPanelOpen(!panelOpen)} />
         {serverDown && (

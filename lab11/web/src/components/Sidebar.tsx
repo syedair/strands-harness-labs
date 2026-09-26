@@ -5,6 +5,7 @@ import type { ChatSummary } from "../api";
 type Props = {
   chats: ChatSummary[];
   activeId: string | null;
+  busy: boolean; // a reply is streaming: stay on this chat until it ends
   onOpen: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
@@ -12,7 +13,7 @@ type Props = {
 
 const DAY = 24 * 60 * 60 * 1000;
 
-export function Sidebar({ chats, activeId, onOpen, onNew, onDelete }: Props) {
+export function Sidebar({ chats, activeId, busy, onOpen, onNew, onDelete }: Props) {
   const [confirming, setConfirming] = useState<string | null>(null);
   const today = chats.filter((c) => Date.now() - c.updated_at < DAY);
   const earlier = chats.filter((c) => Date.now() - c.updated_at >= DAY);
@@ -33,7 +34,7 @@ export function Sidebar({ chats, activeId, onOpen, onNew, onDelete }: Props) {
               </div>
             ) : (
               <>
-                <button onClick={() => onOpen(chat.id)} className="press flex w-full items-center gap-2 px-3 py-2 text-left text-sm">
+                <button disabled={busy} onClick={() => onOpen(chat.id)} className="press disabled:cursor-not-allowed disabled:opacity-60 flex w-full items-center gap-2 px-3 py-2 text-left text-sm">
                   <MessageSquare size={14} className="shrink-0 text-ink-2" />
                   <span className="truncate pr-6">{chat.title}</span>
                 </button>
@@ -50,8 +51,8 @@ export function Sidebar({ chats, activeId, onOpen, onNew, onDelete }: Props) {
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col gap-4 border-r border-white/10 p-3">
-      <button onClick={onNew}
-              className="glass press flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm hover:border-accent/60">
+      <button disabled={busy} onClick={onNew}
+              className="glass press flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-60">
         <SquarePen size={15} className="text-accent" /> New chat
       </button>
       <nav className="flex-1 space-y-4 overflow-y-auto">

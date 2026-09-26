@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from strands_harness import create_harness
+from strands_harness.prompt import build_system_prompt
 
 import connectors
 import memory
@@ -25,7 +26,7 @@ def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
     turn.on_recall = lambda ids: memory.record_hits(notes, ids)
     store = memory.store_for(settings["model"], notes, on_search=turn.recall, on_store=turn.stored,
                              relevance=memory.system1_relevance)  # System 1 decides which memories are relevant
-    return create_harness(
+    agent = create_harness(
         model=settings["model"],
         instructions=INSTRUCTIONS,
         builtin_tools=["web_fetch", "read"],  # read: files the user attaches
@@ -37,3 +38,6 @@ def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
         interventions=[turn.gate, turn.check],
         callback_handler=None,  # the browser shows the reply, not the terminal
     )
+    # a reopened session restores the system prompt it was saved with; use today's instructions instead
+    agent.system_prompt = build_system_prompt(INSTRUCTIONS)
+    return agent
