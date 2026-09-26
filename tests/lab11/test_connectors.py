@@ -90,3 +90,11 @@ def test_a_connector_that_adds_no_tools_is_reported_with_the_logged_reason(clien
     client.put(f"/api/chats/{chat_id}/connectors", json={"enabled": ["aws-docs"]})
     errors = client.get(f"/api/harness?chat_id={chat_id}").json()["connectors"]["errors"]
     assert errors == [{"id": "aws-docs", "error": "the client initialization failed: [Errno 2] No such file or directory: 'no-such-mcp'"}]
+
+
+def test_a_new_chat_previews_the_harness_before_its_first_message(client):
+    harness = client.get("/api/harness").json()
+    assert harness["tools"] == ["web_fetch", "read"]
+    assert harness["skills"] and harness["connectors"] == {"enabled": [], "errors": []}
+    assert harness["session"]["messages"] == 0 and harness["session"]["id"] == ""
+    assert client.get("/api/chats").json() == []  # previewing doesn't create a chat

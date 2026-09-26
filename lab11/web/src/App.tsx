@@ -43,7 +43,7 @@ export default function App() {
   const refresh = useCallback(async (chatId?: string) => {
     setChats(await api.listChats());
     setMemory(await api.fetchMemory());
-    if (chatId) setHarness(await api.fetchHarness(chatId));
+    setHarness(await api.fetchHarness(chatId)); // no chat yet: what a new chat starts with
   }, []);
 
   useEffect(() => {
@@ -84,7 +84,7 @@ export default function App() {
     setTurns([]);
     setAttached([]);
     setFired(NO_BURST);
-    setHarness(null);
+    setHarness(await api.fetchHarness());
   }
 
   async function ensureChat(): Promise<string> {

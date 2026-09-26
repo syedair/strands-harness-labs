@@ -2,6 +2,7 @@
 import json
 import logging
 import sys
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -193,9 +194,28 @@ def read_skills() -> list[dict]:
     return skills
 
 
+PREVIEWS: dict[str, list[str]] = {}  # model -> tool names of a fresh agent
+
+
+def preview_tools(model: str) -> list[str]:
+    """The tools a new chat starts with, from an agent built on a throwaway session (no chat is created)."""
+    if model not in PREVIEWS:
+        with tempfile.TemporaryDirectory() as scratch:
+            settings = {"model": model, "system1_model": config.SYSTEM1_MODEL, "connectors": []}
+            PREVIEWS[model] = list(make_agent(TurnHandlers([]), "preview", settings, Path(scratch)).tool_names)
+    return PREVIEWS[model]
+
+
 @app.get("/api/harness")
-def harness(chat_id: str):
-    """What's inside the chat's harness: tools, skills, session, connectors."""
+def harness(chat_id: str | None = None):
+    """What's inside the chat's harness: tools, skills, session, connectors. No chat yet: what a new one gets."""
+    if chat_id is None:
+        return {
+            "tools": preview_tools(config.MAIN_MODEL),
+            "skills": read_skills(),
+            "session": {"id": "", "model": config.MAIN_MODEL, "system1_model": config.SYSTEM1_MODEL, "messages": 0, "files": []},
+            "connectors": {"enabled": [], "errors": []},
+        }
     require_chat(chat_id)
     agent, _ = agent_for(chat_id)
     settings = STORE.settings(chat_id)

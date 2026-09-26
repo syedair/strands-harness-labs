@@ -53,7 +53,7 @@ export const listChats = () => fetch("/api/chats").then((r) => json<ChatSummary[
 export const createChat = () => send("/api/chats", "POST").then((r) => json<{ id: string }>(r));
 export const deleteChat = (id: string) => send(`/api/chats/${id}`, "DELETE").then((r) => json(r));
 export const openChat = (id: string) => fetch(`/api/chats/${id}`).then((r) => json<Chat>(r));
-export const fetchHarness = (id: string) => fetch(`/api/harness?chat_id=${id}`).then((r) => json<Harness>(r));
+export const fetchHarness = (id?: string) => fetch(id ? `/api/harness?chat_id=${id}` : "/api/harness").then((r) => json<Harness>(r));
 export const listConnectors = () => fetch("/api/connectors").then((r) => json<Connector[]>(r));
 export const addConnector = (label: string, command: string, args: string[]) =>
   send("/api/connectors", "POST", { label, command, args }).then((r) => json<{ id: string }>(r));
