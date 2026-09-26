@@ -58,3 +58,13 @@ export const NO_BURST: Burst = { ids: [], at: 0 };
 export function showingFor(burst: Burst, now: number): number {
   return burst.ids.length === 0 ? 0 : Math.max(0, SHOW_MS - (now - burst.at));
 }
+
+/** Notes being forgotten: already deleted on disk, kept in the picture while they dissolve. */
+export type Ghosts = Burst & { nodes: MemoryGraph["nodes"] };
+export const NO_GHOSTS: Ghosts = { ...NO_BURST, nodes: [] };
+
+export function withGhosts(graph: MemoryGraph, ghosts: MemoryGraph["nodes"], active: string[]): MemoryGraph {
+  const present = new Set(graph.nodes.map((n) => n.id));
+  const extra = ghosts.filter((n) => active.includes(n.id) && !present.has(n.id));
+  return extra.length ? { ...graph, nodes: [...graph.nodes, ...extra] } : graph;
+}

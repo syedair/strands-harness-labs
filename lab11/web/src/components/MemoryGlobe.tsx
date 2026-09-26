@@ -1,15 +1,15 @@
 // The Memory tab: the memory core, what was just recalled (and why), and every note, newest first.
-import { Brain, Maximize2, Trash2, X } from "lucide-react";
+import { Brain, Eraser, Maximize2, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { MemoryGraph } from "../api";
 import { MemoryCore, type CoreState } from "./MemoryCore";
-import { showingFor, type Burst } from "../globe";
+import { showingFor, withGhosts, type Burst, type Ghosts } from "../globe";
 
 const STATES: CoreState[] = ["idle", "thinking", "working", "writing"];
 export type Recall = { query: string; ids: string[]; scores: number[] };
 
 type Props = {
-  graph: MemoryGraph; fired: Burst; stored: Burst; recall: Recall | null; state: CoreState;
+  graph: MemoryGraph; fired: Burst; stored: Burst; forgot: Ghosts; recall: Recall | null; state: CoreState;
   onForget: (id: string) => void;
 };
 
@@ -25,16 +25,18 @@ function useForAWhile(burst: Burst) {
   return active;
 }
 
-export default function MemoryGlobe({ graph, fired, stored, recall, state, onForget }: Props) {
+export default function MemoryGlobe({ graph, fired, stored, forgot, recall, state, onForget }: Props) {
   const firing = useForAWhile(fired);
   const saving = useForAWhile(stored);
+  const forgetting = useForAWhile(forgot);
+  const pictured = withGhosts(graph, forgot.nodes, forgetting); // forgotten notes dissolve before they disappear
   const [expanded, setExpanded] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
 
-  if (graph.nodes.length === 0) {
+  if (pictured.nodes.length === 0) {
     return <p className="text-ink-2">No memories yet — tell the assistant something about you.</p>;
   }
-  const caption = (firing.length > 0 || saving.length > 0) && (
+  const caption = (firing.length > 0 || saving.length > 0 || forgetting.length > 0) && (
     <div className="flex flex-col gap-1.5">
       {firing.length > 0 && (
         <p className="animate-rise flex items-center gap-2 rounded-full border border-accent/40 bg-bg-1/80 px-3 py-1 text-xs text-accent">
@@ -46,10 +48,15 @@ export default function MemoryGlobe({ graph, fired, stored, recall, state, onFor
           <Brain size={14} /> Storing a new memory
         </p>
       )}
+      {forgetting.length > 0 && (
+        <p className="animate-rise flex items-center gap-2 rounded-full border border-warn/50 bg-bg-1/80 px-3 py-1 text-xs text-warn">
+          <Eraser size={14} /> Forgetting {forgetting.length} {forgetting.length === 1 ? "memory" : "memories"}
+        </p>
+      )}
     </div>
   );
   const core = (height: number, close = false) => (
-    <MemoryCore graph={graph} fired={firing} stored={saving} state={state} height={height} close={close} />
+    <MemoryCore graph={pictured} fired={firing} stored={saving} forgotten={forgetting} state={state} height={height} close={close} />
   );
   return (
     <div className="space-y-3">

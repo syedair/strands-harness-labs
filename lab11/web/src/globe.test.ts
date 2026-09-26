@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cloudPoints, showingFor, spherePoint, toGraph } from "./globe";
+import { cloudPoints, showingFor, spherePoint, toGraph, withGhosts } from "./globe";
 
 const api = {
   nodes: [
@@ -90,5 +90,19 @@ describe("showingFor", () => {
     expect(showingFor(burst, 5000)).toBe(2000);
     expect(showingFor(burst, 7000)).toBe(0);
     expect(showingFor({ ids: [], at: 1000 }, 1000)).toBe(0);
+  });
+});
+
+describe("withGhosts", () => {
+  const graph = { nodes: [{ id: "home.md", text: "Dubai", hits: 0, created: 2 }], links: [] };
+  const ghost = { id: "name.md", text: "John", hits: 1, created: 1 };
+
+  it("keeps forgotten notes in the picture while they dissolve", () => {
+    expect(withGhosts(graph, [ghost], ["name.md"]).nodes.map((n) => n.id)).toEqual(["home.md", "name.md"]);
+  });
+
+  it("drops them once the animation is over, and never shows a note twice", () => {
+    expect(withGhosts(graph, [ghost], []).nodes.map((n) => n.id)).toEqual(["home.md"]);
+    expect(withGhosts(graph, [graph.nodes[0]], ["home.md"]).nodes).toHaveLength(1);
   });
 });

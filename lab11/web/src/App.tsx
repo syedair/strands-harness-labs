@@ -9,7 +9,7 @@ import { HarnessPanel } from "./components/HarnessPanel";
 import { Header } from "./components/Header";
 import { Message } from "./components/Message";
 import type { Recall } from "./components/MemoryGlobe";
-import { NO_BURST, type Burst } from "./globe";
+import { NO_BURST, NO_GHOSTS, type Burst, type Ghosts } from "./globe";
 import type { Switching } from "./connectors";
 import { Sidebar } from "./components/Sidebar";
 
@@ -28,6 +28,11 @@ export default function App() {
   const [memory, setMemory] = useState<MemoryGraph>({ nodes: [], links: [] });
   const [fired, setFired] = useState<Burst>(NO_BURST);
   const [stored, setStored] = useState<Burst>(NO_BURST);
+  const [forgot, setForgot] = useState<Ghosts>(NO_GHOSTS);
+  const memoryNow = useRef(memory); // the notes as they were before a forget deleted them
+  memoryNow.current = memory;
+  const dissolve = (ids: string[]) =>
+    setForgot({ ids, at: Date.now(), nodes: memoryNow.current.nodes.filter((n) => ids.includes(n.id)) });
   const [recall, setRecall] = useState<Recall | null>(null);
   const [attached, setAttached] = useState<FileInfo[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -117,6 +122,7 @@ export default function App() {
         if (event.type === "title") setChat((c) => (c ? { ...c, title: event.title } : c));
         if (event.type === "memory") { setFired({ ids: event.ids, at: Date.now() }); setRecall(event); }
         if (event.type === "stored") setStored({ ids: event.ids, at: Date.now() });
+        if (event.type === "forgot") dissolve(event.ids);
         update((turn) => applyEvent(turn, event));
       }
     } catch (error) {
@@ -161,6 +167,7 @@ export default function App() {
 
   async function forget(id: string) {
     await api.forgetMemory(id);
+    dissolve([id]);
     setMemory(await api.fetchMemory());
   }
 
@@ -196,7 +203,7 @@ export default function App() {
         </div>
       </div>
       <div className={`${panelOpen ? "fixed inset-y-0 right-0 z-30 bg-bg-1/95 backdrop-blur" : "hidden"} lg:static lg:block`}>
-        <HarnessPanel harness={harness} connectors={connectors} switching={switching} onAddSkill={addSkill} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} recall={recall} decisions={decisions} state={coreState} onForget={forget} />
+        <HarnessPanel harness={harness} connectors={connectors} switching={switching} onAddSkill={addSkill} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} forgot={forgot} recall={recall} decisions={decisions} state={coreState} onForget={forget} />
       </div>
     </div>
   );

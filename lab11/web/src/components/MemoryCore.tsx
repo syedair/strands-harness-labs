@@ -9,6 +9,7 @@ import { disposeTree, setPositions } from "../dispose";
 const CYAN = new THREE.Color("#22D3EE");
 const ACCENT = new THREE.Color("#6EE7B7");
 const VIOLET = new THREE.Color("#A78BFA"); // a memory being stored
+const AMBER = new THREE.Color("#FBBF24"); // a memory being forgotten
 const PRIMED = CYAN.clone().lerp(ACCENT, 0.5); // a neighbour the activation spread to
 const RADIUS = 60;
 const PARTICLES = 2600;
@@ -31,15 +32,16 @@ function glowTexture(): THREE.Texture {
 const glowing = (color: THREE.Color, opacity: number, map: THREE.Texture) =>
   ({ color, opacity, map, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
 
-type Props = { graph: MemoryGraph; fired: string[]; stored: string[]; state: CoreState; height: number; close?: boolean };
+type Props = { graph: MemoryGraph; fired: string[]; stored: string[]; forgotten?: string[]; state: CoreState; height: number; close?: boolean };
 
-export function MemoryCore({ graph, fired, stored, state, height, close = false }: Props) {
+export function MemoryCore({ graph, fired, stored, forgotten = [], state, height, close = false }: Props) {
   const box = useRef<HTMLDivElement>(null);
-  const live = useRef({ fired: new Set<string>(), stored: new Set<string>(), state, rebuild: (_g: MemoryGraph) => {} });
+  const live = useRef({ fired: new Set<string>(), stored: new Set<string>(), forgotten: new Set<string>(), state, rebuild: (_g: MemoryGraph) => {} });
   const [hover, setHover] = useState<{ text: string; x: number; y: number } | null>(null);
   live.current.state = state;
   live.current.fired = new Set(fired);
   live.current.stored = new Set(stored);
+  live.current.forgotten = new Set(forgotten);
 
   useEffect(() => {
     const el = box.current!;
@@ -82,6 +84,8 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
     core.add(pulses);
     const gathering = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: 3.5, ...glowing(VIOLET, 1, texture) }));
     core.add(gathering);
+    const scattering = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: 4.5, ...glowing(AMBER, 1, texture) }));
+    core.add(scattering);
     live.current.rebuild = (g: MemoryGraph) => {
       disposeTree(anchors); // the previous notes and links
       stars = g.nodes.map((n, i) => {
@@ -124,7 +128,7 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
 
     let frame = 0;
     const animate = (time: number) => {
-      const { fired: hot, stored: fresh, state: now } = live.current;
+      const { fired: hot, stored: fresh, forgotten: gone, state: now } = live.current;
       const busy = now !== "idle";
       core.rotation.y += SPEED[now];
       cloudMaterial.opacity = busy ? 0.95 : 0.7;
@@ -136,7 +140,14 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
         if (hot.has(l.a) && !hot.has(l.b)) primed.add(l.b);
         if (hot.has(l.b) && !hot.has(l.a)) primed.add(l.a);
       }
+      const fade = 0.5 + 0.5 * Math.sin(time / 250); // a forgotten note flickers out
       for (const s of stars) {
+        if (gone.has(s.id)) {
+          s.sprite.material.color = AMBER;
+          s.sprite.material.opacity = 0.6 + 0.4 * fade;
+          s.sprite.scale.setScalar(11 + 5 * fade);
+          continue;
+        }
         const on = hot.has(s.id);
         const saving = fresh.has(s.id);
         const warm = primed.has(s.id);
@@ -151,6 +162,11 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
       for (const l of links) {
         const ends = Number(hot.has(l.a)) + Number(hot.has(l.b));
         const material = l.line.material as THREE.LineBasicMaterial;
+        if (gone.has(l.a) || gone.has(l.b)) { // the forgotten note's links go amber as it lets go
+          material.color = AMBER;
+          material.opacity = 0.3 + 0.5 * fade;
+          continue;
+        }
         material.color = ends > 0 ? ACCENT : CYAN;
         material.opacity = ends === 2 ? 0.95 : ends === 1 ? 0.55 : 0.1 + Math.min(l.strength, 3) * 0.08;
         if (ends === 0) continue;
@@ -174,6 +190,16 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
         }
       });
       setPositions(gathering.geometry, incoming);
+      // forgetting: amber points scatter away from each forgotten note (the reverse of storing)
+      const outgoing: number[] = [];
+      stars.filter((s) => gone.has(s.id)).forEach((s) => {
+        for (let i = 0; i < 28; i++) {
+          const away = new THREE.Vector3(Math.sin(i * 2.4), Math.cos(i * 1.7), Math.sin(i * 0.9)).multiplyScalar(RADIUS * 0.9);
+          const t = (time / 1400 + i / 28) % 1;
+          outgoing.push(...s.pos.clone().addScaledVector(away, t).toArray());
+        }
+      });
+      setPositions(scattering.geometry, outgoing);
       // pulses: points travelling from the core out to each recalled note, over and over
       const targets = stars.filter((s) => hot.has(s.id));
       const trail: number[] = [...spread];
