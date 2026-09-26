@@ -1,26 +1,12 @@
-# Lab 6b: Kev — an open Jev-alike on your own machine. Same SDK, same questions: only the URL changes.
+# Lab 6b: Kev — an open Jev-alike on your own machine. Same SDK, same questions: only the client changes.
 import sys
 
-from dotenv import load_dotenv
-from typesafe_sdk import Choice, Noul, Score, TypeSafeClient
+from typesafe_sdk import TypeSafeClient
 
 from common.config import KEV_URL
+from common.show import show
 from common.system1 import ensure_kev
-from common.travel_cases import CASES, short
-
-load_dotenv()
-
-QUESTIONS = {
-    # Noul: a yes/no question -> the probability that it's true
-    "named_city": Noul(instructions="Did the user say which city they mean?"),
-    # Choice: pick one option -> a probability for each
-    "intent": Choice(
-        instructions="What does the user want?",
-        criteria={"weather": "the current weather", "packing": "a packing list", "itinerary": "a trip plan"},
-    ),
-    # Score: rate on your scale -> a probability-weighted value
-    "urgency": Score(instructions="How urgent is the request?", criteria=["not urgent", "today", "right now"]),
-}
+from lab6a_jev import conversation, more, questions  # the same conversations and questions as lab 6a
 
 
 def main() -> None:
@@ -28,14 +14,16 @@ def main() -> None:
         sys.exit(1)
     kev = TypeSafeClient(base_url=KEV_URL, api_key="local")  # NEW: your machine, no real key
 
-    print(f"{'user said':44}{'P(city)':>8}  {'intent':10}{'urgency 0-2':>12}  decision")
-    for case in CASES:
-        answers = kev.system_one(model="kev-latest", state=case, questions=QUESTIONS).answers
-        p_city, intent, urgency = answers["named_city"].noul, answers["intent"].choice, answers["urgency"].score
+    for state in [conversation, *more]:
+        # Ask. One call, three answers.
+        answers = kev.system_one(model="kev-latest", state=state, questions=questions).answers
+        show(state, questions, answers)
 
         # Kev only observes. Plain Python decides.
-        decision = "ask which city" if p_city < 0.5 else f"go: {intent}"
-        print(f"{short(case):44}{p_city:8.2f}  {intent:10}{urgency:12.2f}  {decision}")
+        if answers["named_city"].noul < 0.5:
+            print("  → ask which city\n")
+        else:
+            print(f"  → go: {answers['intent'].choice}\n")
 
 
 if __name__ == "__main__":
