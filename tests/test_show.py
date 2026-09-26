@@ -69,3 +69,20 @@ def test_show_takes_plain_dicts_like_laya_returns(capsys):
     assert "Did the user say which city they mean?" in out and "0.10" in out
     assert out.index("not urgent") < out.index("today") < out.index("right now")
     assert "0.44" in out and "2 = right now" in out
+
+
+def test_checklist_marks_each_rule_and_draws_the_threshold(capsys):
+    from common.show import checklist
+
+    checklist([("same city as the user?", 0.08, False), ("too early?", 0.41, True)], threshold=0.65)
+    lines = capsys.readouterr().out.splitlines()
+    assert "same city as the user?" in lines[0] and "0.08" in lines[0] and "✗" in lines[0]
+    assert "too early?" in lines[1] and "✓" in lines[1]
+    assert all(line.count("│") == 1 for line in lines)  # the threshold mark, once per bar
+
+
+def test_wait_never_waits_off_a_terminal(monkeypatch):
+    from common.show import wait
+
+    monkeypatch.setattr("builtins.input", lambda *_: (_ for _ in ()).throw(AssertionError("waited")))
+    wait("press Enter to ask System 1")

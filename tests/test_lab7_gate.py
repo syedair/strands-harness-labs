@@ -36,7 +36,7 @@ def test_every_block_prints_a_decision(monkeypatch, capsys):
     monkeypatch.setattr(lab7, "yes_no_many", lambda s, q: {"matches_intent": 0.1, "missing_info": 0.1,
                                                           "args_grounded": 0.9, "premature": 0.1})
     lab7.ToolCallGate().before_tool_call(event("Paris"))
-    assert "[gate] ->" in capsys.readouterr().out
+    assert "gate →" in capsys.readouterr().out
 
 
 def test_gate_records_last_probs(monkeypatch):
@@ -67,3 +67,9 @@ def test_every_block_says_nothing_ran(monkeypatch, probs_seen):
 def test_intent_question_accepts_a_step_towards_the_answer():
     # a weather lookup is a sensible step for a packing request; the older wording blocked it on Qwen
     assert "step towards answering" in lab7.QUESTIONS["matches_intent"]
+
+
+def test_the_web_app_gate_never_waits_for_enter():
+    from events import WebGate
+
+    assert lab7.ToolCallGate.PAUSE is True and WebGate.PAUSE is False

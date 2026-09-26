@@ -27,12 +27,25 @@ def _conversation_line(conversation: str) -> str:
     return _paint(said.removeprefix("user: "), "bold") + (_paint(f"   ({rest})", "dim") if rest else "")
 
 
-def pause(conversation: str) -> None:
-    """Show the conversation, then wait for Enter before asking, so you can explain it first.
-    Only waits in a real terminal: piped or tested runs go straight through."""
-    print(_conversation_line(conversation))
+def wait(prompt: str = "press Enter to ask") -> None:
+    """Wait for Enter, so you can explain what's on screen first. Only in a real terminal: piped or tested
+    runs go straight through."""
     if sys.stdin.isatty():
-        input(_paint("  press Enter to ask ", "dim"))
+        input(_paint(f"  {prompt} ", "dim"))
+
+
+def pause(conversation: str) -> None:
+    """Show the conversation, then wait for Enter before asking."""
+    print(_conversation_line(conversation))
+    wait()
+
+
+def checklist(rows: list[tuple[str, float, bool]], threshold: float) -> None:
+    """One bar per rule, with the threshold marked: (label, probability, passed). ✓ passed, ✗ broke the rule."""
+    width = max(len(label) for label, _, _ in rows) + 2
+    for label, p, ok in rows:
+        mark = _paint("✓", "green") if ok else _paint("✗", "red")
+        print(f"    {label:{width}}{_paint(bar(p, threshold=threshold), 'green' if ok else 'red')}  {p:.2f}  {mark}")
 
 
 def show(conversation: str, questions: dict, answers: dict, threshold: float = 0.5, header: bool = True) -> None:

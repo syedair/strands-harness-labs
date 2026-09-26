@@ -31,6 +31,8 @@ def decision(source: str, action, probs: dict[str, float], why: str | None = Non
 class WebGate(ToolCallGate):
     """Lab 7's gate, plus: record the tool call and the decision for the UI."""
 
+    PAUSE = False  # a server never waits for Enter
+
     def __init__(self, events: list[dict]):
         super().__init__()
         self.events = events
