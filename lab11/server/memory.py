@@ -77,6 +77,10 @@ def forget(root: Path, note_id: str) -> None:
         hits = json.loads(hits_file.read_text())
         hits.pop(note_id, None)
         hits_file.write_text(json.dumps(hits))
+    together_file = _together_file(root)
+    if together_file.exists():
+        together = {k: v for k, v in json.loads(together_file.read_text()).items() if note_id not in k.split("|")}
+        together_file.write_text(json.dumps(together))
 
 
 def _hits_file(root: Path) -> Path:
@@ -84,12 +88,28 @@ def _hits_file(root: Path) -> Path:
     return Path(root).parent / f"{Path(root).name}_hits.json"
 
 
+def _together_file(root: Path) -> Path:
+    return Path(root).parent / f"{Path(root).name}_together.json"
+
+
+def _pair(a: str, b: str) -> str:
+    return "|".join(sorted((a, b)))
+
+
 def record_hits(root: Path, ids: list[str]) -> None:
+    """Count each recall, and each pair recalled together: notes that fire together wire together."""
     path = _hits_file(root)
     hits = json.loads(path.read_text()) if path.exists() else {}
     for note_id in ids:
         hits[note_id] = hits.get(note_id, 0) + 1
     path.write_text(json.dumps(hits))
+    together_path = _together_file(root)
+    together = json.loads(together_path.read_text()) if together_path.exists() else {}
+    unique = sorted(set(ids))
+    for i, a in enumerate(unique):
+        for b in unique[i + 1:]:
+            together[_pair(a, b)] = together.get(_pair(a, b), 0) + 1
+    together_path.write_text(json.dumps(together))
 
 
 def ollama_embed(texts: list[str]) -> list[list[float]] | None:
@@ -140,11 +160,17 @@ def graph(root: Path, embed=ollama_embed, threshold: float = 0.6, per_node: int 
                 pairs.append((weight, ids[a], ids[b]))
     pairs.sort(reverse=True)
     degree: dict[str, int] = {}
-    links = []
-    for weight, a, b in pairs:  # keep each note's strongest few links
+    links: dict[str, dict] = {}
+    for weight, a, b in pairs:  # links by meaning: each note's strongest few
         if degree.get(a, 0) < per_node and degree.get(b, 0) < per_node:
-            links.append({"source": a, "target": b, "weight": round(weight, 2)})
+            links[_pair(a, b)] = {"source": min(a, b), "target": max(a, b), "weight": round(weight, 2), "together": 0}
             degree[a] = degree.get(a, 0) + 1
             degree[b] = degree.get(b, 0) + 1
+    together_file = _together_file(root)
+    together = json.loads(together_file.read_text()) if together_file.exists() else {}
+    for key, count in together.items():  # links by use: notes recalled together
+        a, b = key.split("|")
+        if a in notes and b in notes:
+            links.setdefault(key, {"source": a, "target": b, "weight": 0.0, "together": 0})["together"] = count
     nodes = [{"id": i, "text": notes[i][:300], "hits": hits.get(i, 0), "created": created[i]} for i in ids]
-    return {"nodes": nodes, "links": links}
+    return {"nodes": nodes, "links": list(links.values())}

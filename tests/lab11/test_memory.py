@@ -83,3 +83,21 @@ def test_forget_deletes_the_note_and_its_hits(tmp_path):
     import pytest as _p
     with _p.raises(ValueError):
         memory.forget(tmp_path, "../chats/x.json")  # only notes in the memory folder
+
+
+def test_notes_recalled_together_wire_together(tmp_path):
+    (tmp_path / "food.md").write_text("Likes spicy food.")
+    (tmp_path / "home.md").write_text("Lives near the sea.")
+    (tmp_path / "name.md").write_text("Is called Syed.")
+    memory.record_hits(tmp_path, ["food.md", "home.md"])
+    memory.record_hits(tmp_path, ["home.md", "food.md"])
+    links = memory.graph(tmp_path, embed=None)["links"]
+    assert links == [{"source": "food.md", "target": "home.md", "weight": 0.0, "together": 2}]
+
+
+def test_similar_notes_link_even_before_firing_together(tmp_path):
+    (tmp_path / "a.md").write_text("beaches")
+    (tmp_path / "b.md").write_text("sand")
+    vectors = {"beaches": [1, 0], "sand": [0.9, 0.1]}
+    links = memory.graph(tmp_path, embed=lambda texts: [vectors[t] for t in texts])["links"]
+    assert links[0]["together"] == 0 and links[0]["weight"] > 0.6

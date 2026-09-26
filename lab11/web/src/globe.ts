@@ -1,15 +1,32 @@
-// Memory notes -> the 3D graph's nodes and links. Pure, so it's easy to test.
+// Memory notes -> the core's stars and links, brain-style. Pure, so it's easy to test.
+//   fired  = recalled this turn
+//   primed = linked to a fired note (activation spreads one hop, like associations in the brain)
+//   links: cofire (both ends fired) · spread (one end fired) · idle
+//   strength = similarity + how often the two were recalled together (fire together, wire together)
 import type { MemoryGraph } from "./api";
 
-export type GlobeNode = { id: string; text: string; hits: number; fired: boolean; val: number };
-export type GlobeLink = { source: string; target: string; weight: number; fired: boolean };
+export type NodeState = "fired" | "primed" | "idle";
+export type LinkState = "cofire" | "spread" | "idle";
+export type GlobeNode = { id: string; text: string; hits: number; created: number; state: NodeState; val: number };
+export type GlobeLink = { source: string; target: string; weight: number; together: number; state: LinkState; strength: number };
 
 export function toGraph(graph: MemoryGraph, fired: string[]): { nodes: GlobeNode[]; links: GlobeLink[] } {
   const hot = new Set(fired);
+  const primed = new Set<string>();
+  for (const l of graph.links) {
+    if (hot.has(l.source) && !hot.has(l.target)) primed.add(l.target);
+    if (hot.has(l.target) && !hot.has(l.source)) primed.add(l.source);
+  }
   return {
-    // val is the sphere's volume: notes recalled more often grow
-    nodes: graph.nodes.map((n) => ({ ...n, fired: hot.has(n.id), val: 1 + Math.log2(1 + n.hits) * 2 })),
-    links: graph.links.map((l) => ({ ...l, fired: hot.has(l.source) || hot.has(l.target) })),
+    // val is the star's size: notes recalled more often grow
+    nodes: graph.nodes.map((n) => ({
+      ...n, val: 1 + Math.log2(1 + n.hits) * 2,
+      state: hot.has(n.id) ? "fired" : primed.has(n.id) ? "primed" : "idle",
+    })),
+    links: graph.links.map((l) => {
+      const ends = Number(hot.has(l.source)) + Number(hot.has(l.target));
+      return { ...l, state: ends === 2 ? "cofire" : ends === 1 ? "spread" : "idle", strength: l.weight + Math.log2(1 + l.together) };
+    }),
   };
 }
 

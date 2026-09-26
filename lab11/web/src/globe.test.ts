@@ -8,17 +8,33 @@ const api = {
     { id: "food.md", text: "Likes street food.", hits: 1, created: 1 },
   ],
   links: [
-    { source: "home.md", target: "trip.md", weight: 0.8 },
-    { source: "trip.md", target: "food.md", weight: 0.7 },
+    { source: "home.md", target: "trip.md", weight: 0.8, together: 0 },
+    { source: "trip.md", target: "food.md", weight: 0.7, together: 0 },
   ],
 };
 
 describe("toGraph", () => {
-  it("fires the recalled notes and every link touching them", () => {
+  it("fires recalled notes and primes their neighbours (spreading activation)", () => {
     const g = toGraph(api, ["home.md"]);
-    expect(g.nodes.find((n) => n.id === "home.md")?.fired).toBe(true);
-    expect(g.nodes.find((n) => n.id === "trip.md")?.fired).toBe(false);
-    expect(g.links.map((l) => l.fired)).toEqual([true, false]);
+    const state = (id: string) => g.nodes.find((n) => n.id === id)?.state;
+    expect(state("home.md")).toBe("fired");
+    expect(state("trip.md")).toBe("primed"); // linked to a recalled note
+    expect(state("food.md")).toBe("idle"); // two hops away: no activation
+    expect(g.links.map((l) => l.state)).toEqual(["spread", "idle"]);
+  });
+
+  it("links between two recalled notes co-fire", () => {
+    const g = toGraph(api, ["home.md", "trip.md"]);
+    expect(g.links[0].state).toBe("cofire");
+    expect(g.nodes.find((n) => n.id === "food.md")?.state).toBe("primed");
+  });
+
+  it("notes recalled together more often are wired more strongly", () => {
+    const g = toGraph({ ...api, links: [
+      { source: "home.md", target: "trip.md", weight: 0.7, together: 0 },
+      { source: "trip.md", target: "food.md", weight: 0.7, together: 5 },
+    ] }, []);
+    expect(g.links[1].strength).toBeGreaterThan(g.links[0].strength);
   });
 
   it("sizes notes by how often they were recalled", () => {

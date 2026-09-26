@@ -34,7 +34,7 @@ export type Harness = {
 };
 export type MemoryGraph = {
   nodes: { id: string; text: string; hits: number; created: number }[]; // newest first
-  links: { source: string; target: string; weight: number }[];
+  links: { source: string; target: string; weight: number; together: number }[]; // similarity + co-recall count
 };
 
 async function json<T>(response: Response): Promise<T> {

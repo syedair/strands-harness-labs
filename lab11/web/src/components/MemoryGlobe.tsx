@@ -124,6 +124,15 @@ export default function MemoryGlobe({ graph, fired, stored, recall, state, onFor
             ))}
           </div>
           <div className="absolute bottom-10 left-10">{caption}</div>
+          <ul className="absolute bottom-10 right-10 space-y-1.5 font-mono text-[0.7rem] text-ink-2">
+            {[["#6EE7B7", "Recalled — fired this turn"], ["#A8F0D9", "Primed — linked to a recalled memory"],
+              ["#A78BFA", "Storing — a new memory"], ["#22D3EE", "Resting"]].map(([color, label]) => (
+              <li key={label} className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full" style={{ background: color, boxShadow: `0 0 8px ${color}` }} /> {label}
+              </li>
+            ))}
+            <li className="pt-1">Brighter line = used together more often</li>
+          </ul>
         </div>
       )}
     </div>

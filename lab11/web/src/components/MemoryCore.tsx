@@ -8,6 +8,7 @@ import { cloudPoints, spherePoint } from "../globe";
 const CYAN = new THREE.Color("#22D3EE");
 const ACCENT = new THREE.Color("#6EE7B7");
 const VIOLET = new THREE.Color("#A78BFA"); // a memory being stored
+const PRIMED = CYAN.clone().lerp(ACCENT, 0.5); // a neighbour the activation spread to
 const RADIUS = 60;
 const PARTICLES = 2600;
 const SPEED = { idle: 0.0015, thinking: 0.004, working: 0.006, writing: 0.003 } as const;
@@ -75,7 +76,7 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
     const anchors = new THREE.Group();
     core.add(anchors);
     let stars: { id: string; text: string; sprite: THREE.Sprite; pos: THREE.Vector3 }[] = [];
-    let links: { a: string; b: string; line: THREE.Line }[] = [];
+    let links: { a: string; b: string; strength: number; line: THREE.Line }[] = [];
     const pulses = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: 3.5, ...glowing(ACCENT, 1, texture) }));
     core.add(pulses);
     const gathering = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: 3.5, ...glowing(VIOLET, 1, texture) }));
@@ -95,7 +96,7 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
         const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([at.get(l.source)!, at.get(l.target)!]),
           new THREE.LineBasicMaterial({ color: CYAN, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending }));
         anchors.add(line);
-        return { a: l.source, b: l.target, line };
+        return { a: l.source, b: l.target, strength: l.weight + Math.log2(1 + l.together), line };
       });
     };
 
@@ -128,12 +129,36 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
       cloudMaterial.opacity = busy ? 0.95 : 0.7;
       glow.material.opacity = (busy ? 0.5 : 0.3) + 0.05 * Math.sin(time / 600);
       const flare = 1 + 0.4 * Math.sin(time / 160);
+      // spreading activation: recalled notes fire, their direct neighbours are primed (one hop)
+      const primed = new Set<string>();
+      for (const l of links) {
+        if (hot.has(l.a) && !hot.has(l.b)) primed.add(l.b);
+        if (hot.has(l.b) && !hot.has(l.a)) primed.add(l.a);
+      }
       for (const s of stars) {
         const on = hot.has(s.id);
         const saving = fresh.has(s.id);
-        s.sprite.material.color = saving ? VIOLET : on ? ACCENT : CYAN;
-        s.sprite.material.opacity = on || saving ? 1 : 0.85;
-        s.sprite.scale.setScalar((7 + (on || saving ? 5 : 0)) * (on || saving ? flare : 1));
+        const warm = primed.has(s.id);
+        s.sprite.material.color = saving ? VIOLET : on ? ACCENT : warm ? PRIMED : CYAN;
+        s.sprite.material.opacity = on || saving ? 1 : warm ? 0.95 : 0.8;
+        s.sprite.scale.setScalar(on || saving ? 12 * flare : warm ? 9 + Math.sin(time / 300) : 7);
+      }
+      // links: co-firing (both ends recalled) is brightest; spreading (one end) is dimmer; idle shows
+      // how strongly the two are wired (similar meaning + how often they were recalled together)
+      const spread: number[] = [];
+      for (const l of links) {
+        const ends = Number(hot.has(l.a)) + Number(hot.has(l.b));
+        const material = l.line.material as THREE.LineBasicMaterial;
+        material.color = ends > 0 ? ACCENT : CYAN;
+        material.opacity = ends === 2 ? 0.95 : ends === 1 ? 0.55 : 0.1 + Math.min(l.strength, 3) * 0.08;
+        if (ends === 0) continue;
+        const [from, to] = hot.has(l.a) ? [l.a, l.b] : [l.b, l.a];
+        const start = stars.find((s) => s.id === from)!.pos, end = stars.find((s) => s.id === to)!.pos;
+        for (let i = 0; i < 4; i++) {
+          const t = (time / 900 + i / 4) % 1;
+          const forward = ends === 1 || i % 2 === 0; // co-firing runs both ways
+          spread.push(...start.clone().lerp(end, forward ? t : 1 - t).toArray());
+        }
       }
       // storing: violet points gather from outside the core into each new note (recall fires the other way)
       const incoming: number[] = [];
@@ -147,15 +172,9 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
         }
       });
       gathering.geometry.setAttribute("position", new THREE.Float32BufferAttribute(incoming, 3));
-      for (const l of links) {
-        const on = hot.has(l.a) || hot.has(l.b);
-        const material = l.line.material as THREE.LineBasicMaterial;
-        material.color = on ? ACCENT : CYAN;
-        material.opacity = on ? 0.9 : 0.25;
-      }
       // pulses: points travelling from the core out to each recalled note, over and over
       const targets = stars.filter((s) => hot.has(s.id));
-      const trail: number[] = [];
+      const trail: number[] = [...spread];
       targets.forEach((s, k) => {
         for (let i = 0; i < 6; i++) {
           const t = ((time / 1400 + i / 6 + k * 0.13) % 1);
