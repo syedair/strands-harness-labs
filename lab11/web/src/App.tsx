@@ -2,7 +2,7 @@ import { ServerOff } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as api from "./api";
 import type { Chat, ChatSummary, Connector, FileInfo, Harness, MemoryGraph, Options } from "./api";
-import { applyEvent, finishTurn, newAssistantTurn, turnsFromHistory, type AssistantTurn, type Part, type Turn } from "./chat";
+import { applyEvent, finishTurn, newAssistantTurn, statusOf, turnsFromHistory, type AssistantTurn, type Part, type Turn } from "./chat";
 import { ComposerBar } from "./components/ComposerBar";
 import { EmptyState } from "./components/EmptyState";
 import { HarnessPanel } from "./components/HarnessPanel";
@@ -29,6 +29,9 @@ export default function App() {
   const [serverDown, setServerDown] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
   const busy = turns.some((t) => t.role === "assistant" && t.streaming);
+  const last = turns[turns.length - 1];
+  const status = last?.role === "assistant" ? statusOf(last) : "done";
+  const coreState = status === "done" ? "idle" : status; // the memory core reacts to what the agent is doing
   const decisions = turns.flatMap((t) => (t.role === "assistant" ? t.parts : []))
     .filter((p): p is Extract<Part, { kind: "decision" }> => p.kind === "decision");
 
@@ -158,7 +161,7 @@ export default function App() {
         </div>
       </div>
       <div className={`${panelOpen ? "fixed inset-y-0 right-0 z-30 bg-bg-1/95 backdrop-blur" : "hidden"} lg:static lg:block`}>
-        <HarnessPanel harness={harness} memory={memory} fired={fired} decisions={decisions} />
+        <HarnessPanel harness={harness} memory={memory} fired={fired} decisions={decisions} state={coreState} />
       </div>
     </div>
   );

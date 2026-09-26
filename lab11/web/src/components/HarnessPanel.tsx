@@ -4,6 +4,7 @@ import { lazy, Suspense, useState } from "react";
 import type { Harness, MemoryGraph } from "../api";
 import type { Part } from "../chat";
 import { DecisionChip } from "./DecisionChip";
+import type { CoreState } from "./MemoryCore";
 
 const MemoryGlobe = lazy(() => import("./MemoryGlobe")); // three.js loads only when this tab opens
 
@@ -14,7 +15,7 @@ const TABS: [Tab, string, LucideIcon][] = [
   ["connectors", "Connectors", Plug], ["session", "Session", Database], ["system1", "System 1", Activity],
 ];
 
-type Props = { harness: Harness | null; memory: MemoryGraph; fired: string[]; decisions: Decision[] };
+type Props = { harness: Harness | null; memory: MemoryGraph; fired: string[]; decisions: Decision[]; state: CoreState };
 
 function toolSource(tool: string, connectors: string[]): string {
   const connector = connectors.find((c) => tool.startsWith(`${c}_`));
@@ -24,7 +25,7 @@ function toolSource(tool: string, connectors: string[]): string {
   return "built-in";
 }
 
-export function HarnessPanel({ harness, memory, fired, decisions }: Props) {
+export function HarnessPanel({ harness, memory, fired, decisions, state }: Props) {
   const [tab, setTab] = useState<Tab>("memory");
   return (
     <aside className="flex h-full w-[26rem] shrink-0 flex-col border-l border-white/10">
@@ -51,7 +52,7 @@ export function HarnessPanel({ harness, memory, fired, decisions }: Props) {
         )}
         {tab === "memory" && (
           <Suspense fallback={<p className="text-ink-2">Loading the memory globe…</p>}>
-            <MemoryGlobe graph={memory} fired={fired} />
+            <MemoryGlobe graph={memory} fired={fired} state={state} />
           </Suspense>
         )}
         {harness && tab === "skills" && (
