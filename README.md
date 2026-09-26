@@ -36,7 +36,9 @@ MAIN_MODEL=bedrock/us.moonshotai.kimi-k3         # latest Kimi
 MAIN_MODEL=ollama/gpt-oss:20b                    # free and fully local (ollama pull gpt-oss:20b)
 ```
 
-The System 1 classifier always runs locally on Ollama (`SYSTEM1_MODEL`).
+The System 1 classifier always runs locally on Ollama (`SYSTEM1_MODEL`). Lab 9 routes between
+`SMALL_MODEL` and `BIG_MODEL` (Kimi K2.5 and Kimi K3 on Bedrock by default); for a fully local lab 9, set
+those to `ollama/` models too.
 
 ## 📚 Lab Overview
 

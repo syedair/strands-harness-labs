@@ -21,7 +21,7 @@ class CompletionCheck(InterventionHandler):
     MAX_GUIDES = 2  # Guide retries the model, so we must cap it
 
     def __init__(self):
-        self.guides = 0
+        self.guides = 0  # one agent call per run, so never reset
 
     def after_model_call(self, event):
         response = event.stop_response

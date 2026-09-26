@@ -1,7 +1,7 @@
 # Lab 7: System 1 gate — check a tool call before it runs; block guessed arguments.
 import json
 
-from strands.interventions import Guide, InterventionHandler, Proceed
+from strands.interventions import Deny, Guide, InterventionHandler, Proceed
 from strands_harness import create_harness
 
 from common.config import MAIN_MODEL, SYSTEM1_MODEL, check_ollama
@@ -31,6 +31,10 @@ def user_text(messages: list[dict]) -> str:
 class ToolCallGate(InterventionHandler):
     name = "system1-tool-call-gate"
     YES = 0.65  # the policy knob: what counts as a confident "yes"
+    MAX_BLOCKS = 3  # Guide lets the model try again, so cap it
+
+    def __init__(self):
+        self.blocks = 0
 
     def before_tool_call(self, event):
         call = f"{event.tool_use['name']}({json.dumps(event.tool_use.get('input', {}))})"
@@ -43,14 +47,23 @@ class ToolCallGate(InterventionHandler):
 
         # ...plain Python decides.
         if p["matches_intent"] < self.YES:
-            return Guide(feedback="That tool doesn't match the request. Reconsider.")
+            return self.block("the tool doesn't match the request", "That tool doesn't match the request. Reconsider.")
         if p["missing_info"] >= self.YES or p["args_grounded"] < self.YES:
-            print("[gate] -> Guide: ask the user instead of guessing")
-            return Guide(feedback="Blocked: the city is a guess, so nothing was fetched and you have no weather data. Do not report any weather. Ask the user which city they mean.")
+            return self.block("ask the user instead of guessing",
+                              "Blocked: the city is a guess, so nothing was fetched and you have no weather data. "
+                              "Do not report any weather. Ask the user which city they mean.")
         if p["premature"] >= self.YES:
-            return Guide(feedback="Too early to call this tool. Clarify with the user first.")
+            return self.block("too early, clarify first", "Too early to call this tool. Clarify with the user first.")
         print("[gate] -> Proceed")
         return Proceed()
+
+    def block(self, why: str, feedback: str):
+        self.blocks += 1
+        if self.blocks > self.MAX_BLOCKS:
+            print(f"[gate] -> Deny: {why} (blocked {self.MAX_BLOCKS}x already)")
+            return Deny(reason=feedback)
+        print(f"[gate] -> Guide ({self.blocks}/{self.MAX_BLOCKS}): {why}")
+        return Guide(feedback=feedback)
 
 
 def main() -> None:
