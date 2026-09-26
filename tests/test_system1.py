@@ -68,3 +68,76 @@ def test_yes_no_many_keeps_keys(monkeypatch):
     monkeypatch.setattr(system1, "_post", fake_post([("yes", 0.9), ("no", 0.1)], []))
     probs = system1.yes_no_many("state", {"grounded": "Q1?", "premature": "Q2?"})
     assert set(probs) == {"grounded", "premature"}
+
+
+# --- choosing the backend: SYSTEM1_MODEL = ollama/<name> | jev | kev | laya ---
+
+def fake_system_one(answers, sent):
+    def post(url, payload, headers):
+        sent.append((url, payload, headers))
+        return {"answers": answers}
+
+    return post
+
+
+def test_jev_asks_all_questions_in_one_request(monkeypatch):
+    monkeypatch.setenv("TYPESAFE_API_KEY", "k")
+    sent = []
+    monkeypatch.setattr(system1, "_system_one_post",
+                        fake_system_one({"a": {"noul": 0.9}, "b": {"noul": 0.2}}, sent))
+    probs = system1.yes_no_many("state", {"a": "Q1?", "b": "Q2?"}, model="jev")
+    assert probs == {"a": 0.9, "b": 0.2}
+    assert len(sent) == 1
+    url, payload, headers = sent[0]
+    assert url == "https://api.typesafe.ai/v1/systemone"
+    assert payload["questions"]["a"] == {"type": "noul", "instructions": "Q1?"}
+    assert headers == {"Authorization": "Bearer k"}
+
+
+def test_kev_uses_local_server_without_key(monkeypatch):
+    sent = []
+    monkeypatch.setattr(system1, "_system_one_post", fake_system_one({"q": {"noul": 0.7}}, sent))
+    assert system1.yes_no("state", "Q?", model="kev") == pytest.approx(0.7)
+    url, payload, headers = sent[0]
+    assert url.endswith("/v1/systemone") and payload["model"] == "kev-latest" and headers is None
+
+
+def test_choice_via_system_one_returns_option_probabilities(monkeypatch):
+    sent = []
+    answers = {"q": {"choice": "hard", "probabilities": {"easy": 0.3, "hard": 0.7}}}
+    monkeypatch.setattr(system1, "_system_one_post", fake_system_one(answers, sent))
+    assert system1.choice("s", "How hard?", ["easy", "hard"], model="kev") == {"easy": 0.3, "hard": 0.7}
+    assert sent[0][1]["questions"]["q"]["criteria"] == {"easy": "easy", "hard": "hard"}
+
+
+def test_laya_uses_its_router(monkeypatch):
+    class FakeRouter:
+        def predict(self, state, questions):
+            return {"answers": {key: {"noul": 0.4} for key in questions}}
+
+    monkeypatch.setattr(system1, "_laya_router", lambda: FakeRouter())
+    assert system1.yes_no("s", "Q?", model="laya") == pytest.approx(0.4)
+
+
+def test_bare_ollama_name_still_works(monkeypatch):
+    sent = []
+    monkeypatch.setattr(system1, "_post", fake_post([("yes", 1.0)], sent))
+    system1.yes_no("s", "Q?", model="qwen3.5:9b")
+    assert sent[0]["model"] == "qwen3.5:9b"
+
+
+def test_unavailable_reasons(monkeypatch):
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    monkeypatch.setattr(system1, "_kev_up", lambda: False)
+    monkeypatch.setattr(system1, "_laya_router", lambda: None)
+    monkeypatch.setattr(system1.config, "_pulled_models", lambda: {"qwen3.5:4b"})
+    assert "TYPESAFE_API_KEY" in system1.unavailable("jev")
+    assert "Kev" in system1.unavailable("kev")
+    assert "--extra laya" in system1.unavailable("laya")
+    assert "ollama pull qwen3.5:9b" in system1.unavailable("ollama/qwen3.5:9b")
+    assert system1.unavailable("ollama/qwen3.5:4b") is None
+
+
+def test_unknown_backend_is_rejected():
+    with pytest.raises(ValueError, match="ollama/<name>, jev, kev or laya"):
+        system1.yes_no("s", "Q?", model="gpt")

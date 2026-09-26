@@ -1,13 +1,13 @@
 # Lab 6: System 1 basics — a small local model stands in for a System 1 model: typed questions in, probabilities out.
-from common.config import SYSTEM1_MODEL, check_ollama
-from common.system1 import choice, yes_no, yes_no_many
+from common.config import SYSTEM1_MODEL
+from common.system1 import check_system1, choice, yes_no, yes_no_many
 
 CONVERSATION = """user: What's the weather?
 assistant wants to call: web_fetch(url="https://wttr.in/Seattle?format=3")"""
 
 
 def main() -> None:
-    check_ollama(SYSTEM1_MODEL)
+    check_system1()
     print(f"Classifier: {SYSTEM1_MODEL}\n\n{CONVERSATION}\n")
 
     # 1. One yes/no question -> one probability.

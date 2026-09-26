@@ -22,19 +22,26 @@ def test_datasets_are_labelled_both_ways():
     assert len(showdown.TOOL_CALLS) == 12
 
 
-def test_jev_skipped_without_key(monkeypatch, capsys):
-    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
-    monkeypatch.setattr(showdown, "_kev_up", lambda: False)
-    monkeypatch.setattr(showdown, "_laya_router", lambda: None)
+def test_unavailable_contenders_are_skipped_with_reason(monkeypatch, capsys):
+    reasons = {"jev": "Jev needs TYPESAFE_API_KEY", "kev": "Kev isn't running", "laya": "Laya isn't installed"}
+    monkeypatch.setattr(showdown, "unavailable", lambda model: reasons.get(model))
     names = [name for name, _ in showdown.contenders()]
     assert names == ["qwen3.5 (stand-in)"]
     out = capsys.readouterr().out
-    assert "TYPESAFE_API_KEY" in out and "Kev" in out and "laya" in out
+    assert "skip jev (paid): Jev needs TYPESAFE_API_KEY" in out
+    assert "Kev" in out and "Laya" in out
 
 
 def test_all_contenders_when_available(monkeypatch):
-    monkeypatch.setenv("TYPESAFE_API_KEY", "test")
-    monkeypatch.setattr(showdown, "_kev_up", lambda: True)
-    monkeypatch.setattr(showdown, "_laya_router", lambda: object())
+    monkeypatch.setattr(showdown, "unavailable", lambda model: None)
     names = [name for name, _ in showdown.contenders()]
     assert names == ["jev (paid)", "kev-4b (open)", "laya (open)", "qwen3.5 (stand-in)"]
+
+
+def test_contender_asks_its_own_backend(monkeypatch):
+    monkeypatch.setattr(showdown, "unavailable", lambda model: None)
+    seen = []
+    monkeypatch.setattr(showdown, "yes_no", lambda state, q, model=None: seen.append(model) or 0.5)
+    for _, ask in showdown.contenders():
+        ask("state", "Q?")
+    assert seen == ["jev", "kev", "laya", "ollama/qwen3.5:4b"]

@@ -2,8 +2,8 @@
 from strands.interventions import Guide, InterventionHandler, Proceed
 from strands_harness import create_harness
 
-from common.config import MAIN_MODEL, SYSTEM1_MODEL, check_ollama
-from common.system1 import yes_no
+from common.config import MAIN_MODEL, check_ollama
+from common.system1 import check_system1, yes_no
 
 # A "lazy" assistant that answers only the first part of a request.
 INSTRUCTIONS = (
@@ -46,7 +46,8 @@ class CompletionCheck(InterventionHandler):
 
 
 def main() -> None:
-    check_ollama(MAIN_MODEL, SYSTEM1_MODEL)
+    check_ollama(MAIN_MODEL)
+    check_system1()
     agent = create_harness(
         model=MAIN_MODEL,
         instructions=INSTRUCTIONS,

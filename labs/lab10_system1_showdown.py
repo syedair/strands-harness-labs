@@ -1,7 +1,6 @@
 # Lab 10: System 1 showdown — Jev vs Kev vs Laya vs our Qwen stand-in, on labelled questions.
 import time
 
-from common.config import SYSTEM1_MODEL, check_ollama
 from common.showdown import BEACH, TOOL_CALLS, contenders, score
 
 ROUNDS = [
@@ -15,7 +14,6 @@ ROUNDS = [
 
 
 def main() -> None:
-    check_ollama(SYSTEM1_MODEL)
     players = contenders()
 
     for title, labels, question in ROUNDS:

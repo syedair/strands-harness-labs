@@ -36,9 +36,22 @@ MAIN_MODEL=bedrock/us.moonshotai.kimi-k3         # latest Kimi
 MAIN_MODEL=ollama/gpt-oss:20b                    # free and fully local (ollama pull gpt-oss:20b)
 ```
 
-The System 1 classifier always runs locally on Ollama (`SYSTEM1_MODEL`). Lab 9 routes between
-`SMALL_MODEL` and `BIG_MODEL` (Kimi K2.5 and Kimi K3 on Bedrock by default); for a fully local lab 9, set
-those to `ollama/` models too.
+Lab 9 routes between `SMALL_MODEL` and `BIG_MODEL` (Kimi K2.5 and Kimi K3 on Bedrock by default); for a
+fully local lab 9, set those to `ollama/` models too.
+
+### Choosing the System 1 model
+
+Labs 6–9 use `SYSTEM1_MODEL` as the classifier. Pick one in `.env`:
+
+| `SYSTEM1_MODEL` | What it is | Setup |
+|---|---|---|
+| `ollama/qwen3.5:4b` (default) | A small local chat model as a **stand-in**: one token + its probabilities | `ollama pull qwen3.5:4b` |
+| `jev` | TypeSafe's hosted System 1 model (paid) | `TYPESAFE_API_KEY=...` in `.env` ([typesafe.ai](https://typesafe.ai)) |
+| `kev` | [Kev](https://github.com/jaredpalmer/kev), an open Jev-alike on your machine (Kev-4B needs a 32 GB Mac) | Start its server (see lab 10), `KEV_URL` in `.env` |
+| `laya` | [Laya](https://github.com/NandhaKishorM/laya), an open BERT-based System 1 model | `uv sync --extra laya` |
+
+The labs don't change: `yes_no()` and `choice()` in `labs/common/system1.py` send the same questions to
+whichever you pick. Lab 10 runs all four side by side.
 
 ## 📚 Lab Overview
 
@@ -90,7 +103,7 @@ uv run labs/lab5_interventions.py policy   # a policy decides
 ### Lab 6: System 1 Basics
 **File:** `labs/lab6_system1_basics.py`
 No agent. A small local model answers yes/no and choice questions with probabilities.
-**What's new:** `common/system1.py` — `yes_no()`, `yes_no_many()`, `choice()`
+**What's new:** `common/system1.py` — `yes_no()`, `yes_no_many()`, `choice()` (try `SYSTEM1_MODEL=jev`)
 **Video:** _coming soon_
 **Run:** `uv run labs/lab6_system1_basics.py`
 
