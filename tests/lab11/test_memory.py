@@ -175,3 +175,7 @@ def test_only_what_the_user_said_is_given_to_the_extractor():
 def test_the_store_extracts_only_from_the_user():
     store = memory.store_for("ollama/gpt-oss:20b", pathlib.Path("/tmp"), on_search=lambda *a: None)
     assert isinstance(store.extraction["extractor"], memory.UserOnlyExtractor)
+
+
+def test_facts_are_written_about_the_user_not_in_their_words():
+    assert "third person" in memory.USER_FACTS_PROMPT and "The user's name is" in memory.USER_FACTS_PROMPT

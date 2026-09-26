@@ -82,6 +82,8 @@ USER_FACTS_PROMPT = (
     "\n"
     'Return ONLY a JSON array of objects, each: {"content": string}. Each object is one discrete, self-contained '
     "fact the user stated about themselves: who they are, where they live, their plans, preferences and decisions. "
+    "Write each fact in the third person about the user, never in the user's own words: "
+    '"I am Syed" becomes "The user\'s name is Syed.", "we fly on Friday" becomes "The user flies on Friday." '
     "Do not include questions, chit-chat, guesses, or anything the user did not say. If there is nothing worth "
     "remembering, return []."
 )
