@@ -1,12 +1,15 @@
 # Lab 6b: Kev — an open Jev-alike on your own machine. Same SDK, same questions: only the client changes.
 import sys
 
-from typesafe_sdk import TypeSafeClient
-
 from common.config import KEV_URL
 from common.show import pause, show
 from common.system1 import ensure_kev
-from lab6a_jev import conversation, more, questions  # the same conversations and questions as lab 6a
+from lab6a_jev import (  # the same conversations and questions as lab 6a
+    conversation,
+    more,
+    questions,
+)
+from typesafe_sdk import TypeSafeClient
 
 
 def main() -> None:

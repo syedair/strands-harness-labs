@@ -56,3 +56,16 @@ def test_pause_shows_the_conversation_and_never_waits_off_a_terminal(capsys, mon
 def test_show_can_skip_the_conversation_line(capsys):
     show(CONVERSATION, QUESTIONS, ANSWERS, header=False)
     assert "What's the weather?" not in capsys.readouterr().out
+
+
+def test_show_takes_plain_dicts_like_laya_returns(capsys):
+    questions = {"named_city": {"type": "noul", "instructions": "Did the user say which city they mean?"},
+                 "urgency": {"type": "score", "instructions": "How urgent is the request?"}}
+    answers = {"named_city": {"type": "noul", "noul": 0.0965},
+               "urgency": {"type": "score", "score": 0.4374, "legend": {"0": "not urgent", "1": "today", "2": "right now"},
+                           "probabilities": {"0": 0.6863, "1": 0.1899, "2": 0.1237}}}
+    show(CONVERSATION, questions, answers)
+    out = capsys.readouterr().out
+    assert "Did the user say which city they mean?" in out and "0.10" in out
+    assert out.index("not urgent") < out.index("today") < out.index("right now")
+    assert "0.44" in out and "2 = right now" in out

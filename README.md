@@ -113,9 +113,9 @@ uv run labs/lab5_interventions.py policy   # a policy decides
 ### Lab 6: System 1 Basics (6a–6e)
 A System 1 model answers typed questions — yes/no (`Noul`), pick one (`Choice`), rate (`Score`) — with
 probabilities, and plain Python decides. Each lab asks the same questions about four conversations
-(a guessed city, Paris, a packing request, a vague trip idea). 6a and 6b read as four steps (the
-conversation, the questions, one call, then plain Python decides) and draw every probability as a bar; 6c–6e
-print one row per conversation. Jev and Kev get all four right; Laya and the Qwen stand-in miss some — lab 10
+(a guessed city, Paris, a packing request, a vague trip idea). Each one reads as the same steps (the
+conversation, the questions, one call, then plain Python decides), pauses on each conversation until you
+press Enter, and draws every probability as a bar. Jev and Kev get all four right; Laya and the Qwen stand-in miss some — lab 10
 measures that. The same questions, five ways:
 
 | File | What it shows | Needs |

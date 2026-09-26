@@ -2,10 +2,9 @@
 import os
 import sys
 
+from common.show import pause, show
 from dotenv import load_dotenv
 from typesafe_sdk import Choice, Noul, Score, TypeSafeClient
-
-from common.show import pause, show
 
 load_dotenv()
 
