@@ -2,55 +2,67 @@
 
 export type Tone = "plain" | "s1" | "llm" | "save";
 export type ArchNode = { id: string; label: string; detail: string; x: number; y: number; tone: Tone; inHarness?: boolean };
-export type Step = { from: string; to: string; label: string; title: string; text: string; example?: string; tone: Tone };
+export type Step = { from: string; to: string; back?: boolean; label: string; title: string; text: string; example?: string; tone: Tone };
 
-export const VIEW = { width: 1270, height: 540 };
-export const BOX = { width: 172, height: 62 };
-export const HARNESS = { x: 462, y: 44, width: 470, height: 456 }; // the Strands Harness, around its parts
+export const VIEW = { width: 1400, height: 530 };
+export const BOX = { width: 164, height: 62 };
+export const HARNESS = { x: 452, y: 40, width: 556, height: 466 }; // the Strands Harness, around its parts
 
 export const NODES: ArchNode[] = [
-  { id: "browser", label: "You", detail: "chat in the browser", x: 100, y: 272, tone: "plain" },
-  { id: "server", label: "App server", detail: "FastAPI, streams events", x: 336, y: 272, tone: "plain" },
-  { id: "session", label: "Session", detail: "chat history on disk", x: 566, y: 122, tone: "plain", inHarness: true },
-  { id: "memory", label: "Memory", detail: "markdown notes", x: 566, y: 272, tone: "plain", inHarness: true },
-  { id: "skills", label: "Skills", detail: "packing-list, yours…", x: 566, y: 422, tone: "plain", inHarness: true },
-  { id: "loop", label: "Agent loop", detail: "gate + check hooks", x: 826, y: 272, tone: "plain", inHarness: true },
-  { id: "system1", label: "System 1", detail: "Qwen · Jev · Kev · Laya", x: 1170, y: 106, tone: "s1" },
-  { id: "llm", label: "LLM", detail: "Kimi K2.5 on Bedrock", x: 1170, y: 272, tone: "llm" },
-  { id: "tools", label: "Tools", detail: "web_fetch · read · MCP", x: 1170, y: 438, tone: "plain" },
+  { id: "browser", label: "You", detail: "chat in the browser", x: 96, y: 170, tone: "plain" },
+  { id: "server", label: "App server", detail: "FastAPI, streams events", x: 330, y: 170, tone: "plain" },
+  { id: "agent", label: "Agent", detail: "orchestrates every step", x: 730, y: 170, tone: "plain", inHarness: true },
+  { id: "session", label: "Session", detail: "chat history on disk", x: 548, y: 420, tone: "plain", inHarness: true },
+  { id: "memory", label: "Memory", detail: "markdown notes", x: 730, y: 420, tone: "plain", inHarness: true },
+  { id: "skills", label: "Skills", detail: "packing-list, yours…", x: 912, y: 420, tone: "plain", inHarness: true },
+  { id: "system1", label: "System 1", detail: "Qwen · Jev · Kev · Laya", x: 1236, y: 80, tone: "s1" },
+  { id: "llm", label: "LLM", detail: "Kimi K2.5 on Bedrock", x: 1236, y: 250, tone: "llm" },
+  { id: "tools", label: "Tools", detail: "web_fetch · read · MCP", x: 1236, y: 420, tone: "plain" },
 ];
 
 export const STEPS: Step[] = [
   { from: "browser", to: "server", label: "message", tone: "plain", title: "You send a message",
-    text: "The browser posts it to the app server and keeps the connection open to stream the reply back.",
+    text: "The browser posts it to the app server and keeps the connection open for the reply.",
     example: "Pack for 4 days in Istanbul" },
-  { from: "server", to: "session", label: "load", tone: "plain", title: "The chat's session loads",
-    text: "Every chat is a harness session. The server builds the chat's agent and the harness restores its history from disk." },
-  { from: "loop", to: "memory", label: "search", tone: "plain", title: "Memory is searched",
-    text: "Before every LLM call the harness searches the saved notes for the message. Its keyword search matches almost anything." },
-  { from: "memory", to: "system1", label: "which help?", tone: "s1", title: "System 1 picks the notes that help",
+  { from: "server", to: "agent", label: "message", tone: "plain", title: "The server hands it to the Agent",
+    text: "Every chat has its own Agent. From here on, the Agent orchestrates every step: it calls each part and decides what happens next." },
+  { from: "agent", to: "session", back: true, label: "history", tone: "plain", title: "The Agent restores the chat",
+    text: "Every chat is a harness session, so the Agent picks up the conversation from disk where it left off." },
+  { from: "agent", to: "memory", back: true, label: "search", tone: "plain", title: "The Agent searches memory",
+    text: "Before every LLM call the Agent searches the saved notes. The keyword search matches almost anything, so the hits need checking." },
+  { from: "agent", to: "system1", back: true, label: "which notes help?", tone: "s1", title: "System 1 picks the notes that help",
     text: "For each note, System 1 answers one question with a probability. Notes at 0.5 or above are kept, best 5. The memory core fires.",
-    example: "Would this fact help answer the message? · The user lives in Dubai → 0.12 · Trip to Istanbul in March → 0.91" },
-  { from: "loop", to: "llm", label: "message + notes", tone: "llm", title: "The LLM plans the reply",
-    text: "The recalled notes ride along with the message. The LLM decides it needs the weather and asks for a tool." },
-  { from: "llm", to: "system1", label: "tool call?", tone: "s1", title: "System 1 gates the tool call",
-    text: "The tool gate is a harness intervention: its before_tool_call hook runs before web_fetch does. It asks System 1 two questions, and Python turns the answers into Proceed, Guide (ask instead of guessing), or Deny after 3 tries.",
-    example: "Is this a sensible step towards answering? 0.99 · Did the user mention this city? 0.97 → proceed" },
-  { from: "loop", to: "tools", label: "run", tone: "plain", title: "The tool runs",
-    text: "The harness runs the allowed call. Connectors you turn on add their MCP tools here.",
-    example: "wttr.in/Istanbul → Istanbul: ☁️ +22°C" },
-  { from: "loop", to: "skills", label: "load", tone: "plain", title: "A skill is loaded",
-    text: "Skills are folders of instructions the agent loads when it needs them. This one shapes the packing list." },
-  { from: "tools", to: "llm", label: "result", tone: "llm", title: "The LLM writes the answer",
-    text: "The forecast and the skill go back to the LLM, with memory recalled again before the call." },
-  { from: "llm", to: "system1", label: "complete?", tone: "s1", title: "System 1 checks the answer",
-    text: "The completion check is an intervention too, on the after_model_call hook. For multi-part requests it asks whether every part was answered; a half answer gets a Guide and is sent back, up to twice." },
-  { from: "server", to: "browser", label: "stream", tone: "plain", title: "The answer streams to you",
-    text: "Text arrives as it's written. Every step above becomes an event, folded into one row above the answer." },
-  { from: "loop", to: "memory", label: "save", tone: "save", title: "What it learned is saved",
-    text: "After the reply, the harness pulls new facts out of the conversation and saves them as dated notes. They gather in violet.",
+    example: "Would this fact help answer the message? · Trip to Istanbul in March → 0.91 · Favourite airline → 0.08" },
+  { from: "agent", to: "llm", back: true, label: "message + notes", tone: "llm", title: "The LLM asks for a skill",
+    text: "The recalled notes ride along with the message. The LLM sees a packing-list skill is available and asks to load it." },
+  { from: "agent", to: "skills", back: true, label: "packing-list", tone: "plain", title: "The Agent loads the skill",
+    text: "Skills are folders of instructions. This one says to check the forecast before listing what to pack." },
+  { from: "agent", to: "llm", back: true, label: "skill", tone: "llm", title: "The LLM asks for the forecast",
+    text: "Following the skill, the LLM asks the Agent to run web_fetch for Istanbul's weather.",
+    example: "web_fetch https://wttr.in/Istanbul?format=3" },
+  { from: "agent", to: "system1", back: true, label: "allow the tool?", tone: "s1", title: "System 1 gates the tool call",
+    text: "The tool gate is a harness intervention: its before_tool_call hook runs before the tool does. It asks System 1 two questions, and Python turns the answers into Proceed, Guide (ask instead of guessing), or Deny after 3 tries.",
+    example: "Is this a sensible step towards answering? 0.99 · Did the user mention this city? 0.97 → Proceed" },
+  { from: "agent", to: "tools", back: true, label: "web_fetch", tone: "plain", title: "The tool runs",
+    text: "The Agent runs the allowed call. Connectors you turn on add their MCP tools here.",
+    example: "Istanbul: ☁️ +22°C" },
+  { from: "agent", to: "llm", back: true, label: "forecast", tone: "llm", title: "The LLM writes the answer",
+    text: "The forecast goes back to the LLM, which writes the packing list. Memory is searched and checked again before this call." },
+  { from: "agent", to: "system1", back: true, label: "complete?", tone: "s1", title: "System 1 checks the answer",
+    text: "The completion check is an intervention too, on the after_model_call hook. For multi-part requests it asks whether every part was answered; a half answer is sent back, up to twice." },
+  { from: "agent", to: "server", label: "answer", tone: "plain", title: "The Agent returns the answer",
+    text: "Every step so far was also reported as an event: recalls, tool calls, gate and check decisions." },
+  { from: "server", to: "browser", back: true, label: "stream", tone: "plain", title: "The answer streams to you",
+    text: "Text arrives as it's written, with the steps folded into one row above it. The connection stays open for one last step." },
+  { from: "server", to: "agent", label: "save", tone: "save", title: "The server asks the Agent to remember",
+    text: "Once the reply is out, the server asks the Agent to save what it learned." },
+  { from: "agent", to: "memory", back: true, label: "new notes", tone: "save", title: "What it learned is saved",
+    text: "The Agent pulls new facts out of the conversation and saves them as dated notes. They gather in violet on the memory core.",
     example: "User is planning a 4-day trip to Istanbul" },
 ];
+
+/** Where a step leaves the flow: a round trip comes back to where it started. */
+export const endOf = (step: Step) => (step.back ? step.from : step.to);
 
 export type Scene = { shown: Set<string>; current: Step | null; past: Step[] };
 

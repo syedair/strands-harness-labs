@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NODES, STEPS, labelSpot, linkEnds, sceneAt } from "./architecture";
+import { NODES, STEPS, endOf, labelSpot, linkEnds, sceneAt } from "./architecture";
 
 describe("the architecture walkthrough", () => {
   it("starts with only the browser on screen", () => {
@@ -11,9 +11,10 @@ describe("the architecture walkthrough", () => {
   it("brings each part in the first time a step uses it, and keeps it", () => {
     const first = sceneAt(0);
     expect(first.shown).toEqual(new Set(["browser", "server"]));
-    const later = sceneAt(3);
+    const later = sceneAt(4); // System 1 joins at step 5
     expect(later.shown.has("server") && later.shown.has("system1")).toBe(true);
     expect(later.shown.has("tools")).toBe(false);
+    expect(sceneAt(3).shown.has("system1")).toBe(false);
   });
 
   it("lights the current step's link and dims the ones before it", () => {
@@ -57,5 +58,22 @@ describe("labelSpot", () => {
     expect(clearance(0, 0, 120, 0, 70, 22)).toBeGreaterThanOrEqual(8); // horizontal
     expect(clearance(0, 0, 0, 120, 70, 22)).toBeGreaterThanOrEqual(8); // vertical
     expect(clearance(0, 0, 90, -140, 90, 22)).toBeGreaterThanOrEqual(8); // diagonal
+  });
+});
+
+describe("the sequence", () => {
+  it("starts every step where the previous one ended", () => {
+    for (let i = 1; i < STEPS.length; i++) {
+      expect(STEPS[i].from, `step ${i + 1}: ${STEPS[i].title}`).toBe(endOf(STEPS[i - 1]));
+    }
+  });
+
+  it("puts the Agent at the centre: every step touches it or the app server", () => {
+    for (const s of STEPS) expect([s.from, s.to].some((id) => id === "agent" || id === "server")).toBe(true);
+  });
+
+  it("round trips end back where they started", () => {
+    expect(endOf({ ...STEPS[0], back: true })).toBe(STEPS[0].from);
+    expect(endOf({ ...STEPS[0], back: false })).toBe(STEPS[0].to);
   });
 });

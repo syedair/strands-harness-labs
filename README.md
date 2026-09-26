@@ -181,25 +181,29 @@ The finished travel assistant as a web app that shows everything the harness doe
 sequenceDiagram
     participant U as You (browser)
     participant S as App server
-    participant H as Strands Harness
+    participant A as Agent
+    participant H as Session · Memory · Skills
     participant S1 as System 1
     participant L as LLM
     participant T as Tools
     U->>S: message
-    S->>H: load the chat's session
-    loop before every LLM call
-        H->>S1: which saved notes help? (p ≥ 0.5, best 5)
-        S1-->>H: recalled notes
-        H->>L: message + notes
-        L->>S1: tool call → tool gate (an intervention)
-        S1-->>L: proceed / guide / deny
-        L->>T: web_fetch, read, skills, MCP…
-        T-->>L: result
-    end
-    L->>S1: answer → completion check (an intervention, multi-part only)
-    S1-->>L: proceed / send back
-    S-->>U: answer streams, steps folded above it
-    H->>H: save new facts as notes (skipped if the turn forgot)
+    S->>A: message
+    A->>H: restore the chat, search memory
+    A->>S1: which notes help? (p ≥ 0.5, best 5)
+    A->>L: message + notes
+    L-->>A: load the packing-list skill
+    A->>H: load the skill
+    A->>L: skill
+    L-->>A: fetch the forecast
+    A->>S1: tool gate (before_tool_call intervention)
+    A->>T: web_fetch
+    A->>L: forecast
+    L-->>A: answer
+    A->>S1: completion check (after_model_call intervention)
+    A->>S: answer
+    S-->>U: stream
+    S->>A: save what you learned
+    A->>H: new dated notes
 ```
 
 **What's new:** `create_harness(session={"id", "dir"}, memory={"stores": [...]}, mcp_servers=..., tools=[...])`,

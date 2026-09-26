@@ -15,11 +15,14 @@ function Link({ step, live }: { step: Step; live: boolean }) {
   return (
     <g>
       <path d={path} stroke={color} strokeWidth={live ? 2.5 : 1.5} fill="none" markerEnd={`url(#arrow-${live ? step.tone : "past"})`}
+            markerStart={step.back ? `url(#arrow-${live ? step.tone : "past"})` : undefined}
             strokeDasharray={live ? undefined : "4 5"} />
       {live && (
         <>
           <circle r="5" fill={color}>
-            <animateMotion dur="1.1s" repeatCount="indefinite" path={path} />
+            {step.back /* a round trip: out to the part and back to the Agent */
+              ? <animateMotion dur="1.8s" repeatCount="indefinite" path={path} keyPoints="0;1;0" keyTimes="0;0.5;1" calcMode="linear" />
+              : <animateMotion dur="1.1s" repeatCount="indefinite" path={path} />}
           </circle>
           <g transform={`translate(${spot.x} ${spot.y})`}>
             <rect x={-width / 2} y="-11" width={width} height="22" rx="11" fill="#0B1120" stroke={color} strokeOpacity="0.6" />
