@@ -246,3 +246,19 @@ def test_forgetting_asks_system1_only_about_the_closest_notes(tmp_path):
     judge = lambda about, notes: asked.append(len(notes)) or {}
     memory.forget_about(tmp_path, "near 3", judge, embed=_fake_embed([]))
     assert asked == [memory.CANDIDATES]
+
+
+def test_embeddings_are_fetched_in_batches_with_room_for_a_cold_start(monkeypatch):
+    sent = []
+
+    class Reply:
+        def __init__(self, n): self.n = n
+        def raise_for_status(self): pass
+        def json(self): return {"embeddings": [[1.0, 0.0]] * self.n}
+
+    def post(url, json, timeout):
+        sent.append((len(json["input"]), timeout))
+        return Reply(len(json["input"]))
+    monkeypatch.setattr(memory.httpx, "post", post)
+    vectors = memory.ollama_embed([f"t{i}" for i in range(150)])
+    assert len(vectors) == 150 and [n for n, _ in sent] == [64, 64, 22] and all(t >= 120 for _, t in sent)

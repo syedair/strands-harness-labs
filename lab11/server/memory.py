@@ -206,14 +206,19 @@ def record_hits(root: Path, ids: list[str]) -> None:
     together_path.write_text(json.dumps(together))
 
 
-def ollama_embed(texts: list[str]) -> list[list[float]] | None:
-    """Embeddings from Ollama's nomic-embed-text, or None if it isn't available."""
+def ollama_embed(texts: list[str], batch: int = 64) -> list[list[float]] | None:
+    """Embeddings from Ollama's nomic-embed-text, or None if it isn't available. Sent in batches, with time for the
+    model to load on the first call."""
+    vectors: list[list[float]] = []
     try:
-        response = httpx.post(f"{OLLAMA_HOST}/api/embed", json={"model": "nomic-embed-text", "input": texts}, timeout=30)
-        response.raise_for_status()
-        return response.json()["embeddings"]
+        for start in range(0, len(texts), batch):
+            response = httpx.post(f"{OLLAMA_HOST}/api/embed",
+                                  json={"model": "nomic-embed-text", "input": texts[start:start + batch]}, timeout=120)
+            response.raise_for_status()
+            vectors += response.json()["embeddings"]
     except httpx.HTTPError:
         return None
+    return vectors
 
 
 CANDIDATES = 12  # notes System 1 reranks; measured: the right notes were in the embedding top 12 86% of the time
