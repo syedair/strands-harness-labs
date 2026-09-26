@@ -1702,6 +1702,7 @@ laya = [
 ]
 web = [
     { name = "fastapi" },
+    { name = "numpy" },
     { name = "python-multipart" },
     { name = "uvicorn" },
 ]
@@ -1716,6 +1717,7 @@ requires-dist = [
     { name = "fastapi", marker = "extra == 'web'", specifier = ">=0.141" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "laya", marker = "extra == 'laya'", specifier = ">=0.3.20" },
+    { name = "numpy", marker = "extra == 'web'", specifier = ">=2.5.3" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "python-multipart", marker = "extra == 'web'", specifier = ">=0.0.20" },
     { name = "strands-harness", extras = ["ollama"], specifier = ">=0.1.2,<0.2" },

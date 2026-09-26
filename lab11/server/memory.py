@@ -3,12 +3,12 @@
 import asyncio
 import json
 from datetime import datetime
-import math
 import re
 from pathlib import Path
 from typing import Callable
 
 import httpx
+import numpy as np
 from strands.memory import ExtractionConfig, MemoryEntry, ModelExtractor
 from strands.storage import LocalFileStorage
 from strands.vended_memory_stores.file_memory_store import FileMemoryStore
@@ -144,7 +144,7 @@ def topic_words(about: str) -> set[str]:
     return {w for w in re.findall(r"[a-z0-9]+", about.lower()) if len(w) >= 3 and w not in COMMON}
 
 
-def forget_about(root: Path, about: str, judge=system1_forget) -> list[str]:
+def forget_about(root: Path, about: str, judge=system1_forget, embed=None) -> list[str]:
     """Delete every note the judge says is about `about` (p >= 0.5). Returns the ids it deleted."""
     notes = {p.name: p.read_text() for p in Path(root).glob("*.md")}
     if not notes:
@@ -152,8 +152,9 @@ def forget_about(root: Path, about: str, judge=system1_forget) -> list[str]:
     words = topic_words(about)
     named = [i for i, text in notes.items() if words & set(re.findall(r"[a-z0-9]+", text.lower()))]  # says it outright
     rest = {i: t for i, t in notes.items() if i not in named}
-    scores = judge(about, rest) if rest else {}  # System 1 for the ones that only say it another way
-    doomed = named + [i for i in rest if scores.get(i, 0.0) >= 0.5]
+    pool = closest(root, rest, about, embed or ollama_embed) if rest else []  # the likeliest of the rest, by meaning
+    scores = judge(about, {i: rest[i] for i in pool}) if pool else {}  # System 1 for the ones that say it another way
+    doomed = named + [i for i in pool if scores.get(i, 0.0) >= 0.5]
     for note_id in doomed:
         forget(root, note_id)
     return doomed
@@ -222,31 +223,39 @@ def _embeddings_file(root: Path) -> Path:
     return Path(root).parent / f"{Path(root).name}_embeddings.json"  # beside the notes, like the hit counts
 
 
+def note_vectors(root: Path, notes: dict[str, str], embed=ollama_embed) -> dict[str, list[float]] | None:
+    """Each note's embedding, cached beside the notes and recomputed only when a note changes. None without a model."""
+    path = _embeddings_file(root)
+    cache = json.loads(path.read_text()) if path.exists() else {}
+    fresh = {i: c for i, c in cache.items() if i in notes}  # forgotten notes drop out
+    stale = [i for i in notes if fresh.get(i, {}).get("text") != notes[i]]  # new or edited notes
+    if stale:
+        vectors = embed([notes[i] for i in stale])
+        if vectors is None:
+            return None
+        fresh.update({i: {"text": notes[i], "vector": v} for i, v in zip(stale, vectors)})
+    if stale or len(fresh) != len(cache):
+        path.write_text(json.dumps(fresh))
+    return {i: fresh[i]["vector"] for i in notes}
+
+
 def closest(root: Path, notes: dict[str, str], query: str, embed=ollama_embed, k: int = CANDIDATES) -> list[str]:
     """The k notes nearest the query by meaning. All of them when there are few, or no embedding model."""
     if len(notes) <= k:
         return list(notes)
-    path = _embeddings_file(root)
-    cache = json.loads(path.read_text()) if path.exists() else {}
-    cache = {i: c for i, c in cache.items() if i in notes}  # forgotten notes drop out
-    stale = [i for i in notes if cache.get(i, {}).get("text") != notes[i]]  # new or edited notes
-    if stale:
-        vectors = embed([notes[i] for i in stale])
-        if vectors is None:
-            return list(notes)
-        cache.update({i: {"text": notes[i], "vector": v} for i, v in zip(stale, vectors)})
-        path.write_text(json.dumps(cache))
-    asked = embed([query])
+    vectors = note_vectors(root, notes, embed)
+    asked = embed([query]) if vectors is not None else None
     if asked is None:
         return list(notes)
-    ranked = sorted(notes, key=lambda i: _cosine(asked[0], cache[i]["vector"]), reverse=True)
-    return ranked[:k]
+    ids = list(notes)
+    matrix = _unit(np.array([vectors[i] for i in ids]))
+    scores = matrix @ _unit(np.array(asked[0]))
+    return [ids[j] for j in np.argsort(-scores)[:k]]
 
 
-def _cosine(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b))
-    norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
-    return dot / norm if norm else 0.0
+def _unit(a):
+    """Rows (or a vector) scaled to length 1, so a dot product is the cosine."""
+    return a / np.maximum(np.linalg.norm(a, axis=-1, keepdims=True), 1e-12)
 
 
 def _names(text: str) -> set[str]:
@@ -269,16 +278,18 @@ def graph(root: Path, embed=ollama_embed, threshold: float = 0.6, per_node: int 
     hits_file = _hits_file(root)
     hits = json.loads(hits_file.read_text()) if hits_file.exists() else {}
     ids = list(notes)
-    vectors = embed([notes[i] for i in ids]) if embed else None
+    vectors = note_vectors(root, notes, embed) if embed else None
     pairs = []
-    for a in range(len(ids)):
-        for b in range(a + 1, len(ids)):
-            if vectors:
-                weight = _cosine(vectors[a], vectors[b])
-            else:
-                weight = 1.0 if _names(notes[ids[a]]) & _names(notes[ids[b]]) else 0.0
-            if weight > threshold:
-                pairs.append((weight, ids[a], ids[b]))
+    if vectors:  # every pair at once: the cosine of each note with each other
+        matrix = _unit(np.array([vectors[i] for i in ids]))
+        similar = np.triu(matrix @ matrix.T, k=1)
+        for a, b in zip(*np.nonzero(similar > threshold)):
+            pairs.append((float(similar[a, b]), ids[a], ids[b]))
+    else:
+        for a in range(len(ids)):
+            for b in range(a + 1, len(ids)):
+                if _names(notes[ids[a]]) & _names(notes[ids[b]]):
+                    pairs.append((1.0, ids[a], ids[b]))
     pairs.sort(reverse=True)
     degree: dict[str, int] = {}
     links: dict[str, dict] = {}

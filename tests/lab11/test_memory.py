@@ -229,3 +229,20 @@ def test_note_embeddings_are_computed_once(tmp_path):
     asyncio.run(store.search("near 3"))
     asyncio.run(store.search("near 5"))
     assert sum(1 for t in calls if t.startswith("note")) == 20  # the notes once; only the queries again
+
+
+def test_the_memory_graph_reuses_the_recall_embeddings(tmp_path):
+    _twenty_notes(tmp_path)
+    calls = []
+    embed = _fake_embed(calls)
+    memory.closest(tmp_path, {p.name: p.read_text() for p in tmp_path.glob("*.md")}, "near 3", embed)
+    memory.graph(tmp_path, embed=embed)
+    assert sum(1 for t in calls if t.startswith("note")) == 20  # embedded once, for recall; the graph read the cache
+
+
+def test_forgetting_asks_system1_only_about_the_closest_notes(tmp_path):
+    _twenty_notes(tmp_path)
+    asked = []
+    judge = lambda about, notes: asked.append(len(notes)) or {}
+    memory.forget_about(tmp_path, "near 3", judge, embed=_fake_embed([]))
+    assert asked == [memory.CANDIDATES]
