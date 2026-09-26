@@ -2,7 +2,7 @@
 from strands_harness import create_harness
 
 from common.config import MAIN_MODEL
-from events import WebCheck, WebGate
+from events import TurnHandlers
 
 # Eager on purpose, like lab 7, so you can watch the gate catch a guessed city.
 INSTRUCTIONS = (
@@ -12,7 +12,7 @@ INSTRUCTIONS = (
 )
 
 
-def make_agent(events: list[dict]):
+def make_agent(turn: TurnHandlers):
     return create_harness(
         model=MAIN_MODEL,
         instructions=INSTRUCTIONS,
@@ -20,6 +20,6 @@ def make_agent(events: list[dict]):
         session=False,  # the server keeps each chat in memory
         memory=True,
         skills=True,
-        interventions=[WebGate(events), WebCheck(events)],
+        interventions=[turn.gate, turn.check],
         callback_handler=None,  # the browser shows the reply, not the terminal
     )

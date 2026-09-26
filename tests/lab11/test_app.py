@@ -30,7 +30,7 @@ class FakeAgent:
 def client(monkeypatch):
     server.SESSIONS.clear()
     monkeypatch.setattr(server.config, "SYSTEM1_MODEL", "ollama/qwen3.5:4b")  # restored after each test
-    monkeypatch.setattr(server, "make_agent", lambda events: FakeAgent(events))
+    monkeypatch.setattr(server, "make_agent", lambda turn: FakeAgent(turn.events))
     monkeypatch.setattr(server, "unavailable", lambda model: None)
     return TestClient(server.app)
 
@@ -59,7 +59,7 @@ def test_unavailable_system1_returns_one_error(client, monkeypatch):
 
 
 def test_agent_failure_ends_stream_with_error(client, monkeypatch):
-    monkeypatch.setattr(server, "make_agent", lambda events: FakeAgent(events, fail=True))
+    monkeypatch.setattr(server, "make_agent", lambda turn: FakeAgent(turn.events, fail=True))
     events = chat(client)
     assert events[-1] == {"type": "error", "message": "Bedrock throttled"}
 
@@ -132,3 +132,30 @@ def test_web_gate_only_judges_web_fetch(monkeypatch):
     action = server.WebGate(events).before_tool_call(call)
     assert isinstance(action, Proceed)
     assert events == [{"type": "tool", "name": "skills", "input": {"skill_name": "packing-list"}}]
+
+
+class RaisingAgent:
+    """Records a tool event, then fails — like Bedrock throttling mid-turn."""
+
+    def __init__(self, events):
+        self.events = events
+
+    async def stream_async(self, message):
+        self.events.append({"type": "tool", "name": "web_fetch", "input": {"url": "https://wttr.in/Paris"}})
+        if False:
+            yield {}
+        raise RuntimeError("Bedrock throttled")
+
+
+def test_events_recorded_before_an_error_are_sent_first(client, monkeypatch):
+    monkeypatch.setattr(server, "make_agent", lambda turn: RaisingAgent(turn.events))
+    events = chat(client)
+    assert [e["type"] for e in events] == ["tool", "error"]
+
+
+def test_agent_construction_failure_is_one_error(client, monkeypatch):
+    def broken(turn):
+        raise RuntimeError("no Bedrock access")
+
+    monkeypatch.setattr(server, "make_agent", broken)
+    assert chat(client) == [{"type": "error", "message": "no Bedrock access"}]

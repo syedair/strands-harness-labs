@@ -14,12 +14,12 @@ from agents import make_agent  # noqa: E402
 from common import config  # noqa: E402
 from common.config import MAIN_MODEL, check_ollama  # noqa: E402
 from common.system1 import unavailable  # noqa: E402
-from events import WebCheck, WebGate, decision  # noqa: E402,F401  (re-exported for tests)
+from events import TurnHandlers, WebCheck, WebGate, decision  # noqa: E402,F401  (re-exported for tests)
 
 SYSTEM1_CHOICES = [("ollama/qwen3.5:4b", "Qwen stand-in"), ("jev", "Jev"), ("kev", "Kev"), ("laya", "Laya")]
 
 
-SESSIONS: dict[str, tuple] = {}  # session_id -> (agent, pending events)
+SESSIONS: dict[str, tuple] = {}  # session_id -> (agent, TurnHandlers)
 app = FastAPI(title="Travel assistant")
 
 
@@ -45,16 +45,19 @@ def system1_options():
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
     async def stream():
-        problem = unavailable(request.system1_model)
-        if problem:
-            yield line({"type": "error", "message": problem})
-            return
-        config.SYSTEM1_MODEL = request.system1_model  # one local user: a process-wide switch is fine
-        if request.session_id not in SESSIONS:
-            events: list[dict] = []
-            SESSIONS[request.session_id] = (make_agent(events), events)
-        agent, events = SESSIONS[request.session_id]
+        events: list[dict] = []
         try:
+            problem = unavailable(request.system1_model)
+            if problem:
+                yield line({"type": "error", "message": problem})
+                return
+            config.SYSTEM1_MODEL = request.system1_model  # one local user: a process-wide switch is fine
+            if request.session_id not in SESSIONS:
+                turn = TurnHandlers([])
+                SESSIONS[request.session_id] = (make_agent(turn), turn)
+            agent, turn = SESSIONS[request.session_id]
+            events = turn.events
+            turn.start_turn(request.message)
             async for event in agent.stream_async(request.message):
                 while events:  # decisions recorded by the gate/check since the last event
                     yield line(events.pop(0))
@@ -64,8 +67,11 @@ async def chat(request: ChatRequest):
                 yield line(events.pop(0))
             yield line({"type": "done"})
         except Exception as error:  # show it in the chat instead of breaking the stream
-            events.clear()
+            while events:  # what happened just before the failure explains it
+                yield line(events.pop(0))
             yield line({"type": "error", "message": str(error)})
+        finally:
+            events.clear()
 
     return StreamingResponse(stream(), media_type="application/x-ndjson")
 

@@ -59,6 +59,7 @@ class ToolCallGate(InterventionHandler):
         return Proceed()
 
     def block(self, why: str, feedback: str):
+        self.last_why = why  # lab 11 shows which rule fired
         self.blocks += 1
         if self.blocks > self.MAX_BLOCKS:
             print(f"[gate] -> Deny: {why} (blocked {self.MAX_BLOCKS}x already)")

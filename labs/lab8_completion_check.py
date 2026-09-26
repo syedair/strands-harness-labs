@@ -30,8 +30,9 @@ class CompletionCheck(InterventionHandler):
 
         request = text_of(event.agent.messages[0])
         answer = text_of(response.message)
-        if answer.rstrip().endswith("?"):
-            return Proceed()  # asking the user something back is a fine way to end a turn
+        if answer.rstrip().endswith("?"):  # asking the user something back is a fine way to end a turn
+            print("\n[check] -> Proceed (asked the user a question)")
+            return Proceed()
         p_complete = yes_no(  # System 1 observes...
             f"User request: {request}\n\nAssistant answer: {answer}",
             "Does the assistant's answer respond to every question the user asked?",
