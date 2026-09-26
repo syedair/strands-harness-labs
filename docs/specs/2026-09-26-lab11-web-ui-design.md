@@ -1,94 +1,125 @@
-# Lab 11: Web Chat UI — Design
+# Lab 11: The Harness App — Design (v2)
 
 ## Purpose
 
-The finale of the series: an example of how to put a Strands Harness agent behind a web
-application. The finished travel assistant (labs 1–8) is served by a small Python API and
-used through a polished React chat UI that shows the System 1 decisions as they happen.
-It is an example to extend, not a product: local, single user, no auth, no deployment.
+The finale: the finished travel assistant as a full web app that shows everything the Strands
+Harness gives you — sessions, memory, skills, tools, MCP connectors, model choice — and the
+System 1 decisions that guard it. It is an example to extend, not a product: local, single
+user, no auth, no deployment.
+
+v1 (committed on this branch) showed only System 1. v2 keeps its streaming, reducer, theme and
+decision chips, and grows it into the app below.
 
 ## Decisions (agreed 2026-09-26)
 
-- **Agent stays in Python.** The UI is a window onto the same harness code; nothing is
-  ported to TypeScript. Streamlit was rejected.
-- **React + Vite + TypeScript + Tailwind** for the UI.
-- **Look: ContentCreationKit theme `developer-studio`, preset Default** — charcoal-navy
-  backdrop (`#0B1120 → #0E1A2B`), restrained glass lit top-left, accent `#6EE7B7`,
-  secondary `#22D3EE`, text `#F8FAFC` / 66%, SF Pro Display/Text with SF Mono uppercase
-  labels (0.18em tracking). Theme rules kept: no default blue, no Roboto, one `.tint`
-  (accent-tinted) surface per screen. Tokens are copied as CSS variables into
-  `web/src/theme.css`; Tailwind reads them.
-- **System 1 model dropdown** in the header: Qwen stand-in / Jev / Kev / Laya. Backends
-  that can't run are shown disabled with the one-line fix (from `system1.unavailable()`).
-- **Left out on purpose:** lab 9's router, logins, multiple users, deployment.
+- **Own folder:** `lab11/server/` (Python, FastAPI) and `lab11/web/` (React + Vite + TypeScript
+  + Tailwind 4 + lucide-react icons). The agent stays in Python.
+- **Look:** ContentCreationKit theme `developer-studio`, preset Default (tokens unchanged from
+  v1: `#0B1120 → #0E1A2B`, accent `#6EE7B7`, accent-2 `#22D3EE`, text `#F8FAFC`/66%, SF Pro /
+  SF Mono labels, no default blue, no Roboto, one `.tint` surface per screen = the composer).
+  Lucide icons only, no emoji. Buttons have hover, press (`scale 0.95`) and accent focus states;
+  waiting states: Thinking (dots), Running &lt;tool&gt; (spinner), writing cursor.
+- **Memory globe:** the Memory tab is a rotating 3D network of memory notes; notes retrieved
+  for the current turn light up and their links fire.
 
-## Architecture
+## Layout
 
 ```
-web/ (React, :5173)  ──POST /api/chat (NDJSON stream)──▶  labs/lab11_web_server.py (FastAPI, :8000)
-                      ◀──GET  /api/system1──────────────      └─ create_harness(...) per session
-                                                               ├─ ToolCallGate    (from lab 7)
-                                                               └─ CompletionCheck (from lab 8)
+┌ Sidebar ──────┬ Chat ─────────────────────────────────┬ Inside the harness ────────────┐
+│ + New chat    │ messages, tool cards, decision chips   │ [Tools][Memory][Skills]        │
+│ Today         │                                        │ [Connectors][Session][System 1]│
+│  Paris trip   │                                        │                                │
+│  Istanbul …   │                                        │  (Memory = 3D globe)           │
+│ Earlier       │ ┌ composer (.tint) ──────────────────┐ │                                │
+│  …            │ │ 📎  Ask about a trip…          Send │ │                                │
+│               │ │ LLM ▾  · System 1 ▾ · ＋ Connectors │ │                                │
+└───────────────┴─┴────────────────────────────────────┴─┴────────────────────────────────┘
 ```
 
-### Server — `labs/lab11_web_server.py` (~80 lines)
+(The picture uses symbols for layout only; the UI uses Lucide icons.)
 
-- One harness agent per `session_id`, kept in memory. Same settings as the finished
-  assistant: `builtin_tools=["web_fetch"]`, `memory=True`, `skills=True`, and
-  `interventions=[gate, check]` where the gate and check are lab 7's `ToolCallGate` and
-  lab 8's `CompletionCheck`, subclassed only to also emit events (below).
-- `GET /api/system1` → `[{id, label, available, reason}]` for `ollama/qwen3.5:4b`, `jev`,
-  `kev`, `laya`.
-- `POST /api/chat {session_id, message, system1_model}` → a newline-delimited JSON stream:
-  - `{"type": "text", "delta": "..."}` — reply text as it streams
-  - `{"type": "tool", "name": "web_fetch", "input": {...}}` — the agent calls a tool
-  - `{"type": "decision", "source": "gate" | "check", "action": "guide" | "deny" | "proceed", "summary": "...", "probs": {...}}`
-  - `{"type": "done"}` or `{"type": "error", "message": "..."}`
-- The selected System 1 model applies to the request by setting `config.SYSTEM1_MODEL`
-  before the agent runs (single local user, so a process-wide setting is acceptable).
-- Run: `uv run --extra web labs/lab11_web_server.py` (uvicorn on 127.0.0.1:8000). New dependencies:
-  `fastapi`, `uvicorn` (in an optional `web` extra).
+- **Sidebar — chat history.** Chats listed newest first with a title (the first user message,
+  shortened) and relative time; New chat; open a past chat; delete (inline two-step confirm, no
+  browser dialog). Chats are harness sessions saved to disk, so they survive a server restart.
+- **Composer row:** attach files (paperclip), LLM picker, System 1 picker, Connectors (+).
+- **Inside the harness panel**, tabs:
+  - **Tools** — the agent's live tool list (built-in, skills, memory, MCP), each with its source.
+  - **Memory** — the globe (below) and a list of notes.
+  - **Skills** — skills found in `.agent/skills`, with their description.
+  - **Connectors** — MCP servers: enabled/disabled, status, the tools each adds.
+  - **Session** — chat id, model, System 1 model, message count, files in the workspace.
+  - **System 1** — every gate and check decision in this chat, newest first.
+- Narrow screens: the panel becomes a drawer toggled from the header.
 
-### Decision events — minimal change to labs 7 and 8
+## Harness features and how the app uses them
 
-Lab 7's gate and lab 8's check each store their last probabilities on `self` (one line
-each). Lab 11 subclasses them and, after calling the parent, emits a `decision` event with
-the returned action and those probabilities. Labs 7 and 8 behave and print exactly as today.
+| Feature | How |
+|---|---|
+| Sessions / chat history | `create_harness(session={"id": chat_id, "dir": lab11/data/sessions})`; reopening a chat rebuilds the agent with the same id and the harness restores `agent.messages`, which the API converts to turns. |
+| LLM choice | `model=` one of the `.env`-style strings (Kimi K2.5 default, Nemotron, Claude Sonnet 5, Kimi K3, `ollama/gpt-oss:20b`). The list shows only models whose provider is reachable. Changing it mid-chat rebuilds the agent on the same session id. |
+| System 1 | As v1: `config.SYSTEM1_MODEL` per request; lab 7's gate (web_fetch only) and lab 8's check, subclassed to emit events. |
+| Files | Upload saves to `lab11/data/files/<chat_id>/`; the next message tells the agent the file's absolute path; it reads it with the built-in `read` tool. Text-like files (txt, md, csv, json, pdf via harness read support) up to 5 MB. |
+| Connectors (MCP) | `mcp_servers={...}` in the standard `mcpServers` shape. Presets: AWS Documentation MCP (`uvx awslabs.aws-documentation-mcp-server@latest`) and a filesystem server scoped to the chat's file folder; plus custom command. Saved in `lab11/data/connectors.json`; enabling one rebuilds the chat's agent. |
+| Memory | `memory={"stores": [WatchedStore(FileMemoryStore(lab11/data/memory))]}`; `WatchedStore` delegates everything and records each `search` result, so the app knows which notes were retrieved this turn (both automatic injection and the `search_memory` tool). After each turn the server flushes memory extraction so new notes appear. |
+| Skills | `skills=True` (the packing-list skill from lab 4). |
+| Tools | `agent.tool_names` (plus MCP tools), shown in the Tools tab. |
 
-### UI — `web/`
+## The memory globe
 
-- **Header:** "Travel assistant" title, mono eyebrow "STRANDS HARNESS · SYSTEM 1", the
-  System 1 dropdown, and a "New chat" button (new `session_id`).
-- **Messages:** user bubbles right; assistant replies left on glass panels, text streaming in.
-- **Tool calls:** a compact card inside the assistant reply (`web_fetch · wttr.in/Paris`).
-- **Decision chips** under the reply, one per decision:
-  - gate guide/deny → amber, "🛡 Gate blocked Seattle · P(city named) 0.34"
-  - gate proceed → accent, "🛡 Gate allowed Paris · 0.94"
-  - check → "✓ Completion check · 0.78" or "↻ Sent back to finish · 0.16"
-- **Composer:** textarea, Enter sends, Shift+Enter newline; disabled while streaming.
-- **Empty state:** three suggestion chips ("What's the weather?", "Weather in Paris?",
-  "Pack for 4 days in Istanbul") that demo the gate, a clean call, and the skill.
-- Streaming is read with `fetch` + a `ReadableStream` line reader (no extra library).
-- Run: `cd web && npm install && npm run dev`; Vite proxies `/api` to :8000.
+- **Nodes:** one per memory note, glowing spheres sized by how often the note has been retrieved.
+- **Links:** between semantically similar notes — cosine similarity of embeddings from Ollama's
+  `nomic-embed-text` (above a threshold, top 3 per node); if the embedding model isn't pulled,
+  notes that share a capitalised word (a place, a name) are linked instead.
+- **Motion:** slow auto-rotation; drag to orbit, scroll to zoom, hover shows the note text.
+- **Firing:** when a turn retrieves notes, those nodes pulse in the accent colour and their links
+  carry travelling particles for a few seconds; a caption says "Recalled 2 memories".
+- Library: `react-force-graph-3d` (three.js), loaded only when the Memory tab opens.
+
+## API (`lab11/server`)
+
+- `GET /api/options` → LLM models, System 1 models (with availability and fix), connector presets.
+- `GET /api/chats` → `[{id, title, updated_at}]`; `POST /api/chats` → new id; `DELETE /api/chats/{id}`.
+- `GET /api/chats/{id}` → `{turns, model, system1_model, files, connectors}`.
+- `POST /api/chats/{id}/messages` `{message, model, system1_model}` → NDJSON events:
+  `text`, `tool`, `decision` (with `why`, `p`, `probs`), `memory` (`{"ids": [...]}` retrieved this
+  turn), `title` (first turn), `done`, `error`. The stream always ends with `done` or `error`.
+- `POST /api/chats/{id}/files` (multipart) → `{name, path, size}`.
+- `GET/PUT /api/connectors` → saved MCP servers with enabled flags.
+- `GET /api/harness?chat_id=` → `{tools, skills, session}`.
+- `GET /api/memory` → `{nodes: [{id, text, hits}], links: [{source, target, weight}]}`.
+
+## Fixes carried from the v1 review
+
+- The gate and check get the **current** user message and reset their counters at the start of
+  every turn (v1 judged later turns against the first message and let caps run out per chat).
+- The UI ends a turn that stops without `done`/`error` with an error, re-enabling the composer.
+- Server tests skip cleanly when the `web` extra isn't installed (`pytest.importorskip`).
+- Lab 8's "reply ends with a question" rule prints `[check] -> Proceed (asked the user a question)`
+  and is described in the README.
+- Deny decisions keep their rule; events recorded before an error are sent before it; the
+  initial pickers never land on an unavailable option; `color-scheme: dark` for native controls.
 
 ## Errors
 
-- Server errors mid-stream → an `error` event; the UI shows it inline in the reply.
-- Unavailable System 1 backend → disabled in the dropdown with its fix; selecting it is not
-  possible. If it becomes unavailable mid-session, the request returns an `error` event.
-- API down → the UI shows "Start the server: uv run labs/lab11_web_server.py".
+Every endpoint returns a JSON error with a one-line fix; the chat stream ends with an `error`
+event. Unavailable LLM / System 1 / connector → disabled in its picker with the fix as a tooltip.
+An MCP server that fails to start → its connector shows "failed" with the first line of the error,
+and the chat keeps working without it.
 
 ## Testing
 
-- `tests/test_lab11_server.py` with FastAPI's `TestClient` and a fake agent: the NDJSON
-  stream contains text, tool and decision events in order; `/api/system1` reports
-  availability from `system1.unavailable`; a new `session_id` gets a new agent.
-- Labs 7 and 8: existing tests stay green; one test each that `last_probs` is recorded.
-- UI: `npm run build` must pass (type check). Then a live browser check of a full
-  conversation (guessed city blocked → asks → Paris allowed → packing list), on the
-  Qwen stand-in and on Jev, with screenshots.
+- Server (FastAPI `TestClient`, fake agents): chat CRUD round trip; history survives a new app
+  instance; two-turn chat judges the second message; memory event carries retrieved ids; file
+  upload size/type limits; connectors persisted; stream always terminates.
+- `WatchedStore` unit test with a fake inner store; memory graph builder test (embedding and
+  fallback paths).
+- Web (Vitest): reducer incl. `memory` and `title` events; stream-ended-early handling; globe
+  data mapping (retrieved ids → highlighted nodes/links).
+- `npm run build` type-checks.
+- Live check with Playwright on system Chrome: history across a server restart, model switch
+  mid-chat, file upload read back, a connector's tools appearing, the memory globe firing on
+  "what's the weather at home?" after "I live in Dubai". Screenshots in the PR.
 
-## README
+## Out of scope
 
-A "Lab 11: Web Chat UI" section: how to run both halves, a screenshot, and "extending it":
-where to add endpoints, how events flow, and how to swap the UI framework.
+Auth, multiple users, deployment, editing memory notes from the UI, lab 9's router.
