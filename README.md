@@ -175,6 +175,33 @@ The finished travel assistant as a web app that shows everything the harness doe
   and that turn saves no new notes (otherwise "forget my name" would be saved as a note about your name).
   Similarity links need `ollama pull nomic-embed-text`; without it, notes sharing a name or place are linked.
 
+**One turn, step by step:**
+
+```mermaid
+sequenceDiagram
+    participant U as You (browser)
+    participant S as App server
+    participant H as Strands Harness
+    participant S1 as System 1
+    participant L as LLM
+    participant T as Tools
+    U->>S: message
+    S->>H: load the chat's session
+    loop before every LLM call
+        H->>S1: which saved notes help? (p ≥ 0.5, best 5)
+        S1-->>H: recalled notes
+        H->>L: message + notes
+        L->>S1: tool call → tool gate (lab 7)
+        S1-->>L: proceed / guide / deny
+        L->>T: web_fetch, read, skills, MCP…
+        T-->>L: result
+    end
+    L->>S1: answer → completion check (lab 8, multi-part only)
+    S1-->>L: proceed / send back
+    S-->>U: answer streams, steps folded above it
+    H->>H: save new facts as notes (skipped if the turn forgot)
+```
+
 **What's new:** `create_harness(session={"id", "dir"}, memory={"stores": [...]}, mcp_servers=..., tools=[...])`,
 `agent.stream_async()` as a stream of JSON events, lab 7's gate and lab 8's check reused per chat
 **Video:** _coming soon_
