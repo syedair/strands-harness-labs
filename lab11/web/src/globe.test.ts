@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cloudPoints, spherePoint, toGraph } from "./globe";
+import { cloudPoints, showingFor, spherePoint, toGraph } from "./globe";
 
 const api = {
   nodes: [
@@ -80,5 +80,15 @@ describe("cloudPoints", () => {
     const inner = pts.filter((p) => Math.hypot(p.x, p.y, p.z) < 30).length;
     // a uniform ball would put 1/8 of the points inside half the radius
     expect(inner / pts.length).toBeGreaterThan(0.2);
+  });
+});
+
+describe("showingFor", () => {
+  it("counts down from when the recall happened, so reopening the tab doesn't replay it", () => {
+    const burst = { ids: ["a"], at: 1000 };
+    expect(showingFor(burst, 1000)).toBe(6000);
+    expect(showingFor(burst, 5000)).toBe(2000);
+    expect(showingFor(burst, 7000)).toBe(0);
+    expect(showingFor({ ids: [], at: 1000 }, 1000)).toBe(0);
   });
 });

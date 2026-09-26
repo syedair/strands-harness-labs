@@ -6,6 +6,7 @@ import type { Part } from "../chat";
 import { DecisionChip } from "./DecisionChip";
 import type { CoreState } from "./MemoryCore";
 import type { Recall } from "./MemoryGlobe";
+import type { Burst } from "../globe";
 
 const MemoryGlobe = lazy(() => import("./MemoryGlobe")); // three.js loads only when this tab opens
 
@@ -17,7 +18,7 @@ const TABS: [Tab, string, LucideIcon][] = [
 ];
 
 type Props = {
-  harness: Harness | null; memory: MemoryGraph; fired: string[]; stored: string[]; recall: Recall | null;
+  harness: Harness | null; memory: MemoryGraph; fired: Burst; stored: Burst; recall: Recall | null;
   decisions: Decision[]; state: CoreState; onForget: (id: string) => void;
 };
 

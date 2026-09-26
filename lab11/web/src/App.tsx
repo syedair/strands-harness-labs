@@ -9,6 +9,7 @@ import { HarnessPanel } from "./components/HarnessPanel";
 import { Header } from "./components/Header";
 import { Message } from "./components/Message";
 import type { Recall } from "./components/MemoryGlobe";
+import { NO_BURST, type Burst } from "./globe";
 import { Sidebar } from "./components/Sidebar";
 
 const firstAvailable = (choices: api.Choice[], preferred: string) =>
@@ -24,8 +25,8 @@ export default function App() {
   const [connectors, setConnectors] = useState<Connector[]>([]);
   const [harness, setHarness] = useState<Harness | null>(null);
   const [memory, setMemory] = useState<MemoryGraph>({ nodes: [], links: [] });
-  const [fired, setFired] = useState<string[]>([]);
-  const [stored, setStored] = useState<string[]>([]);
+  const [fired, setFired] = useState<Burst>(NO_BURST);
+  const [stored, setStored] = useState<Burst>(NO_BURST);
   const [recall, setRecall] = useState<Recall | null>(null);
   const [attached, setAttached] = useState<FileInfo[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -71,7 +72,7 @@ export default function App() {
       setSystem1(firstAvailable(options.system1.options, opened.system1_model));
     }
     setAttached([]);
-    setFired([]);
+    setFired(NO_BURST);
     setHarness(await api.fetchHarness(id));
   }
 
@@ -79,7 +80,7 @@ export default function App() {
     setChat(null);
     setTurns([]);
     setAttached([]);
-    setFired([]);
+    setFired(NO_BURST);
     setHarness(null);
   }
 
@@ -100,8 +101,8 @@ export default function App() {
     try {
       for await (const event of api.sendMessage(chatId, text, model, system1)) {
         if (event.type === "title") setChat((c) => (c ? { ...c, title: event.title } : c));
-        if (event.type === "memory") { setFired(event.ids); setRecall(event); }
-        if (event.type === "stored") setStored(event.ids);
+        if (event.type === "memory") { setFired({ ids: event.ids, at: Date.now() }); setRecall(event); }
+        if (event.type === "stored") setStored({ ids: event.ids, at: Date.now() });
         update((turn) => applyEvent(turn, event));
       }
     } catch (error) {

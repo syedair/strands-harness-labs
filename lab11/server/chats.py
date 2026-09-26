@@ -45,6 +45,8 @@ class ChatStore:
         (self.root / "chats").mkdir(parents=True, exist_ok=True)
 
     def _path(self, chat_id: str) -> Path:
+        if not re.fullmatch(r"[0-9a-f]{12}", chat_id):  # ids come from create(); anything else could escape data/
+            raise ValueError(f"Not a chat id: {chat_id!r}")
         return self.root / "chats" / f"{chat_id}.json"
 
     def _read(self, chat_id: str) -> dict:
@@ -54,7 +56,7 @@ class ChatStore:
         self._path(chat["id"]).write_text(json.dumps(chat, indent=2))
 
     def exists(self, chat_id: str) -> bool:
-        return self._path(chat_id).exists()
+        return bool(re.fullmatch(r"[0-9a-f]{12}", chat_id)) and self._path(chat_id).exists()
 
     def create(self) -> str:
         chat_id = uuid.uuid4().hex[:12]

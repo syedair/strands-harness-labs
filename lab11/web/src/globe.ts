@@ -48,3 +48,13 @@ export function cloudPoints(n: number, radius: number, random: () => number = Ma
     return { x: Math.cos(angle) * ring * r, y: u * r, z: Math.sin(angle) * ring * r };
   });
 }
+
+/** A recall or a save: which notes, and when it happened. */
+export type Burst = { ids: string[]; at: number };
+export const SHOW_MS = 6000; // how long a recall or a save keeps animating
+export const NO_BURST: Burst = { ids: [], at: 0 };
+
+/** How much longer a burst should animate; 0 once it's over (so reopening the tab doesn't replay it). */
+export function showingFor(burst: Burst, now: number): number {
+  return burst.ids.length === 0 ? 0 : Math.max(0, SHOW_MS - (now - burst.at));
+}

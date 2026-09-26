@@ -3,24 +3,25 @@ import { Brain, Maximize2, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { MemoryGraph } from "../api";
 import { MemoryCore, type CoreState } from "./MemoryCore";
+import { showingFor, type Burst } from "../globe";
 
-const SHOW_MS = 6000; // how long a recall or a save keeps animating
 const STATES: CoreState[] = ["idle", "thinking", "working", "writing"];
 export type Recall = { query: string; ids: string[]; scores: number[] };
 
 type Props = {
-  graph: MemoryGraph; fired: string[]; stored: string[]; recall: Recall | null; state: CoreState;
+  graph: MemoryGraph; fired: Burst; stored: Burst; recall: Recall | null; state: CoreState;
   onForget: (id: string) => void;
 };
 
-function useForAWhile(ids: string[]) {
+function useForAWhile(burst: Burst) {
   const [active, setActive] = useState<string[]>([]);
   useEffect(() => {
-    if (ids.length === 0) return;
-    setActive(ids);
-    const timer = setTimeout(() => setActive([]), SHOW_MS);
+    const left = showingFor(burst, Date.now());
+    if (left === 0) return;
+    setActive(burst.ids);
+    const timer = setTimeout(() => setActive([]), left);
     return () => clearTimeout(timer);
-  }, [ids]);
+  }, [burst]);
   return active;
 }
 

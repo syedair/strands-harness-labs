@@ -143,6 +143,7 @@ def create_chat():
 
 @app.delete("/api/chats/{chat_id}")
 def delete_chat(chat_id: str):
+    require_chat(chat_id)
     AGENTS.pop(chat_id, None)
     STORE.delete(chat_id)
     return {"ok": True}

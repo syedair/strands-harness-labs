@@ -51,3 +51,12 @@ def test_tool_ids_become_portable_across_models():
 def test_attachment_notes_are_not_shown_in_history():
     messages = [{"role": "user", "content": [{"text": "What's on day 1?\n\nAttached file: /tmp/x/plan.md"}]}]
     assert chats.turns_from_messages(messages) == [{"role": "user", "text": "What's on day 1?"}]
+
+
+def test_delete_refuses_ids_that_escape_the_data_folder(tmp_path):
+    store = chats.ChatStore(tmp_path)
+    (tmp_path / "files" / "keep").mkdir(parents=True)
+    for bad in ("..", ".", "../x", ""):
+        with pytest.raises(ValueError):
+            store.delete(bad)
+    assert (tmp_path / "files" / "keep").exists() and (tmp_path / "chats").exists()
