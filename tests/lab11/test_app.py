@@ -184,8 +184,37 @@ class RecallAgent:
 def test_recalled_memories_become_one_event(client, monkeypatch):
     monkeypatch.setattr(server, "make_agent", lambda turn, *rest: RecallAgent(turn))
     events = chat(client)
-    assert {"type": "memory", "ids": ["home.md"]} in events
+    assert [e["ids"] for e in events if e["type"] == "memory"] == [["home.md"]]
 
 
 def test_no_recall_no_memory_event(client):
     assert all(e["type"] != "memory" for e in chat(client))
+
+
+class SavingAgent:
+    """Saves a memory when the server flushes memory after the reply, like the harness's extractor."""
+
+    def __init__(self, turn):
+        self.turn = turn
+        self.memory_manager = self
+
+    async def flush(self):
+        self.turn.stored("home.md")
+
+    async def stream_async(self, message):
+        yield {"data": "Noted!"}
+
+
+def test_memories_saved_after_the_reply_are_streamed_last(client, monkeypatch):
+    monkeypatch.setattr(server, "make_agent", lambda turn, *rest: SavingAgent(turn))
+    events = chat(client)
+    assert [e["type"] for e in events][-2:] == ["done", "stored"]
+
+
+def test_forget_a_memory(client, monkeypatch, tmp_path):
+    notes = tmp_path / "memory"; notes.mkdir()
+    (notes / "home.md").write_text("The user lives in Dubai.")
+    monkeypatch.setattr(server, "DATA", tmp_path)
+    assert client.delete("/api/memory/home.md").status_code == 200
+    assert not (notes / "home.md").exists()
+    assert client.delete("/api/memory/..%2Fchats%2Fx.json").status_code == 404

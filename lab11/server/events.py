@@ -1,4 +1,5 @@
 # Lab 11: turn the gate's and check's decisions into events the web UI can show.
+import re
 from types import SimpleNamespace
 
 from strands.interventions import Deny, Proceed
@@ -77,15 +78,20 @@ class TurnHandlers:
         self.on_recall = None  # e.g. count hits per note
         self.last_recall: list[str] | None = None
 
-    def recall(self, ids: list[str], texts: list[str]) -> None:
-        """Called by the memory store when a search returns notes."""
+    def recall(self, ids: list[str], texts: list[str], scores: list[float] | None = None, query: str | None = None) -> None:
+        """Called by the memory store when a search returns notes: which ones, how relevant, for what."""
         if set(ids) == set(self.last_recall or []):  # the harness searches before every model call; report changes only
             return
         self.last_recall = ids
         self.gate.remembered = list(dict.fromkeys(self.gate.remembered + texts))
-        self.events.append({"type": "memory", "ids": ids})
+        shown = re.split(r"\s*<system-reminder>", query or "")[0].strip()  # drop context the harness appends
+        self.events.append({"type": "memory", "ids": ids, "scores": scores or [], "query": shown})
         if self.on_recall:
             self.on_recall(ids)
+
+    def stored(self, note_id: str) -> None:
+        """Called by the memory store when the harness saves a note."""
+        self.events.append({"type": "stored", "ids": [note_id]})
 
     def start_turn(self, message: str) -> None:
         self.check.request = message

@@ -62,10 +62,31 @@ def test_same_recall_twice_in_a_turn_is_one_event():
     turn = events.TurnHandlers(log)
     turn.start_turn("hi")
     turn.recall(["home.md", "trip.md"], ["Dubai", "Istanbul"]); turn.recall(["trip.md", "home.md"], ["Istanbul", "Dubai"])
-    assert [e for e in log if e["type"] == "memory"] == [{"type": "memory", "ids": ["home.md", "trip.md"]}]
+    assert [e["ids"] for e in log if e["type"] == "memory"] == [["home.md", "trip.md"]]
 
 
 def test_the_finished_assistant_uses_memory_not_a_default_city():
     import agents
     assert "Seattle" not in agents.INSTRUCTIONS
     assert "remember" in agents.INSTRUCTIONS
+
+
+def test_recall_event_says_what_was_searched_and_how_relevant():
+    log = []
+    turn = events.TurnHandlers(log)
+    turn.start_turn("What's my name?")
+    turn.recall(["name.md"], ["The user's name is Syed."], [0.95], "What's my name?")
+    assert log == [{"type": "memory", "ids": ["name.md"], "scores": [0.95], "query": "What's my name?"}]
+
+
+def test_saving_a_note_is_an_event():
+    log = []
+    events.TurnHandlers(log).stored("home.md")
+    assert log == [{"type": "stored", "ids": ["home.md"]}]
+
+
+def test_recall_query_shows_only_the_users_words():
+    log = []
+    turn = events.TurnHandlers(log)
+    turn.recall(["name.md"], ["Syed"], [0.9], "What is my name?\n\n\n<system-reminder>\n<environment>cwd…</environment>")
+    assert log[0]["query"] == "What is my name?"

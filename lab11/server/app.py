@@ -212,6 +212,15 @@ def memory_graph():
     return memory.graph(DATA / "memory")
 
 
+@app.delete("/api/memory/{note_id}")
+def forget_memory(note_id: str):
+    try:
+        memory.forget(DATA / "memory", note_id)
+    except ValueError as error:
+        raise HTTPException(404, str(error))
+    return {"ok": True}
+
+
 @app.post("/api/chats/{chat_id}/files")
 async def upload_file(chat_id: str, file: UploadFile = File(...)):
     require_chat(chat_id)
@@ -263,6 +272,8 @@ async def send_message(chat_id: str, request: MessageRequest):
             manager = getattr(agent, "memory_manager", None)
             if manager is not None:  # save what this turn taught it; the UI refreshes memory when the stream closes
                 await manager.flush()
+                while events:  # notes it just saved
+                    yield line(events.pop(0))
         except Exception as error:  # show it in the chat instead of breaking the stream
             while events:  # what happened just before the failure explains it
                 yield line(events.pop(0))

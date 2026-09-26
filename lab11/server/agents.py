@@ -22,7 +22,8 @@ def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
     notes = data / "memory"  # shared by every chat: memory outlives sessions
     notes.mkdir(parents=True, exist_ok=True)
     turn.on_recall = lambda ids: memory.record_hits(notes, ids)
-    store = memory.store_for(settings["model"], notes, on_search=turn.recall)
+    store = memory.store_for(settings["model"], notes, on_search=turn.recall, on_store=turn.stored,
+                             relevance=memory.system1_relevance)  # System 1 decides which memories are relevant
     return create_harness(
         model=settings["model"],
         instructions=INSTRUCTIONS,
