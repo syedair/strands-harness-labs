@@ -5,7 +5,7 @@ from strands_harness import create_harness
 from common.chat import chat, wants_chat
 from common.config import MAIN_MODEL, check_ollama
 from common.show import checklist, wait
-from common.system1 import check_system1, yes_no
+from common.system1 import check_system1, display_name, yes_no
 
 # A "lazy" assistant that answers only the first part of a request.
 INSTRUCTIONS = (
@@ -40,7 +40,7 @@ class CompletionCheck(InterventionHandler):
         short = " ".join(answer.split())
         print(f"\n  check · the model's answer: “{short[:90]}{'…' if len(short) > 90 else ''}”")
         if self.PAUSE:
-            wait("press Enter to ask System 1")
+            wait(f"press Enter to ask {display_name()}")
         p_complete = yes_no(  # System 1 observes...
             f"User request: {request}\n\nAssistant answer: {answer}",
             "Does the assistant's answer respond to every question the user asked?",
@@ -60,6 +60,7 @@ class CompletionCheck(InterventionHandler):
 def main() -> None:
     check_ollama(MAIN_MODEL)
     check_system1()
+    print(f"System 1: {display_name()}")  # set SYSTEM1_MODEL in .env to switch
     agent = create_harness(
         model=MAIN_MODEL,
         instructions=INSTRUCTIONS,

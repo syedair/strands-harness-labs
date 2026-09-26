@@ -7,7 +7,7 @@ from strands_harness import create_harness
 from common.chat import chat, wants_chat
 from common.config import MAIN_MODEL, check_ollama
 from common.show import checklist, wait
-from common.system1 import check_system1, yes_no_many
+from common.system1 import check_system1, display_name, yes_no_many
 
 # An "eager" assistant that guesses instead of asking — the failure we want to catch.
 INSTRUCTIONS = (
@@ -47,7 +47,7 @@ class ToolCallGate(InterventionHandler):
         state = f"{self.context(event)}\n\nProposed tool call: {call}"
         print(f"\n  gate · the model wants to run: {call}")
         if self.PAUSE:
-            wait("press Enter to ask System 1")
+            wait(f"press Enter to ask {display_name()}")
 
         p = yes_no_many(state, QUESTIONS)  # System 1 observes...
         self.last_probs = p  # lab 11 shows these in the web UI
@@ -83,6 +83,7 @@ class ToolCallGate(InterventionHandler):
 def main() -> None:
     check_ollama(MAIN_MODEL)
     check_system1()
+    print(f"System 1: {display_name()}")  # set SYSTEM1_MODEL in .env to switch
     agent = create_harness(
         model=MAIN_MODEL,
         instructions=INSTRUCTIONS,

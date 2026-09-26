@@ -7,7 +7,7 @@ from strands_harness import create_harness
 from common.chat import chat, wants_chat
 from common.config import BIG_MODEL, SMALL_MODEL, build_model, check_ollama
 from common.show import bar, wait
-from common.system1 import check_system1, yes_no
+from common.system1 import check_system1, display_name, yes_no
 
 INSTRUCTIONS = (
     "You are a friendly travel assistant. Keep answers short and practical.\n"
@@ -36,7 +36,7 @@ class System1Strategy:
         request = latest_user_text(context.messages)
         print("\n  router · which model should answer this?")
         if self.PAUSE:
-            wait("press Enter to ask System 1")
+            wait(f"press Enter to ask {display_name()}")
         p_quick = await asyncio.to_thread(  # System 1 observes...
             yes_no,
             f"User request: {request}",
@@ -51,6 +51,7 @@ class System1Strategy:
 def main() -> None:
     check_ollama(SMALL_MODEL, BIG_MODEL)
     check_system1()
+    print(f"System 1: {display_name()}")  # set SYSTEM1_MODEL in .env to switch
     router = ModelRouter(
         [
             RoutingCandidate(model=build_model(SMALL_MODEL), name="small"),  # e.g. Kimi K2.5

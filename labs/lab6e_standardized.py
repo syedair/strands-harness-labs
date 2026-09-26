@@ -1,7 +1,7 @@
 # Lab 6e: standardized — the same questions through one helper. Switch models with SYSTEM1_MODEL in .env.
 from common.config import SYSTEM1_MODEL
 from common.show import pause, show
-from common.system1 import check_system1, choice, yes_no
+from common.system1 import check_system1, choice, display_name, yes_no
 from lab6a_jev import conversation, more  # the same conversations as lab 6a
 
 # Two question shapes every System 1 model here can answer. Labs 7-9 use exactly these two helpers.
@@ -14,7 +14,7 @@ questions = {
 
 def main() -> None:
     check_system1()
-    print(f"System 1 model: {SYSTEM1_MODEL}   (try jev, kev, laya or ollama/qwen3.5:4b)\n")
+    print(f"System 1: {display_name()}   (SYSTEM1_MODEL={SYSTEM1_MODEL}; try jev, kev, laya or ollama/qwen3.5:4b)\n")
 
     for state in [conversation, *more]:
         pause(state)  # show the conversation, then wait for Enter

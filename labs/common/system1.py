@@ -71,6 +71,14 @@ def unavailable(model: str | None = None) -> str | None:
     return None
 
 
+def display_name(model: str | None = None) -> str:
+    """How to say which System 1 model is answering, e.g. "Kev" or "Qwen stand-in (qwen3.5:4b)"."""
+    backend, name = _backend(model or config.SYSTEM1_MODEL)
+    if backend != "ollama":
+        return backend.capitalize()
+    return f"Qwen stand-in ({name})" if name.startswith("qwen") else f"{name} stand-in"
+
+
 def check_system1(model: str | None = None) -> None:
     """Exit with a one-line fix if the classifier can't run (offers to start Kev)."""
     if _backend(model)[0] == "kev" and ensure_kev():
