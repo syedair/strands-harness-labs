@@ -1,17 +1,17 @@
 // The "How it works" walkthrough: the app's parts, and one turn as a list of steps between them. Pure data.
 
 export type Tone = "plain" | "s1" | "llm" | "save";
-export type ArchNode = { id: string; label: string; detail: string; x: number; y: number; tone: Tone; inHarness?: boolean };
+export type ArchNode = { id: string; label: string; detail: string; x: number; y: number; tone: Tone; inHarness?: boolean; labelAbove?: boolean };
 export type Step = { from: string; to: string; back?: boolean; label: string; title: string; text: string; example?: string; tone: Tone };
 
 export const VIEW = { width: 1400, height: 530 };
-export const BOX = { width: 164, height: 62 };
+export const NODE_R = 34; // each part is an icon in a circle of this radius
 export const HARNESS = { x: 452, y: 40, width: 556, height: 466 }; // the Strands Harness, around its parts
 
 export const NODES: ArchNode[] = [
-  { id: "browser", label: "You", detail: "chat in the browser", x: 96, y: 170, tone: "plain" },
-  { id: "server", label: "App server", detail: "FastAPI, streams events", x: 330, y: 170, tone: "plain" },
-  { id: "agent", label: "Agent", detail: "orchestrates every step", x: 730, y: 170, tone: "plain", inHarness: true },
+  { id: "browser", label: "You", detail: "chat in the browser", x: 96, y: 190, tone: "plain" },
+  { id: "server", label: "App server", detail: "FastAPI, streams events", x: 330, y: 190, tone: "plain" },
+  { id: "agent", label: "Agent", detail: "orchestrates every step", x: 730, y: 190, tone: "plain", inHarness: true, labelAbove: true }, // links leave downwards
   { id: "session", label: "Session", detail: "chat history on disk", x: 548, y: 420, tone: "plain", inHarness: true },
   { id: "memory", label: "Memory", detail: "markdown notes", x: 730, y: 420, tone: "plain", inHarness: true },
   { id: "skills", label: "Skills", detail: "packing-list, yours…", x: 912, y: 420, tone: "plain", inHarness: true },
@@ -74,10 +74,10 @@ export function sceneAt(i: number): Scene {
   return { shown, current: at >= 0 ? STEPS[at] : null, past: done.slice(0, -1) };
 }
 
-/** Where a link between two boxes starts and ends: on their edges, not their centres. */
+/** Where a link between two parts starts and ends: on the edge of their circles, not their centres. */
 export function linkEnds(a: ArchNode, b: ArchNode, gap = 6) {
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const reach = Math.min((BOX.width / 2 + gap) / Math.abs(dx || 1e-9), (BOX.height / 2 + gap) / Math.abs(dy || 1e-9));
+  const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+  const reach = (NODE_R + gap) / len;
   return { x1: a.x + dx * reach, y1: a.y + dy * reach, x2: b.x - dx * reach, y2: b.y - dy * reach };
 }
 

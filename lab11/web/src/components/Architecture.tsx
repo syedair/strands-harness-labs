@@ -1,10 +1,15 @@
 // "How it works": one turn through the app, a click at a time. Parts appear the first time a step uses them.
-import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { BookOpenText, Bot, Brain, ChevronLeft, ChevronRight, History, RotateCcw, Server, Sparkles, User, Wrench, Zap } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { BOX, HARNESS, NODES, STEPS, VIEW, labelSpot, linkEnds, routeOf, sceneAt, type Step, type Tone } from "../architecture";
+import { HARNESS, NODES, NODE_R, STEPS, VIEW, labelSpot, linkEnds, routeOf, sceneAt, type Step, type Tone } from "../architecture";
 
 const TONE: Record<Tone, string> = { plain: "#F8FAFC", s1: "#6EE7B7", llm: "#22D3EE", save: "#A78BFA" };
 const byId = new Map(NODES.map((n) => [n.id, n]));
+const ICONS: Record<string, LucideIcon> = {
+  browser: User, server: Server, agent: Bot, session: History, memory: Brain, skills: BookOpenText,
+  system1: Zap, llm: Sparkles, tools: Wrench,
+};
 
 function Link({ step, live }: { step: Step; live: boolean }) {
   const { x1, y1, x2, y2 } = linkEnds(byId.get(step.from)!, byId.get(step.to)!);
@@ -83,16 +88,18 @@ export function Architecture() {
             const shown = scene.shown.has(n.id);
             const on = active.has(n.id);
             const tone = scene.current && on ? (n.tone === "plain" ? scene.current.tone : n.tone) : n.tone;
-            const edge = on ? TONE[tone] : n.tone === "plain" ? "rgba(248,250,252,0.16)" : `${TONE[n.tone]}66`;
+            const ring = on ? TONE[tone] : n.tone === "plain" ? "rgba(248,250,252,0.22)" : `${TONE[n.tone]}88`;
+            const Icon = ICONS[n.id];
+            const labelY = n.labelAbove ? -NODE_R - 30 : NODE_R + 22; // the Agent's links leave downwards
             return (
               <g key={n.id} transform={`translate(${n.x} ${n.y})`}
                  style={{ opacity: shown ? 1 : 0, transition: "opacity 450ms ease" }}>
-                {on && <rect x={-BOX.width / 2 - 8} y={-BOX.height / 2 - 8} width={BOX.width + 16} height={BOX.height + 16} rx="18"
-                             fill={TONE[tone]} opacity="0.10" />}
-                <rect x={-BOX.width / 2} y={-BOX.height / 2} width={BOX.width} height={BOX.height} rx="13"
-                      fill="#111D31" stroke={edge} strokeWidth={on ? 2 : 1.2} />
-                <text textAnchor="middle" y="-3" fill={n.tone === "plain" ? "#F8FAFC" : TONE[n.tone]} fontSize="15" fontWeight="600">{n.label}</text>
-                <text textAnchor="middle" y="16" fill="rgba(248,250,252,0.6)" fontSize="10.5" fontFamily="var(--font-mono)">{n.detail}</text>
+                {on && <circle r={NODE_R + 10} fill={TONE[tone]} opacity="0.14" />}
+                <circle r={NODE_R} fill="#111D31" stroke={ring} strokeWidth={on ? 2.5 : 1.5} />
+                <Icon x={-17} y={-17} width={34} height={34} strokeWidth={1.7}
+                      color={on ? TONE[tone] : n.tone === "plain" ? "#F8FAFC" : TONE[n.tone]} />
+                <text textAnchor="middle" y={labelY} fill={n.tone === "plain" ? "#F8FAFC" : TONE[n.tone]} fontSize="15" fontWeight="600">{n.label}</text>
+                <text textAnchor="middle" y={labelY + 16} fill="rgba(248,250,252,0.6)" fontSize="11" fontFamily="var(--font-mono)">{n.detail}</text>
               </g>
             );
           })}
