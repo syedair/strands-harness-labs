@@ -24,6 +24,7 @@ type Props = {
   harness: Harness | null; memory: MemoryGraph; fired: Burst; stored: Burst; forgot: Ghosts; recall: Recall | null;
   connectors: Connector[]; switching: Switching; onAddSkill: (file: File) => Promise<void>; onToggleConnector: (id: string, on: boolean) => void;
   decisions: Decision[]; state: CoreState; onForget: (id: string) => void; onForgetAll: () => void;
+  visible: boolean; // false while Settings or How it works is showing
 };
 
 function toolSource(tool: string, connectors: string[]): string {
@@ -34,7 +35,7 @@ function toolSource(tool: string, connectors: string[]): string {
   return "built-in";
 }
 
-export function HarnessPanel({ harness, connectors, switching, onAddSkill, onToggleConnector, memory, fired, stored, forgot, recall, decisions, state, onForget, onForgetAll }: Props) {
+export function HarnessPanel({ harness, connectors, switching, onAddSkill, onToggleConnector, memory, fired, stored, forgot, recall, decisions, state, onForget, onForgetAll, visible }: Props) {
   const [tab, setTab] = useState<Tab>("memory");
   return (
     <aside className="flex h-full w-[26rem] shrink-0 flex-col border-l border-white/10">
@@ -59,11 +60,12 @@ export function HarnessPanel({ harness, connectors, switching, onAddSkill, onTog
             ))}
           </ul>
         )}
-        {tab === "memory" && (
+        <div hidden={tab !== "memory"}> {/* kept mounted: rebuilding the 3D core on every switch flashed a blank tile */}
           <Suspense fallback={<p className="text-ink-2">Loading the memory globe…</p>}>
-            <MemoryGlobe graph={memory} fired={fired} stored={stored} forgot={forgot} recall={recall} state={state} onForget={onForget} onForgetAll={onForgetAll} />
+            <MemoryGlobe graph={memory} fired={fired} stored={stored} forgot={forgot} recall={recall} state={state}
+                         onForget={onForget} onForgetAll={onForgetAll} visible={visible && tab === "memory"} />
           </Suspense>
-        )}
+        </div>
         {harness && tab === "skills" && <SkillsTab skills={harness.skills} onAdd={onAddSkill} />}
         {harness && tab === "connectors" && (
           <ul className="space-y-2">

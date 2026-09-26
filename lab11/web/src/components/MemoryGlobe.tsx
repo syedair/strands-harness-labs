@@ -11,6 +11,7 @@ export type Recall = { query: string; ids: string[]; scores: number[] };
 
 type Props = {
   graph: MemoryGraph; fired: Burst; stored: Burst; forgot: Ghosts; recall: Recall | null; state: CoreState;
+  visible?: boolean; // false while another tab or page is showing
   onForget: (id: string) => void;
   onForgetAll: () => void;
 };
@@ -27,7 +28,7 @@ function useForAWhile(burst: Burst) {
   return active;
 }
 
-export default function MemoryGlobe({ graph, fired, stored, forgot, recall, state, onForget, onForgetAll }: Props) {
+export default function MemoryGlobe({ graph, fired, stored, forgot, recall, state, onForget, onForgetAll, visible = true }: Props) {
   const firing = useForAWhile(fired);
   const saving = useForAWhile(stored);
   const forgetting = useForAWhile(forgot);
@@ -58,7 +59,7 @@ export default function MemoryGlobe({ graph, fired, stored, forgot, recall, stat
     </div>
   );
   const core = (height: number, close = false) => (
-    <MemoryCore graph={pictured} fired={firing} stored={saving} forgotten={forgetting} state={state} height={height} close={close} />
+    <MemoryCore graph={pictured} fired={firing} stored={saving} forgotten={forgetting} state={state} height={height} close={close} paused={!visible} />
   );
   return (
     <div className="space-y-3">

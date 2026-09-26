@@ -33,13 +33,17 @@ function glowTexture(): THREE.Texture {
 const glowing = (color: THREE.Color, opacity: number, map: THREE.Texture) =>
   ({ color, opacity, map, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
 
-type Props = { graph: MemoryGraph; fired: string[]; stored: string[]; forgotten?: string[]; state: CoreState; height: number; close?: boolean };
+type Props = { graph: MemoryGraph; fired: string[]; stored: string[]; forgotten?: string[]; state: CoreState; height: number; close?: boolean;
+  paused?: boolean; // hidden behind another tab: keep the canvas and its WebGL context, skip drawing
+};
 
-export function MemoryCore({ graph, fired, stored, forgotten = [], state, height, close = false }: Props) {
+export function MemoryCore({ graph, fired, stored, forgotten = [], state, height, close = false, paused = false }: Props) {
   const box = useRef<HTMLDivElement>(null);
-  const live = useRef({ fired: new Set<string>(), stored: new Set<string>(), forgotten: new Set<string>(), state, rebuild: (_g: MemoryGraph) => {} });
+  const live = useRef({ fired: new Set<string>(), stored: new Set<string>(), forgotten: new Set<string>(), state, paused,
+                       rebuild: (_g: MemoryGraph) => {} });
   const [hover, setHover] = useState<{ text: string; x: number; y: number } | null>(null);
   live.current.state = state;
+  live.current.paused = paused;
   live.current.fired = new Set(fired);
   live.current.stored = new Set(stored);
   live.current.forgotten = new Set(forgotten);
@@ -133,6 +137,10 @@ export function MemoryCore({ graph, fired, stored, forgotten = [], state, height
 
     let frame = 0;
     const animate = (time: number) => {
+      if (live.current.paused) {
+        frame = requestAnimationFrame(animate);
+        return;
+      }
       const { fired: hot, stored: fresh, forgotten: gone, state: now } = live.current;
       const busy = now !== "idle";
       core.rotation.y += SPEED[now];

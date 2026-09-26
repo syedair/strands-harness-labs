@@ -220,11 +220,10 @@ export default function App() {
         </div>
         </>}
       </div>
-      {view === "chat" && (
-      <div className={`${panelOpen ? "fixed inset-y-0 right-0 z-30 bg-bg-1/95 backdrop-blur" : "hidden"} lg:static lg:block`}>
-        <HarnessPanel harness={harness} connectors={connectors} switching={switching} onAddSkill={addSkill} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} forgot={forgot} recall={recall} decisions={decisions} state={coreState} onForget={forget} onForgetAll={forgetAll} />
+      {/* always mounted, hidden on other pages, so the memory core isn't rebuilt on every switch */}
+      <div hidden={view !== "chat"} className={`${panelOpen ? "fixed inset-y-0 right-0 z-30 bg-bg-1/95 backdrop-blur" : "hidden"} lg:static lg:block`}>
+        <HarnessPanel harness={harness} connectors={connectors} switching={switching} onAddSkill={addSkill} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} forgot={forgot} recall={recall} decisions={decisions} state={coreState} onForget={forget} onForgetAll={forgetAll} visible={view === "chat"} />
       </div>
-      )}
     </div>
   );
 }
