@@ -4,20 +4,20 @@ export type Tone = "plain" | "s1" | "llm" | "save";
 export type ArchNode = { id: string; label: string; detail: string; x: number; y: number; tone: Tone; inHarness?: boolean };
 export type Step = { from: string; to: string; label: string; title: string; text: string; example?: string; tone: Tone };
 
-export const VIEW = { width: 1110, height: 540 };
+export const VIEW = { width: 1270, height: 540 };
 export const BOX = { width: 172, height: 62 };
-export const HARNESS = { x: 372, y: 44, width: 440, height: 456 }; // the Strands Harness, around its parts
+export const HARNESS = { x: 462, y: 44, width: 470, height: 456 }; // the Strands Harness, around its parts
 
 export const NODES: ArchNode[] = [
-  { id: "browser", label: "You", detail: "chat in the browser", x: 92, y: 272, tone: "plain" },
-  { id: "server", label: "App server", detail: "FastAPI, streams events", x: 276, y: 272, tone: "plain" },
-  { id: "session", label: "Session", detail: "chat history on disk", x: 470, y: 122, tone: "plain", inHarness: true },
-  { id: "memory", label: "Memory", detail: "markdown notes", x: 470, y: 272, tone: "plain", inHarness: true },
-  { id: "skills", label: "Skills", detail: "packing-list, yours…", x: 470, y: 422, tone: "plain", inHarness: true },
-  { id: "loop", label: "Agent loop", detail: "gate + check hooks", x: 716, y: 272, tone: "plain", inHarness: true },
-  { id: "system1", label: "System 1", detail: "Qwen · Jev · Kev · Laya", x: 1012, y: 106, tone: "s1" },
-  { id: "llm", label: "LLM", detail: "Kimi K2.5 on Bedrock", x: 1012, y: 272, tone: "llm" },
-  { id: "tools", label: "Tools", detail: "web_fetch · read · MCP", x: 1012, y: 438, tone: "plain" },
+  { id: "browser", label: "You", detail: "chat in the browser", x: 100, y: 272, tone: "plain" },
+  { id: "server", label: "App server", detail: "FastAPI, streams events", x: 336, y: 272, tone: "plain" },
+  { id: "session", label: "Session", detail: "chat history on disk", x: 566, y: 122, tone: "plain", inHarness: true },
+  { id: "memory", label: "Memory", detail: "markdown notes", x: 566, y: 272, tone: "plain", inHarness: true },
+  { id: "skills", label: "Skills", detail: "packing-list, yours…", x: 566, y: 422, tone: "plain", inHarness: true },
+  { id: "loop", label: "Agent loop", detail: "gate + check hooks", x: 826, y: 272, tone: "plain", inHarness: true },
+  { id: "system1", label: "System 1", detail: "Qwen · Jev · Kev · Laya", x: 1170, y: 106, tone: "s1" },
+  { id: "llm", label: "LLM", detail: "Kimi K2.5 on Bedrock", x: 1170, y: 272, tone: "llm" },
+  { id: "tools", label: "Tools", detail: "web_fetch · read · MCP", x: 1170, y: 438, tone: "plain" },
 ];
 
 export const STEPS: Step[] = [

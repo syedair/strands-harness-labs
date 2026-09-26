@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NODES, STEPS, sceneAt } from "./architecture";
+import { NODES, STEPS, linkEnds, sceneAt } from "./architecture";
 
 describe("the architecture walkthrough", () => {
   it("starts with only the browser on screen", () => {
@@ -31,5 +31,15 @@ describe("the architecture walkthrough", () => {
   it("clamps steps past either end", () => {
     expect(sceneAt(99).current).toEqual(STEPS[STEPS.length - 1]);
     expect(sceneAt(-5).current).toBeNull();
+  });
+});
+
+describe("the diagram's layout", () => {
+  it("leaves every link long enough to see its arrow", () => {
+    const at = new Map(NODES.map((n) => [n.id, n]));
+    for (const step of STEPS) {
+      const { x1, y1, x2, y2 } = linkEnds(at.get(step.from)!, at.get(step.to)!);
+      expect(Math.hypot(x2 - x1, y2 - y1), `${step.from} → ${step.to}`).toBeGreaterThanOrEqual(44);
+    }
   });
 });
