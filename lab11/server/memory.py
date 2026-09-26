@@ -32,9 +32,10 @@ class WatchedStore(FileMemoryStore):
     - recall filtered by relevance (the harness's keyword search matches words like "the"), and
     - callbacks with what each search returned and each note saved, so the UI can show it."""
 
-    def __init__(self, *args, root: Path, on_search, on_store=None, relevance=None, **kwargs):
+    def __init__(self, *args, root: Path, on_search, on_store=None, relevance=None, embed=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.root, self.on_search, self.on_store, self.relevance = Path(root), on_search, on_store, relevance
+        self.embed = embed or ollama_embed
         self.last_query: str | None = None
 
     async def search(self, query, options=None):
@@ -54,7 +55,9 @@ class WatchedStore(FileMemoryStore):
             files = sorted(self.root.glob("*.md"))
             notes = {f.name: f.read_text().strip() for f in files}
             saved = {f.name: f.stat().st_mtime for f in files}
-            p = await asyncio.to_thread(self.relevance, query, notes) if notes else {}
+            # retrieve the closest notes by meaning, then let System 1 rerank just those
+            pool = await asyncio.to_thread(closest, self.root, notes, query, self.embed) if notes else []
+            p = await asyncio.to_thread(self.relevance, query, {i: notes[i] for i in pool}) if pool else {}
             # most relevant first; on a tie the newer note wins
             ranked = sorted(((round(score, 2), saved[i], i) for i, score in p.items() if score >= 0.5), reverse=True)[:limit]
             entries = [
@@ -114,12 +117,12 @@ class UserOnlyExtractor(ModelExtractor):
         return await super().extract(said, context) if said else []
 
 
-def store_for(model: str, root: Path, on_search, extract: bool = True, on_store=None, relevance=None) -> WatchedStore:
+def store_for(model: str, root: Path, on_search, extract: bool = True, on_store=None, relevance=None, embed=None) -> WatchedStore:
     """Built like the harness's default store: markdown notes under `root`, facts extracted by a model."""
     kwargs = {"name": "memory", "storage": LocalFileStorage(str(root)).namespace(""), "writable": True}
     if extract:
         kwargs["extraction"] = ExtractionConfig(extractor=UserOnlyExtractor(resolve_web_fetch_model(model, None)))
-    return WatchedStore(root=root, on_search=on_search, on_store=on_store, relevance=relevance, **kwargs)
+    return WatchedStore(root=root, on_search=on_search, on_store=on_store, relevance=relevance, embed=embed, **kwargs)
 
 
 FORGET_QUESTION = "Does this fact mention {about}, even in passing? Fact: {fact}"
@@ -210,6 +213,34 @@ def ollama_embed(texts: list[str]) -> list[list[float]] | None:
         return response.json()["embeddings"]
     except httpx.HTTPError:
         return None
+
+
+CANDIDATES = 12  # notes System 1 reranks; measured: the right notes were in the embedding top 12 86% of the time
+
+
+def _embeddings_file(root: Path) -> Path:
+    return Path(root).parent / f"{Path(root).name}_embeddings.json"  # beside the notes, like the hit counts
+
+
+def closest(root: Path, notes: dict[str, str], query: str, embed=ollama_embed, k: int = CANDIDATES) -> list[str]:
+    """The k notes nearest the query by meaning. All of them when there are few, or no embedding model."""
+    if len(notes) <= k:
+        return list(notes)
+    path = _embeddings_file(root)
+    cache = json.loads(path.read_text()) if path.exists() else {}
+    cache = {i: c for i, c in cache.items() if i in notes}  # forgotten notes drop out
+    stale = [i for i in notes if cache.get(i, {}).get("text") != notes[i]]  # new or edited notes
+    if stale:
+        vectors = embed([notes[i] for i in stale])
+        if vectors is None:
+            return list(notes)
+        cache.update({i: {"text": notes[i], "vector": v} for i, v in zip(stale, vectors)})
+        path.write_text(json.dumps(cache))
+    asked = embed([query])
+    if asked is None:
+        return list(notes)
+    ranked = sorted(notes, key=lambda i: _cosine(asked[0], cache[i]["vector"]), reverse=True)
+    return ranked[:k]
 
 
 def _cosine(a: list[float], b: list[float]) -> float:

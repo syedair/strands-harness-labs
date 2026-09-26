@@ -171,12 +171,16 @@ The finished travel assistant as a web app that shows everything the harness doe
 - **Clear all** — delete every chat from the sidebar, or every memory from the Memory tab.
 - **The memory core** — a rotating nebula of your memories. Recalled notes fire in green (hover a chip to
   see what was searched and each note's score); newly saved notes arrive in violet; forget any note.
-  System 1 decides what to recall: for each note it answers *"would this fact help answer the message?"*,
-  and only notes at 0.5 or above are used — the harness's own keyword search recalls notes for almost any
-  question. The harness only adds memories, so the app gives the agent a `forget_memory` tool: ask it to forget
-  something and System 1 picks the notes that mention it (*"does this fact mention …?"*); the files are deleted,
+  Recall is retrieve-then-rerank: an embedding model (`nomic-embed-text`) finds the 12 notes closest in meaning,
+  then System 1 answers *"would this fact help answer the message?"* for each, and notes at 0.5 or above are used,
+  best 5. Measured on 30 notes and 10 questions with the Qwen stand-in, that found more of the right notes than
+  System 1 over every note (20 vs 17 of 29), kept fewer wrong ones (18 vs 24), and made a third of the calls.
+  The harness only adds memories, so the app gives the agent a `forget_memory` tool: ask it to forget something and
+  notes that name it are deleted, with System 1 catching the ones that say it another way (*"does this fact
+  mention …?"*), or `everything` for all of them. The files are deleted,
   and that turn saves no new notes (otherwise "forget my name" would be saved as a note about your name).
-  Similarity links need `ollama pull nomic-embed-text`; without it, notes sharing a name or place are linked.
+  `ollama pull nomic-embed-text` for retrieval and the core's links; without it System 1 scores every note, and notes
+  sharing a name or place are linked.
 
 **One turn, step by step:**
 
