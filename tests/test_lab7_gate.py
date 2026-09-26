@@ -35,3 +35,10 @@ def test_every_block_prints_a_decision(monkeypatch, capsys):
                                                           "args_grounded": 0.9, "premature": 0.1})
     lab7.ToolCallGate().before_tool_call(event("Paris"))
     assert "[gate] ->" in capsys.readouterr().out
+
+
+def test_gate_records_last_probs(monkeypatch):
+    monkeypatch.setattr(lab7, "yes_no_many", probs(0.2))
+    gate = lab7.ToolCallGate()
+    gate.before_tool_call(event("Seattle"))
+    assert gate.last_probs["args_grounded"] == 0.2

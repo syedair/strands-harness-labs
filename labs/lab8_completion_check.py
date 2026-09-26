@@ -34,6 +34,7 @@ class CompletionCheck(InterventionHandler):
             f"User request: {request}\n\nAssistant answer: {answer}",
             "Does the assistant's answer respond to every question the user asked?",
         )
+        self.last_probs = {"answered_everything": p_complete}  # lab 11 shows this in the web UI
         print(f"\n[check] P(answered everything) = {p_complete:.2f}")
 
         # ...plain Python decides.

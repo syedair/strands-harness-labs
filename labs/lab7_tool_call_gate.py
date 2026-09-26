@@ -42,6 +42,7 @@ class ToolCallGate(InterventionHandler):
         print(f"\n[gate] model proposes: {call}")
 
         p = yes_no_many(state, QUESTIONS)  # System 1 observes...
+        self.last_probs = p  # lab 11 shows these in the web UI
         for name, value in p.items():
             print(f"[gate]   P({name}) = {value:.2f}")
 
