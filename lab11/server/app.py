@@ -1,7 +1,6 @@
 # Lab 11: the finished travel assistant behind a web API. The React app in lab11/web talks to it.
 import json
 import logging
-import os
 import sys
 import tempfile
 from contextlib import contextmanager
@@ -253,18 +252,52 @@ def harness(chat_id: str | None = None):
     }
 
 
+class KnowledgeRequest(BaseModel):
+    path: str
+    folders: list[str] | None = None
+
+
+@app.get("/api/knowledge")
+def list_knowledge():
+    return knowledge.Bases(DATA).list()
+
+
+@app.post("/api/knowledge")
+def add_knowledge(request: KnowledgeRequest):
+    """Add a folder of markdown (an Obsidian vault works) as a read-only knowledge base, and index it."""
+    try:
+        base = knowledge.Bases(DATA).add(request.path, request.folders)
+    except ValueError as error:
+        raise HTTPException(400, str(error))
+    AGENTS.clear()  # chats pick it up on their next message
+    return base
+
+
+@app.post("/api/knowledge/{base_id}/index")
+def reindex_knowledge(base_id: str):
+    try:
+        base = knowledge.Bases(DATA).index(base_id)
+    except KeyError:
+        raise HTTPException(404, "No such knowledge base")
+    AGENTS.clear()
+    return base
+
+
+@app.delete("/api/knowledge/{base_id}")
+def remove_knowledge(base_id: str):
+    knowledge.Bases(DATA).remove(base_id)  # drops the index; the folder itself is never touched
+    AGENTS.clear()
+    return {"ok": True}
+
+
 @app.get("/api/memory")
 def memory_graph():
-    """Your memories, plus the sections of KNOWLEDGE_DIR (read-only) when one is set."""
+    """Your memories, plus the sections of every knowledge base added in Settings (read-only)."""
     graph = memory.graph(DATA / "memory")
-    graph["knowledge"] = None
-    found = knowledge.settings()
-    if found:
-        folder, folders = found
-        sections = knowledge.load_sections(folder, folders)
-        graph["nodes"] += [{"id": f"kb:{i}", "text": t[:300], "hits": 0, "created": 0, "kind": "knowledge"}
-                           for i, t in sections.items()]
-        graph["knowledge"] = {"dir": os.environ["KNOWLEDGE_DIR"], "sections": len(sections)}
+    sections = knowledge.Bases(DATA).sections()
+    graph["nodes"] += [{"id": i, "text": t[:300], "hits": 0, "created": 0, "kind": "knowledge"} for i, t in sections.items()]
+    bases = knowledge.Bases(DATA).list()
+    graph["knowledge"] = {"dir": ", ".join(b["path"] for b in bases), "sections": len(sections)} if bases else None
     return graph
 
 

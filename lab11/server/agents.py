@@ -28,14 +28,9 @@ SKILL_FILES = (f"\nSkill locations are relative to {ROOT}: .agent/skills/<name>/
                f"{ROOT / '.agent' / 'skills'}/<name>/references/x.md. Read skill files by that absolute path.")
 
 
-def knowledge_for(turn: TurnHandlers, data: Path):
-    """KNOWLEDGE_DIR: a folder of your own markdown notes, recalled read-only. KNOWLEDGE_FOLDERS limits it to
-    some top-level folders (comma-separated), e.g. to keep private ones out of a recording."""
-    found = knowledge.settings()
-    if found is None:
-        return None
-    folder, folders = found
-    return knowledge.KnowledgeStore(folder, cache=data / "knowledge_embeddings.json", on_search=turn.recall, folders=folders)
+def knowledge_for(turn: TurnHandlers, data: Path) -> list:
+    """One read-only store per knowledge base added in Settings."""
+    return knowledge.Bases(data).stores(on_search=turn.recall)
 
 
 def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
@@ -53,7 +48,7 @@ def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
         tools=[forget_tool(turn, notes)],  # the harness only adds memories; this deletes them
         builtin_tools=["web_fetch", "read"],  # read: files the user attaches
         session={"id": chat_id, "dir": str(data / "sessions")},  # the chat history, saved to disk
-        memory={"stores": [s for s in (store, knowledge_for(turn, data)) if s]},  # yours, plus KNOWLEDGE_DIR
+        memory={"stores": [store, *knowledge_for(turn, data)]},  # yours, plus your read-only knowledge bases
         skills=True,
         builtin_plugins=["todos"],  # no "environment": the app doesn't need the working directory in every prompt
         mcp_servers=mcp or None,  # connectors the user turned on
