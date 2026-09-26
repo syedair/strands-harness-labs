@@ -68,8 +68,9 @@ class CompletionCheck(InterventionHandler):
         self.last_why = None
 
         # ...plain Python decides.
-        if p["waiting"] >= self.PASS:
-            checklist([("waiting for you?", p["waiting"], True)], threshold=self.PASS)
+        if p["waiting"] >= self.PASS:  # it's asking you something: nothing to judge yet
+            checklist([("waiting for you?", p["waiting"], True),
+                       ("answered everything?", p["answered_everything"], None)], threshold=self.PASS)
             self.last_why = ASKED
             print(f"  check → Proceed: {ASKED}")
             return Proceed()

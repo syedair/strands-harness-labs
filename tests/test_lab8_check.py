@@ -34,7 +34,8 @@ def test_a_clarifying_question_proceeds(monkeypatch, capsys):
     check = lab8.CompletionCheck()
     action = check.after_model_call(event("Which city are you travelling to?"))
     assert type(action).__name__ == "Proceed" and check.guides == 0
-    assert "waiting for you?" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "waiting for you?" in out and "answered everything?" in out and "not judged" in out
 
 
 def test_an_answer_that_ends_with_an_offer_is_still_judged(monkeypatch, capsys):

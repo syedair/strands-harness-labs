@@ -86,3 +86,11 @@ def test_wait_never_waits_off_a_terminal(monkeypatch):
 
     monkeypatch.setattr("builtins.input", lambda *_: (_ for _ in ()).throw(AssertionError("waited")))
     wait("press Enter to ask System 1")
+
+
+def test_checklist_can_show_a_rule_that_isnt_judged(capsys):
+    from common.show import checklist
+
+    checklist([("answered everything?", 0.10, None)], threshold=0.6)
+    line = capsys.readouterr().out
+    assert "0.10" in line and "not judged" in line and "✗" not in line and "✓" not in line

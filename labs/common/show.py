@@ -43,12 +43,14 @@ def pause(conversation: str) -> None:
     wait()
 
 
-def checklist(rows: list[tuple[str, float, bool]], threshold: float) -> None:
-    """One bar per rule, with the threshold marked: (label, probability, passed). ✓ passed, ✗ broke the rule."""
+def checklist(rows: list[tuple[str, float, bool | None]], threshold: float) -> None:
+    """One bar per rule, with the threshold marked: (label, probability, passed). ✓ passed, ✗ broke the rule,
+    None: asked, but not judged this time."""
     width = max(len(label) for label, _, _ in rows) + 2
     for label, p, ok in rows:
-        mark = _paint("✓", "green") if ok else _paint("✗", "red")
-        print(f"    {label:{width}}{_paint(bar(p, threshold=threshold), 'green' if ok else 'red')}  {p:.2f}  {mark}")
+        color = "dim" if ok is None else "green" if ok else "red"
+        mark = _paint("(not judged)", "dim") if ok is None else _paint("✓", "green") if ok else _paint("✗", "red")
+        print(f"    {label:{width}}{_paint(bar(p, threshold=threshold), color)}  {p:.2f}  {mark}")
 
 
 def show(conversation: str, questions: dict, answers: dict, threshold: float = 0.5, header: bool = True) -> None:
