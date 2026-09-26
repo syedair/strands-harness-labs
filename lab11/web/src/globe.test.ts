@@ -3,9 +3,9 @@ import { cloudPoints, spherePoint, toGraph } from "./globe";
 
 const api = {
   nodes: [
-    { id: "home.md", text: "The user lives in Dubai.", hits: 3 },
-    { id: "trip.md", text: "Trip to Istanbul in March.", hits: 0 },
-    { id: "food.md", text: "Likes street food.", hits: 1 },
+    { id: "home.md", text: "The user lives in Dubai.", hits: 3, created: 3 },
+    { id: "trip.md", text: "Trip to Istanbul in March.", hits: 0, created: 2 },
+    { id: "food.md", text: "Likes street food.", hits: 1, created: 1 },
   ],
   links: [
     { source: "home.md", target: "trip.md", weight: 0.8 },

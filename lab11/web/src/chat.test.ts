@@ -60,8 +60,8 @@ describe("statusOf", () => {
 
 describe("memory, history and early endings", () => {
   it("shows recalled memories as a part of the reply", () => {
-    const turn = applyEvent(newAssistantTurn(), { type: "memory", ids: ["home.md", "trip.md"] });
-    expect(turn.parts).toEqual([{ kind: "memory", ids: ["home.md", "trip.md"] }]);
+    const turn = applyEvent(newAssistantTurn(), { type: "memory", ids: ["home.md", "trip.md"], scores: [0.9, 0.7], query: "home?" });
+    expect(turn.parts[0]).toMatchObject({ kind: "memory", ids: ["home.md", "trip.md"] });
   });
 
   it("turns saved history into finished turns", () => {
@@ -76,5 +76,17 @@ describe("memory, history and early endings", () => {
     expect(cut).toMatchObject({ streaming: false, error: "The reply ended early." });
     const done = applyEvent(newAssistantTurn(), { type: "done" });
     expect(finishTurn(done)).toBe(done);
+  });
+});
+
+describe("recall details and saved memories", () => {
+  it("keeps what was searched and how relevant each memory was", () => {
+    const turn = applyEvent(newAssistantTurn(), { type: "memory", ids: ["name.md"], scores: [0.95], query: "What's my name?" });
+    expect(turn.parts).toEqual([{ kind: "memory", ids: ["name.md"], scores: [0.95], query: "What's my name?" }]);
+  });
+
+  it("shows a saved memory as its own part", () => {
+    const turn = applyEvent(newAssistantTurn(), { type: "stored", ids: ["airline.md"] });
+    expect(turn.parts).toEqual([{ kind: "stored", ids: ["airline.md"] }]);
   });
 });

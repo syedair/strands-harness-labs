@@ -5,7 +5,8 @@ export type Part =
   | { kind: "text"; text: string; discarded: boolean }
   | { kind: "tool"; name: string; input: Record<string, unknown> }
   | ({ kind: "decision" } & Omit<Extract<ChatEvent, { type: "decision" }>, "type">)
-  | { kind: "memory"; ids: string[] };
+  | { kind: "memory"; ids: string[]; scores: number[]; query: string }
+  | { kind: "stored"; ids: string[] };
 
 export type AssistantTurn = { role: "assistant"; parts: Part[]; streaming: boolean; error?: string };
 export type UserTurn = { role: "user"; text: string };
@@ -32,7 +33,9 @@ export function applyEvent(turn: AssistantTurn, event: ChatEvent): AssistantTurn
       return { ...turn, parts: [...parts, { kind: "decision", source: event.source, action: event.action,
                                              why: event.why, p: event.p, probs: event.probs }] };
     case "memory":
-      return { ...turn, parts: [...parts, { kind: "memory", ids: event.ids }] };
+      return { ...turn, parts: [...parts, { kind: "memory", ids: event.ids, scores: event.scores, query: event.query }] };
+    case "stored":
+      return { ...turn, parts: [...parts, { kind: "stored", ids: event.ids }] };
     case "title":
       return turn; // the app updates the sidebar
     case "done":

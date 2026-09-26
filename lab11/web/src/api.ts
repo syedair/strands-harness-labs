@@ -10,7 +10,8 @@ export type ChatEvent =
       p: number | null; // the probability behind that rule
       probs: Record<string, number>;
     }
-  | { type: "memory"; ids: string[] } // notes the harness recalled for this turn
+  | { type: "memory"; ids: string[]; scores: number[]; query: string } // notes recalled, how relevant, for what
+  | { type: "stored"; ids: string[] } // notes the harness just saved
   | { type: "title"; title: string }
   | { type: "done" }
   | { type: "error"; message: string };
@@ -32,7 +33,7 @@ export type Harness = {
   connectors: { enabled: string[]; errors: { id: string; error: string }[] };
 };
 export type MemoryGraph = {
-  nodes: { id: string; text: string; hits: number }[];
+  nodes: { id: string; text: string; hits: number; created: number }[]; // newest first
   links: { source: string; target: string; weight: number }[];
 };
 
@@ -59,6 +60,7 @@ export const addConnector = (label: string, command: string, args: string[]) =>
 export const setConnectors = (id: string, enabled: string[]) =>
   send(`/api/chats/${id}/connectors`, "PUT", { enabled }).then((r) => json(r));
 export const fetchMemory = () => fetch("/api/memory").then((r) => json<MemoryGraph>(r));
+export const forgetMemory = (id: string) => send(`/api/memory/${encodeURIComponent(id)}`, "DELETE").then((r) => json(r));
 
 export async function uploadFile(id: string, file: File): Promise<FileInfo> {
   const form = new FormData();

@@ -8,6 +8,7 @@ import { EmptyState } from "./components/EmptyState";
 import { HarnessPanel } from "./components/HarnessPanel";
 import { Header } from "./components/Header";
 import { Message } from "./components/Message";
+import type { Recall } from "./components/MemoryGlobe";
 import { Sidebar } from "./components/Sidebar";
 
 const firstAvailable = (choices: api.Choice[], preferred: string) =>
@@ -24,6 +25,8 @@ export default function App() {
   const [harness, setHarness] = useState<Harness | null>(null);
   const [memory, setMemory] = useState<MemoryGraph>({ nodes: [], links: [] });
   const [fired, setFired] = useState<string[]>([]);
+  const [stored, setStored] = useState<string[]>([]);
+  const [recall, setRecall] = useState<Recall | null>(null);
   const [attached, setAttached] = useState<FileInfo[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
   const [serverDown, setServerDown] = useState(false);
@@ -97,7 +100,8 @@ export default function App() {
     try {
       for await (const event of api.sendMessage(chatId, text, model, system1)) {
         if (event.type === "title") setChat((c) => (c ? { ...c, title: event.title } : c));
-        if (event.type === "memory") setFired(event.ids);
+        if (event.type === "memory") { setFired(event.ids); setRecall(event); }
+        if (event.type === "stored") setStored(event.ids);
         update((turn) => applyEvent(turn, event));
       }
     } catch (error) {
@@ -127,6 +131,11 @@ export default function App() {
   async function addConnector(label: string, command: string, args: string[]) {
     await api.addConnector(label, command, args);
     setConnectors(await api.listConnectors());
+  }
+
+  async function forget(id: string) {
+    await api.forgetMemory(id);
+    setMemory(await api.fetchMemory());
   }
 
   async function removeChat(id: string) {
@@ -161,7 +170,7 @@ export default function App() {
         </div>
       </div>
       <div className={`${panelOpen ? "fixed inset-y-0 right-0 z-30 bg-bg-1/95 backdrop-blur" : "hidden"} lg:static lg:block`}>
-        <HarnessPanel harness={harness} memory={memory} fired={fired} decisions={decisions} state={coreState} />
+        <HarnessPanel harness={harness} memory={memory} fired={fired} stored={stored} recall={recall} decisions={decisions} state={coreState} onForget={forget} />
       </div>
     </div>
   );

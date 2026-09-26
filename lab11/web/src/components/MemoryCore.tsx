@@ -7,6 +7,7 @@ import { cloudPoints, spherePoint } from "../globe";
 
 const CYAN = new THREE.Color("#22D3EE");
 const ACCENT = new THREE.Color("#6EE7B7");
+const VIOLET = new THREE.Color("#A78BFA"); // a memory being stored
 const RADIUS = 60;
 const PARTICLES = 2600;
 const SPEED = { idle: 0.0015, thinking: 0.004, working: 0.006, writing: 0.003 } as const;
@@ -28,14 +29,15 @@ function glowTexture(): THREE.Texture {
 const glowing = (color: THREE.Color, opacity: number, map: THREE.Texture) =>
   ({ color, opacity, map, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
 
-type Props = { graph: MemoryGraph; fired: string[]; state: CoreState; height: number; close?: boolean };
+type Props = { graph: MemoryGraph; fired: string[]; stored: string[]; state: CoreState; height: number; close?: boolean };
 
-export function MemoryCore({ graph, fired, state, height, close = false }: Props) {
+export function MemoryCore({ graph, fired, stored, state, height, close = false }: Props) {
   const box = useRef<HTMLDivElement>(null);
-  const live = useRef({ fired: new Set<string>(), state, rebuild: (_g: MemoryGraph) => {} });
+  const live = useRef({ fired: new Set<string>(), stored: new Set<string>(), state, rebuild: (_g: MemoryGraph) => {} });
   const [hover, setHover] = useState<{ text: string; x: number; y: number } | null>(null);
   live.current.state = state;
   live.current.fired = new Set(fired);
+  live.current.stored = new Set(stored);
 
   useEffect(() => {
     const el = box.current!;
@@ -76,6 +78,8 @@ export function MemoryCore({ graph, fired, state, height, close = false }: Props
     let links: { a: string; b: string; line: THREE.Line }[] = [];
     const pulses = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: 3.5, ...glowing(ACCENT, 1, texture) }));
     core.add(pulses);
+    const gathering = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: 3.5, ...glowing(VIOLET, 1, texture) }));
+    core.add(gathering);
     live.current.rebuild = (g: MemoryGraph) => {
       anchors.clear();
       stars = g.nodes.map((n, i) => {
@@ -118,7 +122,7 @@ export function MemoryCore({ graph, fired, state, height, close = false }: Props
 
     let frame = 0;
     const animate = (time: number) => {
-      const { fired: hot, state: now } = live.current;
+      const { fired: hot, stored: fresh, state: now } = live.current;
       const busy = now !== "idle";
       core.rotation.y += SPEED[now];
       cloudMaterial.opacity = busy ? 0.95 : 0.7;
@@ -126,10 +130,23 @@ export function MemoryCore({ graph, fired, state, height, close = false }: Props
       const flare = 1 + 0.4 * Math.sin(time / 160);
       for (const s of stars) {
         const on = hot.has(s.id);
-        s.sprite.material.color = on ? ACCENT : CYAN;
-        s.sprite.material.opacity = on ? 1 : 0.85;
-        s.sprite.scale.setScalar((7 + (on ? 5 : 0)) * (on ? flare : 1));
+        const saving = fresh.has(s.id);
+        s.sprite.material.color = saving ? VIOLET : on ? ACCENT : CYAN;
+        s.sprite.material.opacity = on || saving ? 1 : 0.85;
+        s.sprite.scale.setScalar((7 + (on || saving ? 5 : 0)) * (on || saving ? flare : 1));
       }
+      // storing: violet points gather from outside the core into each new note (recall fires the other way)
+      const incoming: number[] = [];
+      stars.filter((s) => fresh.has(s.id)).forEach((s) => {
+        const outside = s.pos.clone().normalize().multiplyScalar(RADIUS * 1.6);
+        for (let i = 0; i < 16; i++) {
+          const spread = new THREE.Vector3(Math.sin(i * 2.4), Math.cos(i * 1.7), Math.sin(i * 0.9)).multiplyScalar(RADIUS * 0.5);
+          const t = (time / 1600 + i / 16) % 1;
+          const from = outside.clone().add(spread);
+          incoming.push(...from.lerp(s.pos, t).toArray());
+        }
+      });
+      gathering.geometry.setAttribute("position", new THREE.Float32BufferAttribute(incoming, 3));
       for (const l of links) {
         const on = hot.has(l.a) || hot.has(l.b);
         const material = l.line.material as THREE.LineBasicMaterial;

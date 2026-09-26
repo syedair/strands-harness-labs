@@ -1,4 +1,4 @@
-import { Brain, TriangleAlert } from "lucide-react";
+import { Brain, BrainCircuit, TriangleAlert } from "lucide-react";
 import Markdown from "react-markdown";
 import type { Turn } from "../chat";
 import { DecisionChip } from "./DecisionChip";
@@ -19,9 +19,21 @@ export function Message({ turn }: { turn: Turn }) {
         if (part.kind === "tool") return <ToolCard key={i} name={part.name} input={part.input} />;
         if (part.kind === "decision") return <DecisionChip key={i} decision={part} />;
         if (part.kind === "memory") {
+          const detail = part.ids.map((id, n) => `${id.replace(/\.md$/, "")}  ${part.scores[n]?.toFixed(2) ?? ""}`).join("\n");
           return (
-            <div key={i} className="animate-rise inline-flex items-center gap-2 rounded-full border border-accent-2/40 px-3 py-1 text-xs text-accent-2">
-              <Brain size={14} /> <span className="text-ink">Recalled {part.ids.length} {part.ids.length === 1 ? "memory" : "memories"}</span>
+            <div key={i} title={`Searched for: "${part.query}"\n${detail}`}
+                 className="animate-rise inline-flex items-center gap-2 rounded-full border border-accent-2/40 px-3 py-1 text-xs text-accent-2">
+              <Brain size={14} />
+              <span className="text-ink">Recalled {part.ids.length} {part.ids.length === 1 ? "memory" : "memories"}</span>
+              {part.scores.length > 0 && <span className="font-mono">best {Math.max(...part.scores).toFixed(2)}</span>}
+            </div>
+          );
+        }
+        if (part.kind === "stored") {
+          return (
+            <div key={i} className="animate-rise inline-flex items-center gap-2 rounded-full border border-violet/50 px-3 py-1 text-xs text-violet">
+              <BrainCircuit size={14} />
+              <span className="text-ink">Saved {part.ids.length === 1 ? "a new memory" : `${part.ids.length} new memories`}</span>
             </div>
           );
         }

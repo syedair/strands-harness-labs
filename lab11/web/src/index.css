@@ -9,6 +9,7 @@
   --color-ink: #F8FAFC;
   --color-ink-2: rgba(248, 250, 252, 0.66);
   --color-warn: #FBBF24;
+  --color-violet: #A78BFA; /* theme --hue-5: memories being stored */
   --font-display: "SF Pro Display", -apple-system, "Inter", system-ui, sans-serif;
   --font-sans: "SF Pro Text", -apple-system, "Inter", system-ui, sans-serif;
   --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, monospace;
