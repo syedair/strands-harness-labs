@@ -170,3 +170,19 @@ def test_two_stores_searched_before_every_call_report_each_recall_once():
         turn.recall(["home.md"], ["The user lives in Dubai."], [0.7], "q")
         turn.recall(["kb:Technical/AWS.md#0"], ["VPC peering is not transitive."], [0.9], "q")
     assert [e["ids"] for e in turn.events if e["type"] == "memory"] == [["home.md"], ["kb:Technical/AWS.md#0"]]
+
+
+def test_the_gate_remembers_facts_recalled_earlier_in_the_chat(monkeypatch):
+    seen = []
+    monkeypatch.setattr(lab7, "yes_no_many", lambda state, q: seen.append(state) or {
+        "matches_intent": 0.9, "missing_info": 0.1, "args_grounded": 0.9, "premature": 0.1})
+    turn = events.TurnHandlers([])
+    turn.start_turn("where do I live")
+    turn.recall(["home.md"], ["The user lives in Dubai."])
+    turn.start_turn("how is the weather like here")  # nothing recalled this turn
+    history = [{"role": "user", "content": [{"text": "where do I live"}]},
+               {"role": "assistant", "content": [{"text": "You live in Dubai."}]},
+               {"role": "user", "content": [{"text": "how is the weather like here"}]}]
+    turn.gate.before_tool_call(SimpleNamespace(tool_use={"name": "web_fetch", "input": {"url": "https://wttr.in/Dubai"}},
+                                               agent=SimpleNamespace(messages=history)))
+    assert "The user lives in Dubai." in seen[0]

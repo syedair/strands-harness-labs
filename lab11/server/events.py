@@ -35,7 +35,7 @@ class WebGate(ToolCallGate):
         super().__init__()
         self.events = events
         self.last_why = None
-        self.remembered: list[str] = []  # notes memory recalled this turn
+        self.remembered: list[str] = []  # notes memory recalled in this chat: facts the user told us, so they ground
 
     def context(self, event) -> str:
         """Lab 7 looks only at what the user typed; here, what we remember about them counts too."""
@@ -96,7 +96,7 @@ class TurnHandlers:
         if frozenset(ids) in self.recalled:  # every store is searched before every model call; report each once
             return
         self.recalled.add(frozenset(ids))
-        self.gate.remembered = list(dict.fromkeys(self.gate.remembered + texts))
+        self.gate.remembered = list(dict.fromkeys(self.gate.remembered + texts))[-30:]  # the most recent
         shown = re.split(r"\s*<system-reminder>", query or "")[0].strip()  # drop context the harness appends
         self.events.append({"type": "memory", "ids": ids, "scores": scores or [], "query": shown})
         if self.on_recall:
@@ -109,7 +109,6 @@ class TurnHandlers:
     def start_turn(self, message: str) -> None:
         self.check.request = message
         self.recalled = set()
-        self.gate.remembered = []
         self.gate.blocks = 0
         self.check.guides = 0
         self.forgot = False
