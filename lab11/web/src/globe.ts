@@ -69,3 +69,9 @@ export function notePoint(id: string, radius: number): { x: number; y: number; z
   const y = 1 - 2 * u, ring = Math.sqrt(1 - y * y), angle = 2 * Math.PI * v;
   return { x: Math.cos(angle) * ring * radius, y: y * radius, z: Math.sin(angle) * ring * radius };
 }
+
+/** How big and bright stars and links are drawn for this many notes: unchanged up to 30, thinner beyond. */
+export function density(count: number): { star: number; glow: number; link: number } {
+  const f = Math.min(1, Math.sqrt(30 / Math.max(count, 1)));
+  return { star: Math.max(0.4, f ** 0.7), glow: Math.max(0.4, Math.sqrt(f)), link: Math.max(0.15, f) };
+}

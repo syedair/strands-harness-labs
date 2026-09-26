@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cloudPoints, notePoint, showingFor, toGraph, withGhosts } from "./globe";
+import { cloudPoints, density, notePoint, showingFor, toGraph, withGhosts } from "./globe";
 
 const api = {
   nodes: [
@@ -103,5 +103,16 @@ describe("notePoint", () => {
   it("spreads different notes apart", () => {
     const a = notePoint("home.md", 50), b = notePoint("trip.md", 50);
     expect(Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)).toBeGreaterThan(1);
+  });
+});
+
+describe("density", () => {
+  it("keeps a small memory as it was and thins stars and links out as it grows", () => {
+    expect(density(20)).toEqual({ star: 1, glow: 1, link: 1 });
+    const big = density(500);
+    expect(big.star).toBeLessThan(0.45);
+    expect(big.glow).toBeLessThan(0.5);
+    expect(big.link).toBeLessThan(0.5);
+    expect(density(100).star).toBeGreaterThan(big.star); // shrinks steadily, not in a jump
   });
 });
