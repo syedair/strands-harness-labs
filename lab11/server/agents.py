@@ -17,7 +17,7 @@ def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
     return create_harness(
         model=settings["model"],
         instructions=INSTRUCTIONS,
-        builtin_tools=["web_fetch"],
+        builtin_tools=["web_fetch", "read"],  # read: files the user attaches
         session={"id": chat_id, "dir": str(data / "sessions")},  # the chat history, saved to disk
         memory=True,
         skills=True,

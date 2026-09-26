@@ -1,4 +1,5 @@
 # Lab 11: chat history. Each chat is a harness session; this keeps its title and settings.
+from __future__ import annotations  # ChatStore has a list() method; keep annotations lazy
 import json
 import shutil
 import time
@@ -48,7 +49,8 @@ class ChatStore:
         chat_id = uuid.uuid4().hex[:12]
         now = time.time_ns()
         self._write({"id": chat_id, "title": "New chat", "created_at": now, "updated_at": now,
-                     "model": config.MAIN_MODEL, "system1_model": config.SYSTEM1_MODEL, "connectors": []})
+                     "model": config.MAIN_MODEL, "system1_model": config.SYSTEM1_MODEL, "connectors": [],
+                     "files": [], "pending_files": []})
         return chat_id
 
     def list(self) -> list[dict]:
@@ -64,6 +66,22 @@ class ChatStore:
         chat = self._read(chat_id)
         chat.update({k: v for k, v in changes.items() if v is not None})
         self._write(chat)
+
+    def files(self, chat_id: str) -> list[dict]:
+        return self._read(chat_id).get("files", [])
+
+    def add_file(self, chat_id: str, info: dict) -> None:
+        chat = self._read(chat_id)
+        chat["files"] = [f for f in chat.get("files", []) if f["name"] != info["name"]] + [info]
+        chat["pending_files"] = chat.get("pending_files", []) + [info["path"]]
+        self._write(chat)
+
+    def take_pending_files(self, chat_id: str) -> list[str]:
+        """Files uploaded since the last message; the next message tells the agent about them."""
+        chat = self._read(chat_id)
+        pending, chat["pending_files"] = chat.get("pending_files", []), []
+        self._write(chat)
+        return pending
 
     def set_title(self, chat_id: str, title: str) -> None:
         self.save_settings(chat_id, title=title)

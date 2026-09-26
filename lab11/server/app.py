@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "labs"))  # labs 7-8 and common/
 
 import uvicorn  # noqa: E402
-from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi import FastAPI, File, HTTPException, UploadFile  # noqa: E402
 from fastapi.responses import StreamingResponse  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
@@ -18,6 +18,15 @@ from common.system1 import unavailable  # noqa: E402
 from events import TurnHandlers, WebCheck, WebGate, decision  # noqa: E402,F401  (re-exported for tests)
 
 SYSTEM1_CHOICES = [("ollama/qwen3.5:4b", "Qwen stand-in"), ("jev", "Jev"), ("kev", "Kev"), ("laya", "Laya")]
+MODEL_CHOICES = [
+    ("bedrock/moonshotai.kimi-k2.5", "Kimi K2.5"),
+    ("bedrock/nvidia.nemotron-super-3-120b", "Nemotron Super"),
+    ("bedrock/us.anthropic.claude-sonnet-5", "Claude Sonnet 5"),
+    ("bedrock/us.moonshotai.kimi-k3", "Kimi K3"),
+    ("ollama/gpt-oss:20b", "gpt-oss 20B (local)"),
+]
+UPLOAD_TYPES = {".txt", ".md", ".csv", ".json", ".pdf"}
+UPLOAD_LIMIT = 5 * 1024 * 1024  # 5 MB
 
 DATA = Path(__file__).resolve().parents[1] / "data"  # chats, sessions, files, memory (git-ignored)
 STORE = ChatStore(DATA)
@@ -53,6 +62,27 @@ def require_chat(chat_id: str) -> None:
         raise HTTPException(404, "No such chat")
 
 
+def bedrock_ready() -> bool:
+    import boto3
+
+    return boto3.Session().get_credentials() is not None
+
+
+def model_problem(model_id: str) -> str | None:
+    if model_id.startswith("bedrock/"):
+        return None if bedrock_ready() else "No AWS credentials for Bedrock. Run: aws configure"
+    return unavailable(model_id)
+
+
+@app.get("/api/options")
+def options():
+    models = []
+    for model_id, label in MODEL_CHOICES:
+        reason = model_problem(model_id)
+        models.append({"id": model_id, "label": label, "available": reason is None, "reason": reason})
+    return {"models": models, "default_model": config.MAIN_MODEL, "system1": system1_options()}
+
+
 @app.get("/api/system1")
 def system1_options():
     options = []
@@ -84,7 +114,25 @@ def open_chat(chat_id: str):
     require_chat(chat_id)
     agent, _ = agent_for(chat_id)
     return {"id": chat_id, "title": STORE.title(chat_id), "turns": turns_from_messages(agent.messages),
-            **STORE.settings(chat_id)}
+            "files": STORE.files(chat_id), **STORE.settings(chat_id)}
+
+
+@app.post("/api/chats/{chat_id}/files")
+async def upload_file(chat_id: str, file: UploadFile = File(...)):
+    require_chat(chat_id)
+    name = Path(file.filename or "upload").name
+    if Path(name).suffix.lower() not in UPLOAD_TYPES:
+        raise HTTPException(415, f"Only {', '.join(sorted(UPLOAD_TYPES))} files")
+    data = await file.read(UPLOAD_LIMIT + 1)
+    if len(data) > UPLOAD_LIMIT:
+        raise HTTPException(413, "Files can be up to 5 MB")
+    folder = DATA / "files" / chat_id
+    folder.mkdir(parents=True, exist_ok=True)
+    path = (folder / name).resolve()  # the read tool needs an absolute path
+    path.write_bytes(data)
+    info = {"name": name, "path": str(path), "size": len(data)}
+    STORE.add_file(chat_id, info)
+    return info
 
 
 @app.post("/api/chats/{chat_id}/messages")
@@ -107,7 +155,8 @@ async def send_message(chat_id: str, request: MessageRequest):
             if STORE.title(chat_id) == "New chat":
                 STORE.set_title(chat_id, title_for(request.message))
                 yield line({"type": "title", "title": STORE.title(chat_id)})
-            async for event in agent.stream_async(request.message):
+            prompt = request.message + "".join(f"\n\nAttached file: {p}" for p in STORE.take_pending_files(chat_id))
+            async for event in agent.stream_async(prompt):
                 while events:  # decisions recorded by the gate/check since the last event
                     yield line(events.pop(0))
                 if event.get("data"):
