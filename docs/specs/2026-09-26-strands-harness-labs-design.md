@@ -55,7 +55,7 @@ The travel assistant evolves through the labs.
 | 2 | `lab2_builtin_tools.py` | Looks up real weather/info on the web | `builtin_tools` (pin to `web_fetch`, `read`, `write`) |
 | 3 | `lab3_sessions_memory.py` | Remembers the user's home city across runs | `session`, `memory` in `.agent/` |
 | 4 | `lab4_skills.py` | A packing-list skill | `skills` from `.agent/skills/packing-list/` |
-| 5 | `lab5_interventions.py` | Asks before writing a file | `interventions="ask"`, then a plain-English policy |
+| 5 | `lab5_interventions.py` | Asks before writing a file | `HumanInTheLoop(ask="stdio")`, then a plain-English policy (the `"ask"` preset pauses via interrupt/resume, which a plain script can't answer) |
 | 6 | `lab6_system1_basics.py` | No agent: ask the classifier yes/no and choice questions | `labs/common/system1.py` |
 | 7 | `lab7_tool_call_gate.py` | Blocks guessed tool arguments ("What's the weather?" with no city) | custom `InterventionHandler.before_tool_call` → `Guide` / `Proceed` |
 | 8 | `lab8_completion_check.py` | Sends the agent back when it stops before the task is done | `after_model_call` → `Guide` / `Proceed` |
