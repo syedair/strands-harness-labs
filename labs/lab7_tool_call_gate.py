@@ -17,7 +17,8 @@ INSTRUCTIONS = (
 QUESTIONS = {
     "matches_intent": "Does the proposed tool match what the user is asking for?",
     "missing_info": "Is information missing that the tool needs to run correctly?",
-    "args_grounded": "Are the tool's argument values based on facts the user actually provided?",
+    # Small open models need concrete questions: "grounded?" is too abstract for a 4B model.
+    "args_grounded": "Did the user mention the same city that the tool call uses?",
     "premature": "Is it too early to call this tool, before clarifying with the user?",
 }
 
@@ -63,7 +64,9 @@ def main() -> None:
         skills=False,
         interventions=ToolCallGate(),  # NEW: our own System 1 gate
     )
-    agent("What's the weather?")
+    agent("What's the weather?")  # no city: the model guesses, the gate blocks it
+    agent.messages.clear()
+    agent("What's the weather in Paris?")  # a real city: the gate lets it through
 
 
 if __name__ == "__main__":
