@@ -2,10 +2,13 @@ import json
 from types import SimpleNamespace
 
 import pytest
-from fastapi.testclient import TestClient
-from strands.interventions import Guide, Proceed
 
-import lab11_web_server as server
+pytest.importorskip("fastapi")  # lab 11 needs: uv sync --extra web
+
+from fastapi.testclient import TestClient  # noqa: E402
+from strands.interventions import Guide, Proceed  # noqa: E402
+
+import app as server  # noqa: E402
 
 
 class FakeAgent:

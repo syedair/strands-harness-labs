@@ -154,7 +154,7 @@ Contenders you haven't set up are skipped with a one-line hint.
 **Run:** `uv run labs/lab10_system1_showdown.py`
 
 ### Lab 11: Web Chat UI
-**Files:** `labs/lab11_web_server.py` (API) and `web/` (React)
+**Files:** `lab11/server/` (API) and `lab11/web/` (React)
 The finished assistant — web fetch, memory, the packing-list skill, lab 7's gate and lab 8's
 completion check — behind a small API, in a chat UI styled with the Developer Studio theme. Pick the
 System 1 model in the header; each decision appears as a chip naming the rule and its probability.
@@ -164,11 +164,11 @@ subclassed to report their decisions
 **Run:**
 ```bash
 uv sync --extra web
-uv run labs/lab11_web_server.py        # API on http://127.0.0.1:8000
-cd web && npm install && npm run dev   # UI on http://localhost:5173
+uv run --extra web lab11/server/app.py        # API on http://127.0.0.1:8000
+cd lab11/web && npm install && npm run dev    # UI on http://localhost:5173
 ```
-**Extending it:** add endpoints in `labs/lab11_web_server.py`; add an event type there and a `case`
-in `web/src/chat.ts`. The UI only reads events, so any web framework can replace `web/`.
+**Extending it:** add endpoints in `lab11/server/app.py`; add an event type there and a `case`
+in `lab11/web/src/chat.ts`. The UI only reads events, so any web framework can replace `lab11/web/`.
 
 ![Lab 11: the gate blocks a guessed city, then allows Paris](docs/lab11.png)
 

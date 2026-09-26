@@ -40,7 +40,7 @@ export default function App() {
               onNewChat={() => { setTurns([]); setSessionId(crypto.randomUUID()); }} />
       {serverDown && (
         <p className="glass flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-warn">
-          <ServerOff size={16} /> Can't reach the server. Start it: <code className="font-mono">uv run --extra web labs/lab11_web_server.py</code>
+          <ServerOff size={16} /> Can't reach the server. Start it: <code className="font-mono">uv run --extra web lab11/server/app.py</code>
         </p>
       )}
       <main className="flex flex-1 flex-col gap-4 overflow-y-auto">
