@@ -14,6 +14,7 @@ from pydantic import BaseModel  # noqa: E402
 
 from agents import make_agent  # noqa: E402
 import connectors  # noqa: E402
+import memory  # noqa: E402
 from chats import ChatStore, title_for, turns_from_messages  # noqa: E402
 from common import config  # noqa: E402
 from common.config import MAIN_MODEL, check_ollama  # noqa: E402
@@ -205,6 +206,11 @@ def harness(chat_id: str):
     }
 
 
+@app.get("/api/memory")
+def memory_graph():
+    return memory.graph(DATA / "memory")
+
+
 @app.post("/api/chats/{chat_id}/files")
 async def upload_file(chat_id: str, file: UploadFile = File(...)):
     require_chat(chat_id)
@@ -253,6 +259,9 @@ async def send_message(chat_id: str, request: MessageRequest):
                 yield line(events.pop(0))
             STORE.touch(chat_id)
             yield line({"type": "done"})
+            manager = getattr(agent, "memory_manager", None)
+            if manager is not None:  # save what this turn taught it; the UI refreshes memory when the stream closes
+                await manager.flush()
         except Exception as error:  # show it in the chat instead of breaking the stream
             while events:  # what happened just before the failure explains it
                 yield line(events.pop(0))

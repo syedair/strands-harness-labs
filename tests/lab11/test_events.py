@@ -42,3 +42,24 @@ def test_deny_keeps_its_rule(monkeypatch):
         turn.gate.before_tool_call(call)
     last = [e for e in log if e["type"] == "decision"][-1]
     assert last["action"] == "deny" and last["why"] == "ask the user instead of guessing"
+
+
+def test_gate_counts_recalled_memories_as_known_facts(monkeypatch):
+    seen = []
+    monkeypatch.setattr(lab7, "yes_no_many", lambda state, q: seen.append(state) or {
+        "matches_intent": 0.9, "missing_info": 0.1, "args_grounded": 0.9, "premature": 0.1})
+    turn = events.TurnHandlers([])
+    turn.start_turn("What's the weather at home?")
+    turn.recall(["home.md"], ["The user lives in Dubai."])
+    call = SimpleNamespace(tool_use={"name": "web_fetch", "input": {"url": "https://wttr.in/Dubai"}},
+                           agent=SimpleNamespace(messages=[{"role": "user", "content": [{"text": "What's the weather at home?"}]}]))
+    turn.gate.before_tool_call(call)
+    assert "The user lives in Dubai." in seen[0]
+
+
+def test_same_recall_twice_in_a_turn_is_one_event():
+    log = []
+    turn = events.TurnHandlers(log)
+    turn.start_turn("hi")
+    turn.recall(["home.md", "trip.md"], ["Dubai", "Istanbul"]); turn.recall(["trip.md", "home.md"], ["Istanbul", "Dubai"])
+    assert [e for e in log if e["type"] == "memory"] == [{"type": "memory", "ids": ["home.md", "trip.md"]}]

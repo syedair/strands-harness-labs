@@ -170,3 +170,22 @@ def test_agent_construction_failure_is_one_error(client, monkeypatch):
 
     monkeypatch.setattr(server, "make_agent", broken)
     assert chat(client) == [{"type": "error", "message": "no Bedrock access"}]
+
+
+class RecallAgent:
+    def __init__(self, turn):
+        self.turn = turn
+
+    async def stream_async(self, message):
+        self.turn.recall(["home.md"], ["The user lives in Dubai."])  # what the WatchedStore does on a search
+        yield {"data": "It's hot in Dubai."}
+
+
+def test_recalled_memories_become_one_event(client, monkeypatch):
+    monkeypatch.setattr(server, "make_agent", lambda turn, *rest: RecallAgent(turn))
+    events = chat(client)
+    assert {"type": "memory", "ids": ["home.md"]} in events
+
+
+def test_no_recall_no_memory_event(client):
+    assert all(e["type"] != "memory" for e in chat(client))

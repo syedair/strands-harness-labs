@@ -38,7 +38,7 @@ class ToolCallGate(InterventionHandler):
 
     def before_tool_call(self, event):
         call = f"{event.tool_use['name']}({json.dumps(event.tool_use.get('input', {}))})"
-        state = f"{user_text(event.agent.messages)}\n\nProposed tool call: {call}"
+        state = f"{self.context(event)}\n\nProposed tool call: {call}"
         print(f"\n[gate] model proposes: {call}")
 
         p = yes_no_many(state, QUESTIONS)  # System 1 observes...
@@ -57,6 +57,10 @@ class ToolCallGate(InterventionHandler):
             return self.block("too early, clarify first", "Too early to call this tool. Clarify with the user first.")
         print("[gate] -> Proceed")
         return Proceed()
+
+    def context(self, event) -> str:
+        """What the classifier sees besides the tool call: here, only what the user said."""
+        return user_text(event.agent.messages)
 
     def block(self, why: str, feedback: str):
         self.last_why = why  # lab 11 shows which rule fired

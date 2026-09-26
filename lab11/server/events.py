@@ -32,6 +32,12 @@ class WebGate(ToolCallGate):
         super().__init__()
         self.events = events
         self.last_why = None
+        self.remembered: list[str] = []  # notes memory recalled this turn
+
+    def context(self, event) -> str:
+        """Lab 7 looks only at what the user typed; here, what we remember about them counts too."""
+        known = "\n".join(f"- {note}" for note in self.remembered)
+        return super().context(event) + (f"\n\nWhat we remember about the user:\n{known}" if known else "")
 
     def before_tool_call(self, event):
         self.events.append({"type": "tool", "name": event.tool_use["name"], "input": event.tool_use.get("input", {})})
@@ -68,8 +74,22 @@ class TurnHandlers:
         self.events = events
         self.gate = WebGate(events)
         self.check = WebCheck(events)
+        self.on_recall = None  # e.g. count hits per note
+        self.last_recall: list[str] | None = None
+
+    def recall(self, ids: list[str], texts: list[str]) -> None:
+        """Called by the memory store when a search returns notes."""
+        if set(ids) == set(self.last_recall or []):  # the harness searches before every model call; report changes only
+            return
+        self.last_recall = ids
+        self.gate.remembered = list(dict.fromkeys(self.gate.remembered + texts))
+        self.events.append({"type": "memory", "ids": ids})
+        if self.on_recall:
+            self.on_recall(ids)
 
     def start_turn(self, message: str) -> None:
         self.check.request = message
+        self.last_recall = None
+        self.gate.remembered = []
         self.gate.blocks = 0
         self.check.guides = 0
