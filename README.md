@@ -164,14 +164,18 @@ The finished travel assistant as a web app that shows everything the harness doe
   gpt-oss) and the System 1 model (Qwen stand-in, Jev, Kev, Laya). Switch the LLM mid-chat; history carries over.
 - **Attach files** — the agent reads them with the harness's built-in `read` tool.
 - **Connectors** — turn on MCP servers (AWS Documentation, the chat's files, or your own command).
+- **Skills** — add one from the Skills tab: a `SKILL.md`, or the skill folder as a `.zip` with its references.
 - **Inside the harness** — tools, skills, session, connectors, and every System 1 decision.
 - **The memory core** — a rotating nebula of your memories. Recalled notes fire in green (hover a chip to
   see what was searched and each note's score); newly saved notes arrive in violet; forget any note.
   System 1 decides what to recall: for each note it answers *"would this fact help answer the message?"*,
   and only notes at 0.5 or above are used — the harness's own keyword search recalls notes for almost any
-  question. The harness has no forget tool, but its memories are plain markdown files, so forgetting deletes one.
+  question. The harness only adds memories, so the app gives the agent a `forget_memory` tool: ask it to forget
+  something and System 1 picks the notes that mention it (*"does this fact mention …?"*); the files are deleted,
+  and that turn saves no new notes (otherwise "forget my name" would be saved as a note about your name).
+  Similarity links need `ollama pull nomic-embed-text`; without it, notes sharing a name or place are linked.
 
-**What's new:** `create_harness(session={"id", "dir"}, memory={"stores": [...]}, mcp_servers=...)`,
+**What's new:** `create_harness(session={"id", "dir"}, memory={"stores": [...]}, mcp_servers=..., tools=[...])`,
 `agent.stream_async()` as a stream of JSON events, lab 7's gate and lab 8's check reused per chat
 **Video:** _coming soon_
 **Run:**
