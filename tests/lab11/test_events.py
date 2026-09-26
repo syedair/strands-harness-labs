@@ -151,3 +151,13 @@ def test_forget_tool_tells_the_agent_exactly_what_it_deleted(tmp_path):
 def test_forget_tool_asks_for_the_topic_in_the_users_words():
     spec = events.forget_tool(events.TurnHandlers([]), None).tool_spec
     assert "user's own words" in spec["inputSchema"]["json"]["properties"]["about"]["description"]
+
+
+def test_forget_everything_deletes_every_note(tmp_path):
+    for name in ("a.md", "b.md"):
+        (tmp_path / name).write_text("A fact.")
+    turn = events.TurnHandlers([])
+    never = lambda about, notes: pytest.fail("no System 1 needed to forget everything")
+    result = events.forget_tool(turn, tmp_path, judge=never)(about="", everything=True)
+    assert list(tmp_path.glob("*.md")) == [] and "Deleted 2" in result
+    assert sorted(turn.events[0]["ids"]) == ["a.md", "b.md"]
