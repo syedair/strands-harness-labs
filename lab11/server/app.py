@@ -1,6 +1,8 @@
 # Lab 11: the finished travel assistant behind a web API. The React app in lab11/web talks to it.
 import json
+import logging
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "labs"))  # labs 7-8 and common/
@@ -11,6 +13,7 @@ from fastapi.responses import StreamingResponse  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from agents import make_agent  # noqa: E402
+import connectors  # noqa: E402
 from chats import ChatStore, title_for, turns_from_messages  # noqa: E402
 from common import config  # noqa: E402
 from common.config import MAIN_MODEL, check_ollama  # noqa: E402
@@ -31,6 +34,8 @@ UPLOAD_LIMIT = 5 * 1024 * 1024  # 5 MB
 DATA = Path(__file__).resolve().parents[1] / "data"  # chats, sessions, files, memory (git-ignored)
 STORE = ChatStore(DATA)
 AGENTS: dict[str, tuple] = {}  # chat_id -> (agent, TurnHandlers, settings it was built with)
+CONNECTOR_ERRORS: dict[str, list[dict]] = {}  # chat_id -> connectors that failed to start
+SKILLS = Path(__file__).resolve().parents[2] / ".agent" / "skills"
 app = FastAPI(title="Travel assistant")
 
 
@@ -52,9 +57,41 @@ def agent_for(chat_id: str):
     if cached and cached[2] == key:
         return cached[0], cached[1]
     turn = TurnHandlers([])
-    agent = make_agent(turn, chat_id, settings, DATA)
+    CONNECTOR_ERRORS[chat_id] = []
+    try:
+        with capture_logs() as logged:
+            agent = make_agent(turn, chat_id, settings, DATA)
+        # the harness logs a failing MCP server and carries on, so check which connectors added no tools
+        reasons = [m.split("error=<", 1)[1].split(">", 1)[0] for m in logged if "MCP server failed" in m and "error=<" in m]
+        CONNECTOR_ERRORS[chat_id] = [
+            {"id": c, "error": reasons.pop(0) if reasons else "didn't start (see the server log)"}
+            for c in settings["connectors"] if not any(t.startswith(f"{c}_") for t in agent.tool_names)
+        ]
+    except Exception as error:
+        if not settings["connectors"]:
+            raise
+        # a connector didn't start: keep the chat working without connectors, and say which one failed
+        CONNECTOR_ERRORS[chat_id] = [{"id": c, "error": str(error)} for c in settings["connectors"]]
+        agent = make_agent(turn, chat_id, {**settings, "connectors": []}, DATA)
     AGENTS[chat_id] = (agent, turn, key)
     return agent, turn
+
+
+@contextmanager
+def capture_logs():
+    """Collect log messages while building an agent (the harness reports MCP failures this way)."""
+    messages: list[str] = []
+
+    class Collect(logging.Handler):
+        def emit(self, record):
+            messages.append(record.getMessage())
+
+    handler = Collect(level=logging.WARNING)
+    logging.getLogger().addHandler(handler)
+    try:
+        yield messages
+    finally:
+        logging.getLogger().removeHandler(handler)
 
 
 def require_chat(chat_id: str) -> None:
@@ -115,6 +152,57 @@ def open_chat(chat_id: str):
     agent, _ = agent_for(chat_id)
     return {"id": chat_id, "title": STORE.title(chat_id), "turns": turns_from_messages(agent.messages),
             "files": STORE.files(chat_id), **STORE.settings(chat_id)}
+
+
+class ConnectorRequest(BaseModel):
+    label: str
+    command: str
+    args: list[str] = []
+
+
+class EnabledRequest(BaseModel):
+    enabled: list[str]
+
+
+@app.get("/api/connectors")
+def list_connectors():
+    return connectors.listing(DATA)
+
+
+@app.post("/api/connectors")
+def add_connector(request: ConnectorRequest):
+    return {"id": connectors.save_custom(DATA, request.label, request.command, request.args)}
+
+
+@app.put("/api/chats/{chat_id}/connectors")
+def set_connectors(chat_id: str, request: EnabledRequest):
+    require_chat(chat_id)
+    STORE.save_settings(chat_id, connectors=request.enabled)
+    return {"enabled": request.enabled}
+
+
+def read_skills() -> list[dict]:
+    skills = []
+    for path in sorted(SKILLS.glob("*/SKILL.md")):
+        front = path.read_text().split("---")[1] if path.read_text().startswith("---") else ""
+        fields = dict(line.split(":", 1) for line in front.strip().splitlines() if ":" in line)
+        skills.append({"name": fields.get("name", path.parent.name).strip(), "description": fields.get("description", "").strip()})
+    return skills
+
+
+@app.get("/api/harness")
+def harness(chat_id: str):
+    """What's inside the chat's harness: tools, skills, session, connectors."""
+    require_chat(chat_id)
+    agent, _ = agent_for(chat_id)
+    settings = STORE.settings(chat_id)
+    return {
+        "tools": list(agent.tool_names),
+        "skills": read_skills(),
+        "session": {"id": chat_id, "model": settings["model"], "system1_model": settings["system1_model"],
+                    "messages": len(agent.messages), "files": STORE.files(chat_id)},
+        "connectors": {"enabled": settings["connectors"], "errors": CONNECTOR_ERRORS.get(chat_id, [])},
+    }
 
 
 @app.post("/api/chats/{chat_id}/files")
