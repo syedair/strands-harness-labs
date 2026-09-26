@@ -135,4 +135,12 @@ curl -s "http://localhost:$UI_PORT/src/index.css" | grep -q "tailwindcss v4" ||
 
 echo "✓ Open http://localhost:$UI_PORT   (Ctrl-C stops both; logs: $API_LOG, $UI_LOG)"
 command -v open >/dev/null 2>&1 && open "http://localhost:$UI_PORT" || true
-wait
+
+# keep an eye on both: if one stops, say so instead of leaving half an app running
+while true; do
+  kill -0 "$API_PID" 2>/dev/null || fail "The API stopped. Last lines of $API_LOG:
+$(tail -8 "$API_LOG")"
+  kill -0 "$UI_PID" 2>/dev/null || fail "The UI stopped. Last lines of $UI_LOG:
+$(tail -8 "$UI_LOG")"
+  sleep 2
+done

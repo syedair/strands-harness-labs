@@ -203,3 +203,28 @@ def test_ensure_kev_treats_no_answer_as_no(monkeypatch, capsys, error):
     monkeypatch.setattr("builtins.input", no_answer)
     assert system1.ensure_kev() is False
     assert "./kev.sh start" in capsys.readouterr().out
+
+
+def test_laya_answers_one_caller_at_a_time(monkeypatch):
+    """Laya runs on the Mac's GPU in-process; two threads at once crash Metal, so calls must queue."""
+    import threading
+    import time
+    from common import system1
+
+    inside, most = [0], [0]
+
+    class FakeRouter:
+        def predict(self, state, questions):
+            inside[0] += 1
+            most[0] = max(most[0], inside[0])
+            time.sleep(0.05)
+            inside[0] -= 1
+            return {"answers": {k: {"noul": 0.5} for k in questions}}
+
+    monkeypatch.setattr(system1, "_laya_router", lambda: FakeRouter())
+    threads = [threading.Thread(target=system1.yes_no_many, args=("s", {"q": "?"}, "laya")) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert most[0] == 1
