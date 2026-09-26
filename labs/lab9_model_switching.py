@@ -6,6 +6,7 @@ from strands_harness import create_harness
 
 from common.chat import chat, wants_chat
 from common.config import BIG_MODEL, SMALL_MODEL, build_model, check_ollama
+from common.show import bar, wait
 from common.system1 import check_system1, yes_no
 
 INSTRUCTIONS = (
@@ -26,17 +27,24 @@ def latest_user_text(messages: list[dict]) -> str:
 class System1Strategy:
     """Asks the classifier whether the request is quick, then picks a candidate by name."""
 
+    QUICK = 0.5  # the policy knob: at or above this, the small model answers
+    PAUSE = True  # wait for Enter before asking System 1 (only in a terminal)
+
     async def select(self, context, **kwargs):
         if context.attempts:
             return None  # a call failed: let the router's default handle it
         request = latest_user_text(context.messages)
+        print("\n  router · which model should answer this?")
+        if self.PAUSE:
+            wait("press Enter to ask System 1")
         p_quick = await asyncio.to_thread(  # System 1 observes...
             yes_no,
             f"User request: {request}",
             "Is this a quick factual question that can be answered in one or two sentences?",
         )
-        pick = "small" if p_quick >= 0.5 else "big"  # ...plain Python decides.
-        print(f"\n[router] P(quick question) = {p_quick:.2f} -> {pick}")
+        pick = "small" if p_quick >= self.QUICK else "big"  # ...plain Python decides.
+        print(f"    quick question?  {bar(p_quick, threshold=self.QUICK)}  {p_quick:.2f}")
+        print(f"  router → {pick}: {SMALL_MODEL if pick == 'small' else BIG_MODEL}")
         return next(c for c in context.candidates if c.name == pick)
 
 
@@ -63,8 +71,10 @@ def main() -> None:
         chat(agent)
         return
 
-    agent("What's the weather in Paris?")
-    agent("Plan a 5-day Istanbul itinerary under $1000, with a day trip and where to stay.")
+    for question in ["What's the weather in Paris?",
+                     "Plan a 5-day Istanbul itinerary under $1000, with a day trip and where to stay."]:
+        print(f"\nyou: {question}")
+        agent(question)
 
 
 if __name__ == "__main__":

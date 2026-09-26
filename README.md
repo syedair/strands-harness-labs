@@ -61,7 +61,7 @@ Each lab is one short file. Lab N adds exactly one idea to lab N-1, so a diff sh
 ### Chat with any lab
 
 Every agent lab (1–5, 7–9) runs a short scripted demo. Add `--chat` to talk to it instead — the
-System 1 traces (`[gate]`, `[check]`, `[router]`) print live between turns:
+System 1 traces (`gate`, `check`, `router`, each with its bars) print live between turns:
 
 ```bash
 uv run labs/lab7_tool_call_gate.py --chat
@@ -149,7 +149,7 @@ and the agent asks you instead. A real city goes straight through.
 The agent answers only half the question; the classifier notices and sends it back.
 **What's new:** `after_model_call` returning `Guide` (capped at two retries)
 A reply that ends by asking the user a question isn't judged — asking back is a fine way to end a turn
-(it prints `[check] -> Proceed (asked the user a question)`).
+(it prints `check → Proceed: it asked you a question, nothing to judge`).
 **Video:** _coming soon_
 **Run:** `uv run labs/lab8_completion_check.py`
 

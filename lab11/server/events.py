@@ -56,6 +56,8 @@ class WebGate(ToolCallGate):
 class WebCheck(CompletionCheck):
     """Lab 8's completion check, plus: judge the CURRENT message and record the decision for the UI."""
 
+    PAUSE = False  # a server never waits for Enter
+
     def __init__(self, events: list[dict]):
         super().__init__()
         self.events = events

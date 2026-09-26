@@ -26,3 +26,17 @@ def test_a_question_back_to_the_user_is_not_judged(monkeypatch):
     action = check.after_model_call(final_answer_event("Which city would you like the weather for?"))
     assert type(action).__name__ == "Proceed"
     assert check.guides == 0
+
+
+def test_check_prints_a_bar_and_the_decision(monkeypatch, capsys):
+    monkeypatch.setattr(lab8, "yes_no", lambda state, question: 0.02)
+    lab8.CompletionCheck().after_model_call(final_answer_event("It's 21°C."))
+    out = capsys.readouterr().out
+    assert "answered everything?" in out and "0.02" in out and "✗" in out
+    assert "check → Guide" in out
+
+
+def test_the_web_app_check_never_waits_for_enter():
+    from events import WebCheck
+
+    assert lab8.CompletionCheck.PAUSE is True and WebCheck.PAUSE is False
