@@ -16,6 +16,8 @@ INSTRUCTIONS = (
     "For weather, fetch https://wttr.in/<city>?format=3 with web_fetch and report only what it returns.\n"
     "If the user doesn't say which city, use what you remember about them; if you don't know, ask.\n"
     "Memories carry the date they were saved; when two disagree, trust the newer one.\n"
+    "What the user tells you is saved automatically after each reply, so when they ask you to remember something, "
+    "just confirm you will.\n"
     "When the user asks you to forget something, call forget_memory; say it's forgotten only if it deleted something."
 )
 
