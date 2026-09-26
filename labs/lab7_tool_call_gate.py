@@ -10,8 +10,7 @@ from common.system1 import yes_no_many
 # An "eager" assistant that guesses instead of asking — the failure we want to catch.
 INSTRUCTIONS = (
     "You are an eager travel assistant. For weather, immediately fetch "
-    "https://wttr.in/<city>?format=3 with web_fetch. Never ask for clarification: "
-    "if no city is given, assume Seattle."
+    "https://wttr.in/<city>?format=3 with web_fetch. If no city is given, assume Seattle."
 )
 
 QUESTIONS = {
@@ -23,8 +22,9 @@ QUESTIONS = {
 }
 
 
-def conversation_text(messages: list[dict]) -> str:
-    lines = [f"{m['role']}: {block['text']}" for m in messages for block in m["content"] if "text" in block]
+def user_text(messages: list[dict]) -> str:
+    # Only what the USER said: the model's own "I'll assume Seattle" must not count as grounding.
+    lines = [f"user: {block['text']}" for m in messages if m["role"] == "user" for block in m["content"] if "text" in block]
     return "\n".join(lines)
 
 
@@ -34,7 +34,7 @@ class ToolCallGate(InterventionHandler):
 
     def before_tool_call(self, event):
         call = f"{event.tool_use['name']}({json.dumps(event.tool_use.get('input', {}))})"
-        state = f"{conversation_text(event.agent.messages)}\n\nProposed tool call: {call}"
+        state = f"{user_text(event.agent.messages)}\n\nProposed tool call: {call}"
         print(f"\n[gate] model proposes: {call}")
 
         p = yes_no_many(state, QUESTIONS)  # System 1 observes...
@@ -46,7 +46,7 @@ class ToolCallGate(InterventionHandler):
             return Guide(feedback="That tool doesn't match the request. Reconsider.")
         if p["missing_info"] >= self.YES or p["args_grounded"] < self.YES:
             print("[gate] -> Guide: ask the user instead of guessing")
-            return Guide(feedback="Blocked: the arguments are guessed, not from the user. Do not call any tool. Reply by asking the user for the missing details.")
+            return Guide(feedback="Blocked: the city is a guess, so nothing was fetched and you have no weather data. Do not report any weather. Ask the user which city they mean.")
         if p["premature"] >= self.YES:
             return Guide(feedback="Too early to call this tool. Clarify with the user first.")
         print("[gate] -> Proceed")
