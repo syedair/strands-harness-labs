@@ -16,6 +16,7 @@ INSTRUCTIONS = (
 
 
 def latest_user_text(messages: list[dict]) -> str:
+    """The user's latest message (tool results are "user" messages too, but have no text)."""
     for message in reversed(messages):
         if message["role"] == "user":
             texts = [block["text"] for block in message["content"] if "text" in block]
@@ -25,7 +26,8 @@ def latest_user_text(messages: list[dict]) -> str:
 
 
 class System1Strategy:
-    """Asks the classifier whether the request is quick, then picks a candidate by name."""
+    """A routing strategy: the ModelRouter calls select() before every model call, and we return which
+    candidate model answers. Here System 1 judges the request, and a threshold picks small or big."""
 
     QUICK = 0.5  # the policy knob: at or above this, the small model answers
     PAUSE = True  # wait for Enter before asking System 1 (only in a terminal)
@@ -33,19 +35,22 @@ class System1Strategy:
     async def select(self, context, **kwargs):
         if context.attempts:
             return None  # a call failed: let the router's default handle it
+        # 1. What the user asked.
         request = latest_user_text(context.messages)
         print("\n  router · which model should answer this?")
         if self.PAUSE:
             wait(f"press Enter to ask {display_name()}")
+        # 2. Ask System 1 one question. It only gives a probability: it never decides.
         p_quick = await asyncio.to_thread(  # System 1 observes...
             yes_no,
             f"User request: {request}",
             "Is this a quick factual question that can be answered in one or two sentences?",
         )
-        pick = "small" if p_quick >= self.QUICK else "big"  # ...plain Python decides.
+        # 3. ...plain Python decides: quick questions go to the small, cheap model; the rest to the big one.
+        pick = "small" if p_quick >= self.QUICK else "big"
         print(f"    quick question?  {bar(p_quick, threshold=self.QUICK)}  {p_quick:.2f}")
         print(f"  router → {pick}: {SMALL_MODEL if pick == 'small' else BIG_MODEL}")
-        return next(c for c in context.candidates if c.name == pick)
+        return next(c for c in context.candidates if c.name == pick)  # the router calls this model
 
 
 def main() -> None:

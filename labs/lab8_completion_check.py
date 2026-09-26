@@ -14,8 +14,10 @@ INSTRUCTIONS = (
 )
 
 
+# What the model reads when we send a draft back.
 FEEDBACK = "Your answer skipped part of the request. Answer every part the user asked for."
 ASKED = "it asked you for something it needs"
+# What we ask System 1 about every draft: two narrow yes/no questions, answered in one fast call.
 QUESTIONS = {
     # a clarifying question ("which city?") is a fine way to end a turn: nothing to judge yet
     "waiting": "Is the assistant asking the user for information it needs before it can answer?",
@@ -40,6 +42,9 @@ def request_state(turns: list[str], answer: str) -> str:
 
 
 class CompletionCheck(InterventionHandler):
+    """An intervention: the harness calls after_model_call when the model finishes a reply, before the
+    reply is accepted. Proceed accepts it; Guide throws the draft away and the model tries again."""
+
     name = "system1-completion-check"
     MAX_GUIDES = 2  # Guide retries the model, so we must cap it
     PASS = 0.6  # the policy knob: how sure System 1 must be (that it's waiting, or that it answered)
@@ -54,6 +59,7 @@ class CompletionCheck(InterventionHandler):
         if response is None or response.stop_reason != "end_turn":
             return Proceed()  # only judge final answers, not tool-use turns
 
+        # 1. What the user asked, and the model's draft answer.
         turns = user_turns(event.agent.messages)
         request = turns[-1] if turns else ""
         if request != self.judging:  # a new request (in a chat) gets its retries back
@@ -63,11 +69,12 @@ class CompletionCheck(InterventionHandler):
         print(f"\n  check · the model's draft: “{short[:90]}{'…' if len(short) > 90 else ''}”")
         if self.PAUSE:
             wait(f"press Enter to ask {display_name()}")
+        # 2. Ask System 1 both questions. It only gives probabilities: it never decides.
         p = yes_no_many(request_state(turns, answer), QUESTIONS)  # System 1 observes...
         self.last_probs = p  # lab 11 shows these in the web UI
         self.last_why = None
 
-        # ...plain Python decides.
+        # 3. ...plain Python decides.
         if p["waiting"] >= self.PASS:  # it's asking you something: nothing to judge yet
             checklist([("waiting for you?", p["waiting"], True),
                        ("answered everything?", p["answered_everything"], None)], threshold=self.PASS)
@@ -77,13 +84,13 @@ class CompletionCheck(InterventionHandler):
         checklist([("waiting for you?", p["waiting"], True),
                    ("answered everything?", p["answered_everything"], p["answered_everything"] >= self.PASS)],
                   threshold=self.PASS)
-        if p["answered_everything"] >= self.PASS:
+        if p["answered_everything"] >= self.PASS:  # every part answered: accept the draft
             print("  check → Proceed: the answer goes to the user")
             return Proceed()
-        if self.guides >= self.MAX_GUIDES:
+        if self.guides >= self.MAX_GUIDES:  # tried enough: accept it rather than loop forever
             print(f"  check → Proceed: out of retries ({self.MAX_GUIDES}), the answer goes to the user as it is")
             return Proceed()
-        self.guides += 1
+        self.guides += 1  # a half answer: throw the draft away, the model tries again with our feedback
         print(f"  check → Guide ({self.guides}/{self.MAX_GUIDES}): finish the rest of the request")
         return Guide(feedback=FEEDBACK)
 

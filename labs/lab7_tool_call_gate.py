@@ -15,6 +15,7 @@ INSTRUCTIONS = (
     "https://wttr.in/<city>?format=3 with web_fetch. If no city is given, assume Seattle."
 )
 
+# What we ask System 1 about every tool call. Four narrow yes/no questions, answered in one fast call.
 QUESTIONS = {
     # Concrete beats abstract: "a sensible step towards answering?" scored 0.21-0.43 on Kev for packing requests.
     "matches_intent": "Would the result of this tool call help answer what the user asked, even partly? "
@@ -36,6 +37,9 @@ def user_text(messages: list[dict]) -> str:
 
 
 class ToolCallGate(InterventionHandler):
+    """An intervention: the harness calls before_tool_call every time the model wants to run a tool,
+    and the tool only runs if we return Proceed."""
+
     name = "system1-tool-call-gate"
     YES = 0.65  # the policy knob: what counts as a confident "yes"
     MAX_BLOCKS = 3  # Guide lets the model try again, so cap it
@@ -45,25 +49,27 @@ class ToolCallGate(InterventionHandler):
         self.blocks = 0
 
     def before_tool_call(self, event):
+        # 1. What the model wants to do, and what the user actually said.
         call = f"{event.tool_use['name']}({json.dumps(event.tool_use.get('input', {}))})"
         state = f"{self.context(event)}\n\nProposed tool call: {call}"
         print(f"\n  gate · the model wants to run: {call}")
         if self.PAUSE:
             wait(f"press Enter to ask {display_name()}")
 
+        # 2. Ask System 1 the four questions. It only gives probabilities: it never decides.
         p = yes_no_many(state, QUESTIONS)  # System 1 observes...
         self.last_probs = p  # lab 11 shows these in the web UI
         checklist([(label, p[name], p[name] >= self.YES if want_yes else p[name] < self.YES)
                    for name, (label, want_yes) in LABELS.items()], threshold=self.YES)
 
-        # ...plain Python decides.
-        if p["matches_intent"] < self.YES:
+        # 3. ...plain Python decides. Any broken rule blocks the call; the first one that fails explains why.
+        if p["matches_intent"] < self.YES:  # the tool wouldn't help with this request
             return self.block("the tool doesn't match the request", "Blocked: that tool doesn't fit the request, so it didn't run. Don't report any results from it. Reconsider which tool, if any, fits.")
-        if p["missing_info"] >= self.YES or p["args_grounded"] < self.YES:
+        if p["missing_info"] >= self.YES or p["args_grounded"] < self.YES:  # the city is a guess
             return self.block("ask the user instead of guessing",
                               "Blocked: the city is a guess, so the tool didn't run and you have no data. "
                               "Don't report any weather. Ask the user which city they mean.")
-        if p["premature"] >= self.YES:
+        if p["premature"] >= self.YES:  # it should ask the user something first
             return self.block("too early, clarify first", "Blocked: it's too early, so the tool didn't run. Don't report any results. Clarify with the user first.")
         print("  gate → Proceed: the tool runs")
         return Proceed()
@@ -73,6 +79,8 @@ class ToolCallGate(InterventionHandler):
         return user_text(event.agent.messages)
 
     def block(self, why: str, feedback: str):
+        """Guide: the tool doesn't run, and the model reads our feedback and tries again.
+        Deny: after MAX_BLOCKS guides, stop the call for good, so a stubborn model can't loop forever."""
         self.last_why = why  # lab 11 shows which rule fired
         self.blocks += 1
         if self.blocks > self.MAX_BLOCKS:
