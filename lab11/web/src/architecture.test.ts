@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NODES, STEPS, endOf, labelSpot, linkEnds, sceneAt } from "./architecture";
+import { NODES, STEPS, endOf, labelSpot, linkEnds, routeOf, sceneAt } from "./architecture";
 
 describe("the architecture walkthrough", () => {
   it("starts with only the browser on screen", () => {
@@ -75,5 +75,12 @@ describe("the sequence", () => {
   it("round trips end back where they started", () => {
     expect(endOf({ ...STEPS[0], back: true })).toBe(STEPS[0].from);
     expect(endOf({ ...STEPS[0], back: false })).toBe(STEPS[0].to);
+  });
+});
+
+describe("routeOf", () => {
+  it("names a step's route the way its arrow is drawn", () => {
+    expect(routeOf(STEPS[0])).toBe("You → App server");
+    expect(routeOf(STEPS[4])).toBe("Agent ⇄ System 1");
   });
 });

@@ -1,7 +1,7 @@
 // "How it works": one turn through the app, a click at a time. Parts appear the first time a step uses them.
 import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
-import { BOX, HARNESS, NODES, STEPS, VIEW, labelSpot, linkEnds, sceneAt, type Step, type Tone } from "../architecture";
+import { BOX, HARNESS, NODES, STEPS, VIEW, labelSpot, linkEnds, routeOf, sceneAt, type Step, type Tone } from "../architecture";
 
 const TONE: Record<Tone, string> = { plain: "#F8FAFC", s1: "#6EE7B7", llm: "#22D3EE", save: "#A78BFA" };
 const byId = new Map(NODES.map((n) => [n.id, n]));
@@ -104,7 +104,7 @@ export function Architecture() {
       <div className="glass grid gap-4 rounded-2xl p-5 md:grid-cols-[1fr_auto] md:items-end">
         <div key={at} className="animate-rise min-w-0 space-y-2">
           <p className="eyebrow text-[0.65rem]" style={{ color: scene.current ? TONE[scene.current.tone] : undefined }}>
-            {scene.current ? `Step ${at + 1} of ${STEPS.length}` : "Ready"}
+            {scene.current ? `Step ${at + 1} of ${STEPS.length} · ${routeOf(scene.current)}` : "Ready"}
           </p>
           <h2 className="font-display text-xl font-semibold">{scene.current ? scene.current.title : "A message is about to be sent"}</h2>
           <p className="max-w-[65ch] text-ink-2">
