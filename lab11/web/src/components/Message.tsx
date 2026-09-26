@@ -1,4 +1,4 @@
-import { TriangleAlert } from "lucide-react";
+import { Brain, TriangleAlert } from "lucide-react";
 import Markdown from "react-markdown";
 import type { Turn } from "../chat";
 import { DecisionChip } from "./DecisionChip";
@@ -18,6 +18,13 @@ export function Message({ turn }: { turn: Turn }) {
       {turn.parts.map((part, i) => {
         if (part.kind === "tool") return <ToolCard key={i} name={part.name} input={part.input} />;
         if (part.kind === "decision") return <DecisionChip key={i} decision={part} />;
+        if (part.kind === "memory") {
+          return (
+            <div key={i} className="animate-rise inline-flex items-center gap-2 rounded-full border border-accent-2/40 px-3 py-1 text-xs text-accent-2">
+              <Brain size={14} /> <span className="text-ink">Recalled {part.ids.length} {part.ids.length === 1 ? "memory" : "memories"}</span>
+            </div>
+          );
+        }
         if (part.discarded) {
           return <p key={i} className="text-ink-2 line-through opacity-50">{part.text}</p>;
         }

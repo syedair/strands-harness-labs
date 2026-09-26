@@ -1,4 +1,4 @@
-// Talks to labs/lab11_web_server.py. The chat reply arrives as one JSON event per line.
+// Talks to lab11/server/app.py. A reply arrives as one JSON event per line.
 export type ChatEvent =
   | { type: "text"; delta: string }
   | { type: "tool"; name: string; input: Record<string, unknown> }
@@ -10,11 +10,61 @@ export type ChatEvent =
       p: number | null; // the probability behind that rule
       probs: Record<string, number>;
     }
+  | { type: "memory"; ids: string[] } // notes the harness recalled for this turn
+  | { type: "title"; title: string }
   | { type: "done" }
   | { type: "error"; message: string };
 
-export type System1Option = { id: string; label: string; available: boolean; reason: string | null };
-export type System1Response = { default: string; options: System1Option[] };
+export type Choice = { id: string; label: string; available: boolean; reason: string | null };
+export type Options = { models: Choice[]; default_model: string; system1: { options: Choice[]; default: string } };
+export type ChatSummary = { id: string; title: string; updated_at: number };
+export type SavedTurn = { role: "user" | "assistant"; text: string };
+export type FileInfo = { name: string; path: string; size: number };
+export type Chat = {
+  id: string; title: string; turns: SavedTurn[]; model: string; system1_model: string;
+  connectors: string[]; files: FileInfo[];
+};
+export type Connector = { id: string; label: string; description: string; custom: boolean };
+export type Harness = {
+  tools: string[];
+  skills: { name: string; description: string }[];
+  session: { id: string; model: string; system1_model: string; messages: number; files: FileInfo[] };
+  connectors: { enabled: string[]; errors: { id: string; error: string }[] };
+};
+export type MemoryGraph = {
+  nodes: { id: string; text: string; hits: number }[];
+  links: { source: string; target: string; weight: number }[];
+};
+
+async function json<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail ?? `Server error ${response.status}`);
+  }
+  return response.json();
+}
+
+const send = (url: string, method: string, body?: unknown) =>
+  fetch(url, { method, headers: { "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+
+export const fetchOptions = () => fetch("/api/options").then((r) => json<Options>(r));
+export const listChats = () => fetch("/api/chats").then((r) => json<ChatSummary[]>(r));
+export const createChat = () => send("/api/chats", "POST").then((r) => json<{ id: string }>(r));
+export const deleteChat = (id: string) => send(`/api/chats/${id}`, "DELETE").then((r) => json(r));
+export const openChat = (id: string) => fetch(`/api/chats/${id}`).then((r) => json<Chat>(r));
+export const fetchHarness = (id: string) => fetch(`/api/harness?chat_id=${id}`).then((r) => json<Harness>(r));
+export const listConnectors = () => fetch("/api/connectors").then((r) => json<Connector[]>(r));
+export const addConnector = (label: string, command: string, args: string[]) =>
+  send("/api/connectors", "POST", { label, command, args }).then((r) => json<{ id: string }>(r));
+export const setConnectors = (id: string, enabled: string[]) =>
+  send(`/api/chats/${id}/connectors`, "PUT", { enabled }).then((r) => json(r));
+export const fetchMemory = () => fetch("/api/memory").then((r) => json<MemoryGraph>(r));
+
+export async function uploadFile(id: string, file: File): Promise<FileInfo> {
+  const form = new FormData();
+  form.append("file", file);
+  return json<FileInfo>(await fetch(`/api/chats/${id}/files`, { method: "POST", body: form }));
+}
 
 export async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<ChatEvent> {
   const reader = body.getReader();
@@ -31,18 +81,8 @@ export async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenera
   if (buffer.trim()) yield JSON.parse(buffer) as ChatEvent;
 }
 
-export async function* sendMessage(sessionId: string, message: string, system1Model: string): AsyncGenerator<ChatEvent> {
-  const response = await fetch("/api/chat", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ session_id: sessionId, message, system1_model: system1Model }),
-  });
+export async function* sendMessage(chatId: string, message: string, model: string, system1Model: string): AsyncGenerator<ChatEvent> {
+  const response = await send(`/api/chats/${chatId}/messages`, "POST", { message, model, system1_model: system1Model });
   if (!response.ok || !response.body) throw new Error(`Server error ${response.status}`);
   yield* readEvents(response.body);
-}
-
-export async function fetchSystem1(): Promise<System1Response> {
-  const response = await fetch("/api/system1");
-  if (!response.ok) throw new Error(`Server error ${response.status}`);
-  return response.json();
 }

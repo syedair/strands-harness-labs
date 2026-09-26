@@ -1,10 +1,11 @@
 // Folds the event stream into one assistant turn. Pure, so it's easy to test.
-import type { ChatEvent } from "./api";
+import type { ChatEvent, SavedTurn } from "./api";
 
 export type Part =
   | { kind: "text"; text: string; discarded: boolean }
   | { kind: "tool"; name: string; input: Record<string, unknown> }
-  | ({ kind: "decision" } & Omit<Extract<ChatEvent, { type: "decision" }>, "type">);
+  | ({ kind: "decision" } & Omit<Extract<ChatEvent, { type: "decision" }>, "type">)
+  | { kind: "memory"; ids: string[] };
 
 export type AssistantTurn = { role: "assistant"; parts: Part[]; streaming: boolean; error?: string };
 export type UserTurn = { role: "user"; text: string };
@@ -30,6 +31,10 @@ export function applyEvent(turn: AssistantTurn, event: ChatEvent): AssistantTurn
       }
       return { ...turn, parts: [...parts, { kind: "decision", source: event.source, action: event.action,
                                              why: event.why, p: event.p, probs: event.probs }] };
+    case "memory":
+      return { ...turn, parts: [...parts, { kind: "memory", ids: event.ids }] };
+    case "title":
+      return turn; // the app updates the sidebar
     case "done":
       return { ...turn, streaming: false };
     case "error":
@@ -48,4 +53,18 @@ export function statusOf(turn: AssistantTurn): Status {
   if (last.kind === "decision" && last.source === "gate" && last.action === "proceed") return "working";
   if (last.kind === "text" && !last.discarded) return "writing";
   return "thinking";
+}
+
+/** Saved history (from the server) as finished turns. */
+export function turnsFromHistory(saved: SavedTurn[]): Turn[] {
+  return saved.map((t) =>
+    t.role === "user"
+      ? { role: "user", text: t.text }
+      : { role: "assistant", parts: [{ kind: "text", text: t.text, discarded: false }], streaming: false },
+  );
+}
+
+/** A reply whose stream closed without done or error still has to end. */
+export function finishTurn(turn: AssistantTurn): AssistantTurn {
+  return turn.streaming ? { ...turn, streaming: false, error: "The reply ended early." } : turn;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyEvent, newAssistantTurn, statusOf } from "./chat";
+import { applyEvent, finishTurn, newAssistantTurn, statusOf, turnsFromHistory } from "./chat";
 
 describe("applyEvent", () => {
   it("appends streamed text into one part", () => {
@@ -55,5 +55,26 @@ describe("statusOf", () => {
     const writing = applyEvent(newAssistantTurn(), { type: "text", delta: "Hi" });
     expect(statusOf(writing)).toBe("writing");
     expect(statusOf(applyEvent(writing, { type: "done" }))).toBe("done");
+  });
+});
+
+describe("memory, history and early endings", () => {
+  it("shows recalled memories as a part of the reply", () => {
+    const turn = applyEvent(newAssistantTurn(), { type: "memory", ids: ["home.md", "trip.md"] });
+    expect(turn.parts).toEqual([{ kind: "memory", ids: ["home.md", "trip.md"] }]);
+  });
+
+  it("turns saved history into finished turns", () => {
+    expect(turnsFromHistory([{ role: "user", text: "hi" }, { role: "assistant", text: "Hello!" }])).toEqual([
+      { role: "user", text: "hi" },
+      { role: "assistant", parts: [{ kind: "text", text: "Hello!", discarded: false }], streaming: false },
+    ]);
+  });
+
+  it("ends a reply that stopped without done or error", () => {
+    const cut = finishTurn(applyEvent(newAssistantTurn(), { type: "text", delta: "Half" }));
+    expect(cut).toMatchObject({ streaming: false, error: "The reply ended early." });
+    const done = applyEvent(newAssistantTurn(), { type: "done" });
+    expect(finishTurn(done)).toBe(done);
   });
 });

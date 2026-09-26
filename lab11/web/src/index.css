@@ -26,6 +26,7 @@
 
 body {
   min-height: 100vh;
+  color-scheme: dark; /* native controls (select popups, file picker) follow the dark theme */
   color: var(--color-ink);
   font-family: var(--font-sans);
   background:
