@@ -1,11 +1,7 @@
 # Lab 10 helpers: labelled travel questions and four System 1 contenders.
-import functools
-import os
+from functools import partial
 
-import httpx
-
-from common.config import KEV_URL
-from common.system1 import yes_no
+from common.system1 import ensure_kev, unavailable, yes_no
 
 # 1 = primarily a beach / tropical getaway. From the systemone-model-typesafeai demo.
 BEACH = {
@@ -49,60 +45,23 @@ def score(probs: dict[str, float], labels: dict[str, int]) -> tuple[float, float
     return brier, accuracy
 
 
-def _system_one(url: str, model: str, state: str, question: str, headers: dict | None = None) -> float:
-    """Jev and Kev share TypeSafe's System One API: one yes/no ("noul") question."""
-    payload = {"state": state, "model": model, "questions": {"q": {"type": "noul", "instructions": question}}}
-    response = httpx.post(url, json=payload, headers=headers, timeout=120)
-    response.raise_for_status()
-    return float(response.json()["answers"]["q"]["noul"])
-
-
-def jev(state: str, question: str) -> float:
-    key = os.environ["TYPESAFE_API_KEY"]
-    return _system_one("https://api.typesafe.ai/v1/systemone", "jev-latest", state, question,
-                       headers={"Authorization": f"Bearer {key}"})
-
-
-def kev(state: str, question: str) -> float:
-    return _system_one(f"{KEV_URL}/v1/systemone", "kev-latest", state, question)
-
-
-def _kev_up() -> bool:
-    try:
-        kev("hello", "Is this a greeting?")
-        return True
-    except httpx.HTTPError:
-        return False
-
-
-@functools.cache
-def _laya_router():
-    try:
-        from laya import Router
-    except ImportError:
-        return None
-    return Router()
-
-
-def laya(state: str, question: str) -> float:
-    answer = _laya_router().predict(state, {"q": {"type": "noul", "instructions": question}})
-    return float(answer["answers"]["q"]["noul"])
+CONTENDERS = [
+    ("jev (paid)", "jev"),
+    ("kev-4b (open)", "kev"),
+    ("laya (open)", "laya"),
+    ("qwen3.5 (stand-in)", "ollama/qwen3.5:4b"),
+]
 
 
 def contenders() -> list[tuple[str, object]]:
     """Every contender that can run here; the rest are skipped with the fix."""
     found = []
-    if os.environ.get("TYPESAFE_API_KEY"):
-        found.append(("jev (paid)", jev))
-    else:
-        print("skip jev: set TYPESAFE_API_KEY (get one at typesafe.ai)")
-    if _kev_up():
-        found.append(("kev-4b (open)", kev))
-    else:
-        print(f"skip Kev: start it on {KEV_URL} (see README)")
-    if _laya_router() is not None:
-        found.append(("laya (open)", laya))
-    else:
-        print("skip laya: install it with uv sync --extra laya")
-    found.append(("qwen3.5 (stand-in)", yes_no))
+    for name, model in CONTENDERS:
+        problem = unavailable(model)
+        if problem and model == "kev" and ensure_kev():  # offer to start the local Kev server
+            problem = None
+        if problem:
+            print(f"skip {name}: {problem}")
+        else:
+            found.append((name, partial(yes_no, model=model)))
     return found

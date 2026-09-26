@@ -7,6 +7,7 @@ dependencies = [
     "strands-harness[ollama]>=0.1.2,<0.2",
     "httpx>=0.27",
     "python-dotenv>=1.0",
+    "typesafe-sdk>=0.7.1,<0.8",  # Jev and Kev (labs 6a, 6b)
 ]
 
 [project.optional-dependencies]

@@ -36,9 +36,22 @@ MAIN_MODEL=bedrock/us.moonshotai.kimi-k3         # latest Kimi
 MAIN_MODEL=ollama/gpt-oss:20b                    # free and fully local (ollama pull gpt-oss:20b)
 ```
 
-The System 1 classifier always runs locally on Ollama (`SYSTEM1_MODEL`). Lab 9 routes between
-`SMALL_MODEL` and `BIG_MODEL` (Kimi K2.5 and Kimi K3 on Bedrock by default); for a fully local lab 9, set
-those to `ollama/` models too.
+Lab 9 routes between `SMALL_MODEL` and `BIG_MODEL` (Kimi K2.5 and Kimi K3 on Bedrock by default); for a
+fully local lab 9, set those to `ollama/` models too.
+
+### Choosing the System 1 model
+
+Labs 6–9 use `SYSTEM1_MODEL` as the classifier. Pick one in `.env`:
+
+| `SYSTEM1_MODEL` | What it is | Setup |
+|---|---|---|
+| `ollama/qwen3.5:4b` (default) | A small local chat model as a **stand-in**: one token + its probabilities | `ollama pull qwen3.5:4b` |
+| `jev` | TypeSafe's hosted System 1 model (paid) | `TYPESAFE_API_KEY=...` in `.env` ([typesafe.ai](https://typesafe.ai)) |
+| `kev` | [Kev](https://github.com/jaredpalmer/kev), an open Jev-alike on your machine (Kev-4B needs a 32 GB Mac) | `./kev.sh start` (the labs offer to run it) |
+| `laya` | [Laya](https://github.com/NandhaKishorM/laya), an open BERT-based System 1 model | `uv sync --extra laya` |
+
+The labs don't change: `yes_no()` and `choice()` in `labs/common/system1.py` send the same questions to
+whichever you pick. Lab 10 runs all four side by side.
 
 ## 📚 Lab Overview
 
@@ -87,12 +100,27 @@ uv run labs/lab5_interventions.py          # approve every call
 uv run labs/lab5_interventions.py policy   # a policy decides
 ```
 
-### Lab 6: System 1 Basics
-**File:** `labs/lab6_system1_basics.py`
-No agent. A small local model answers yes/no and choice questions with probabilities.
-**What's new:** `common/system1.py` — `yes_no()`, `yes_no_many()`, `choice()`
+### Lab 6: System 1 Basics (6a–6e)
+A System 1 model answers typed questions — yes/no (`Noul`), pick one (`Choice`), rate (`Score`) — with
+probabilities, and plain Python decides. The same questions, five ways:
+
+| File | What it shows | Needs |
+|---|---|---|
+| `labs/lab6a_jev.py` | Jev, TypeSafe's hosted System 1 model, through its Python SDK | `TYPESAFE_API_KEY` in `.env` |
+| `labs/lab6b_kev.py` | Kev: same SDK, same questions — only the URL changes | Kev server running (below) |
+| `labs/lab6c_laya.py` | Laya: a different open model family, same question shapes | `uv sync --extra laya` |
+| `labs/lab6d_qwen_stand_in.py` | No System 1 model? Ask a small chat model for one token and read its probabilities | `ollama pull qwen3.5:4b` |
+| `labs/lab6e_standardized.py` | One helper (`yes_no`, `choice`) for all four; switch with `SYSTEM1_MODEL` | any of the above |
+
+**Kev** runs as a local server. The Kev labs offer to start it for you, or start it yourself:
+```bash
+./kev.sh start    # first time downloads ~9 GB; it then stays running, so later labs don't wait
+./kev.sh status
+./kev.sh stop
+```
+Kev-4B needs a 32 GB Mac; on a smaller machine use `KEV_MODEL=jaredpalmer/kev-0.8b ./kev.sh start`.
 **Video:** _coming soon_
-**Run:** `uv run labs/lab6_system1_basics.py`
+**Run:** `uv run labs/lab6a_jev.py` (and so on); `SYSTEM1_MODEL=kev uv run labs/lab6e_standardized.py`
 
 ### Lab 7: Tool-Call Gate
 **File:** `labs/lab7_tool_call_gate.py`
@@ -122,13 +150,7 @@ Jev (paid) vs Kev (open) vs Laya (open) vs our Qwen stand-in, on labelled travel
 Contenders you haven't set up are skipped with a one-line hint.
 **What's new:** Brier score and accuracy; abstract vs concrete questions
 **Video:** _coming soon_
-**Setup (each optional):**
-```bash
-export TYPESAFE_API_KEY=...        # Jev — https://typesafe.ai
-uv sync --extra laya               # Laya — pulls in PyTorch
-# Kev — in a clone of github.com/jaredpalmer/kev:
-uv sync --extra serve && uv run --extra serve python -m kev.serve --run jaredpalmer/kev-4b --port 8009
-```
+**Setup:** the same as lab 6a–6d; each contender is optional.
 **Run:** `uv run labs/lab10_system1_showdown.py`
 
 ## 🧠 What is a System 1 model?
@@ -146,6 +168,8 @@ works well on concrete questions; lab 10 shows where a real System 1 model does 
 - **"Model … isn't pulled"** — run the `ollama pull` command the lab prints.
 - **Bedrock `AccessDeniedException`** — enable the model in the Bedrock console and check your AWS credentials and `AWS_REGION`.
 - **Start fresh** — `./reset.sh` clears sessions, memory and saved packing lists (skills are kept)
+- **Remove everything** — `./cleanup.sh` stops Kev, runs `reset.sh`, then offers to delete each download
+  (Ollama models, Kev and Laya weights, `.venv`). Nothing is deleted unless you answer `y`.
 - **First System 1 call is slow** — Ollama is loading the model; later calls take about 0.1 s.
 - **Warnings about prompt caching** — some models don't support it; the labs still work.
 

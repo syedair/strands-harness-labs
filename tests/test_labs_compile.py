@@ -6,8 +6,8 @@ import pytest
 LABS = sorted(Path("labs").glob("lab*.py"))
 
 
-def test_there_are_ten_labs():
-    assert len(LABS) == 10
+def test_there_are_fourteen_lab_files():
+    assert len(LABS) == 14  # lab 6 is split into 6a-6e
 
 
 @pytest.mark.parametrize("lab", LABS, ids=lambda p: p.name)

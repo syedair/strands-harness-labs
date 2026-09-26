@@ -4,8 +4,8 @@ import asyncio
 from strands.models.routing import ModelRouter, RoutingCandidate
 from strands_harness import create_harness
 
-from common.config import BIG_MODEL, SMALL_MODEL, SYSTEM1_MODEL, build_model, check_ollama
-from common.system1 import yes_no
+from common.config import BIG_MODEL, SMALL_MODEL, build_model, check_ollama
+from common.system1 import check_system1, yes_no
 
 INSTRUCTIONS = (
     "You are a friendly travel assistant. Keep answers short and practical.\n"
@@ -40,7 +40,8 @@ class System1Strategy:
 
 
 def main() -> None:
-    check_ollama(SMALL_MODEL, BIG_MODEL, SYSTEM1_MODEL)
+    check_ollama(SMALL_MODEL, BIG_MODEL)
+    check_system1()
     router = ModelRouter(
         [
             RoutingCandidate(model=build_model(SMALL_MODEL), name="small"),  # e.g. Kimi K2.5

@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MAIN_MODEL = os.environ.get("MAIN_MODEL", "bedrock/moonshotai.kimi-k2.5")
-SYSTEM1_MODEL = os.environ.get("SYSTEM1_MODEL", "qwen3.5:4b")
+SYSTEM1_MODEL = os.environ.get("SYSTEM1_MODEL", "ollama/qwen3.5:4b")
 SMALL_MODEL = os.environ.get("SMALL_MODEL", "bedrock/moonshotai.kimi-k2.5")
 BIG_MODEL = os.environ.get("BIG_MODEL", "bedrock/us.moonshotai.kimi-k3")
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")

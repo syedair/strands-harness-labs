@@ -4,8 +4,8 @@ import json
 from strands.interventions import Deny, Guide, InterventionHandler, Proceed
 from strands_harness import create_harness
 
-from common.config import MAIN_MODEL, SYSTEM1_MODEL, check_ollama
-from common.system1 import yes_no_many
+from common.config import MAIN_MODEL, check_ollama
+from common.system1 import check_system1, yes_no_many
 
 # An "eager" assistant that guesses instead of asking — the failure we want to catch.
 INSTRUCTIONS = (
@@ -67,7 +67,8 @@ class ToolCallGate(InterventionHandler):
 
 
 def main() -> None:
-    check_ollama(MAIN_MODEL, SYSTEM1_MODEL)
+    check_ollama(MAIN_MODEL)
+    check_system1()
     agent = create_harness(
         model=MAIN_MODEL,
         instructions=INSTRUCTIONS,
