@@ -183,7 +183,7 @@ export default function App() {
         </div>
       </div>
       <div className={`${panelOpen ? "fixed inset-y-0 right-0 z-30 bg-bg-1/95 backdrop-blur" : "hidden"} lg:static lg:block`}>
-        <HarnessPanel harness={harness} memory={memory} fired={fired} stored={stored} recall={recall} decisions={decisions} state={coreState} onForget={forget} />
+        <HarnessPanel harness={harness} connectors={connectors} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} recall={recall} decisions={decisions} state={coreState} onForget={forget} />
       </div>
     </div>
   );

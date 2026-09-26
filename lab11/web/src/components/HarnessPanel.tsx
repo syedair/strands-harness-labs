@@ -1,12 +1,13 @@
 import { Activity, Brain, Database, Plug, Sparkles, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
-import type { Harness, MemoryGraph } from "../api";
+import type { Connector, Harness, MemoryGraph } from "../api";
 import type { Part } from "../chat";
 import { DecisionChip } from "./DecisionChip";
 import type { CoreState } from "./MemoryCore";
 import type { Recall } from "./MemoryGlobe";
 import type { Burst } from "../globe";
+import { connectorRows } from "../connectors";
 
 const MemoryGlobe = lazy(() => import("./MemoryGlobe")); // three.js loads only when this tab opens
 
@@ -19,6 +20,7 @@ const TABS: [Tab, string, LucideIcon][] = [
 
 type Props = {
   harness: Harness | null; memory: MemoryGraph; fired: Burst; stored: Burst; recall: Recall | null;
+  connectors: Connector[]; onToggleConnector: (id: string, on: boolean) => void;
   decisions: Decision[]; state: CoreState; onForget: (id: string) => void;
 };
 
@@ -30,7 +32,7 @@ function toolSource(tool: string, connectors: string[]): string {
   return "built-in";
 }
 
-export function HarnessPanel({ harness, memory, fired, stored, recall, decisions, state, onForget }: Props) {
+export function HarnessPanel({ harness, connectors, onToggleConnector, memory, fired, stored, recall, decisions, state, onForget }: Props) {
   const [tab, setTab] = useState<Tab>("memory");
   return (
     <aside className="flex h-full w-[26rem] shrink-0 flex-col border-l border-white/10">
@@ -71,23 +73,24 @@ export function HarnessPanel({ harness, memory, fired, stored, recall, decisions
           </ul>
         )}
         {harness && tab === "connectors" && (
-          harness.connectors.enabled.length === 0 ? (
-            <p className="text-ink-2">No connectors on. Turn one on from Connectors under the chat.</p>
-          ) : (
-            <ul className="space-y-2">
-              {harness.connectors.enabled.map((id) => {
-                const error = harness.connectors.errors.find((e) => e.id === id);
-                const tools = harness.tools.filter((t) => t.startsWith(`${id}_`));
-                return (
-                  <li key={id} className="rounded-lg bg-black/20 px-3 py-2">
-                    <p className={`font-mono text-xs ${error ? "text-warn" : "text-accent"}`}>{id} · {error ? "failed" : `${tools.length} tools`}</p>
-                    {error && <p className="text-xs text-warn">{error.error}</p>}
-                    {!error && <p className="text-xs text-ink-2">{tools.map((t) => t.slice(id.length + 1)).join(", ")}</p>}
-                  </li>
-                );
-              })}
-            </ul>
-          )
+          <ul className="space-y-2">
+            {connectorRows(connectors, harness).map((c) => (
+              <li key={c.id} className="flex items-start gap-3 rounded-lg bg-black/20 px-3 py-2">
+                <input type="checkbox" checked={c.state !== "off"} aria-label={`Turn ${c.label} on or off`}
+                       onChange={(e) => onToggleConnector(c.id, e.target.checked)} className="mt-1 accent-[#6EE7B7]" />
+                <div className="min-w-0">
+                  <p className="text-sm">{c.label}{" "}
+                    <span className={`font-mono text-[0.65rem] ${c.state === "failed" ? "text-warn" : c.state === "on" ? "text-accent" : "text-ink-2"}`}>
+                      {c.state === "on" ? `on · ${c.tools.length} tools` : c.state}
+                    </span>
+                  </p>
+                  {c.error && <p className="text-xs text-warn">{c.error}</p>}
+                  {c.state === "on" && <p className="text-xs text-ink-2">{c.tools.join(", ")}</p>}
+                  {c.state === "off" && c.description && <p className="text-xs text-ink-2">{c.description}</p>}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
         {harness && tab === "session" && (
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs">
