@@ -22,14 +22,16 @@ Ollama.
 - **Readable on camera.** Each lab file is short, starts with a one-line
   purpose comment, and prints a trace of what is happening. Readability beats
   robustness; no retries or abstraction layers.
-- **Runs locally with no cloud account.** Defaults are all Ollama. Bedrock
-  (Claude) is a one-line `.env` change for the main model.
+- **Cheap, popular main model; local classifier.** The main agent defaults to
+  Kimi K2.5 on Bedrock ($0.60 / $3.00 per 1M tokens, clean output in testing,
+  most-downloaded of the cheap clean options). A fully local run is a one-line
+  `.env` change (`ollama/gpt-oss:20b`). The System 1 classifier always runs on Ollama.
 
 ## Models
 
 | Role | Setting | Default | Alternative |
 |---|---|---|---|
-| Main agent (the harness) | `MAIN_MODEL` in `.env` | `ollama/gpt-oss:20b` | `bedrock/us.anthropic.claude-sonnet-5` |
+| Main agent (the harness) | `MAIN_MODEL` in `.env` | `bedrock/moonshotai.kimi-k2.5` | `bedrock/nvidia.nemotron-super-3-120b`, `bedrock/us.anthropic.claude-sonnet-5`, `bedrock/us.moonshotai.kimi-k3`, `ollama/gpt-oss:20b` (free, local) |
 | System 1 classifier | `SYSTEM1_MODEL` in `.env` | `qwen3.5:4b` (3.4 GB) | `qwen3.5:9b` |
 
 The classifier always runs on Ollama. Lab 9 also reads `SMALL_MODEL` /

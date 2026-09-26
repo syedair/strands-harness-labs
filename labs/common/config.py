@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MAIN_MODEL = os.environ.get("MAIN_MODEL", "ollama/gpt-oss:20b")
+MAIN_MODEL = os.environ.get("MAIN_MODEL", "bedrock/moonshotai.kimi-k2.5")
 SYSTEM1_MODEL = os.environ.get("SYSTEM1_MODEL", "qwen3.5:4b")
 SMALL_MODEL = os.environ.get("SMALL_MODEL", "qwen3.5:9b")
 BIG_MODEL = os.environ.get("BIG_MODEL", "gpt-oss:20b")
