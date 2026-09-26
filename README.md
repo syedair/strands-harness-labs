@@ -63,7 +63,7 @@ The assistant fetches the real forecast without you writing a tool.
 Tell it where you live once; a new process still knows.
 **What's new:** `session={"id": "travel"}`, `memory=True`
 **Video:** _coming soon_
-**Run:**
+**Run:** (`./reset.sh` first, so it doesn't already remember you)
 ```bash
 uv run labs/lab3_sessions_memory.py tell
 uv run labs/lab3_sessions_memory.py ask
@@ -145,7 +145,7 @@ works well on concrete questions; lab 10 shows where a real System 1 model does 
 - **"Ollama isn't reachable"** — start it with `ollama serve`.
 - **"Model … isn't pulled"** — run the `ollama pull` command the lab prints.
 - **Bedrock `AccessDeniedException`** — enable the model in the Bedrock console and check your AWS credentials and `AWS_REGION`.
-- **Start fresh** — `rm -rf .agent/sessions .agent/memory trips`
+- **Start fresh** — `./reset.sh` clears sessions, memory and saved packing lists (skills are kept)
 - **First System 1 call is slow** — Ollama is loading the model; later calls take about 0.1 s.
 - **Warnings about prompt caching** — some models don't support it; the labs still work.
 
