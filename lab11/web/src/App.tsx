@@ -149,6 +149,11 @@ export default function App() {
     }
   }
 
+  async function addSkill(file: File) {
+    await api.uploadSkill(file); // errors show in the Skills tab
+    setHarness(await api.fetchHarness(chat?.id));
+  }
+
   async function addConnector(label: string, command: string, args: string[]) {
     await api.addConnector(label, command, args);
     setConnectors(await api.listConnectors());
@@ -191,7 +196,7 @@ export default function App() {
         </div>
       </div>
       <div className={`${panelOpen ? "fixed inset-y-0 right-0 z-30 bg-bg-1/95 backdrop-blur" : "hidden"} lg:static lg:block`}>
-        <HarnessPanel harness={harness} connectors={connectors} switching={switching} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} recall={recall} decisions={decisions} state={coreState} onForget={forget} />
+        <HarnessPanel harness={harness} connectors={connectors} switching={switching} onAddSkill={addSkill} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} recall={recall} decisions={decisions} state={coreState} onForget={forget} />
       </div>
     </div>
   );

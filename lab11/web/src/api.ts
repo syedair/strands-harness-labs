@@ -69,6 +69,12 @@ export async function uploadFile(id: string, file: File): Promise<FileInfo> {
   return json<FileInfo>(await fetch(`/api/chats/${id}/files`, { method: "POST", body: form }));
 }
 
+export async function uploadSkill(file: File): Promise<{ name: string }> {
+  const form = new FormData();
+  form.append("file", file);
+  return json<{ name: string }>(await fetch("/api/skills", { method: "POST", body: form }));
+}
+
 export async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<ChatEvent> {
   const reader = body.getReader();
   const decoder = new TextDecoder();

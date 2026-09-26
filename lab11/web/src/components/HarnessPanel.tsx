@@ -4,6 +4,7 @@ import { lazy, Suspense, useState } from "react";
 import type { Connector, Harness, MemoryGraph } from "../api";
 import type { Part } from "../chat";
 import { DecisionChip } from "./DecisionChip";
+import { SkillsTab } from "./SkillsTab";
 import type { CoreState } from "./MemoryCore";
 import type { Recall } from "./MemoryGlobe";
 import type { Burst } from "../globe";
@@ -21,7 +22,7 @@ const TABS: [Tab, string, LucideIcon][] = [
 
 type Props = {
   harness: Harness | null; memory: MemoryGraph; fired: Burst; stored: Burst; recall: Recall | null;
-  connectors: Connector[]; switching: Switching; onToggleConnector: (id: string, on: boolean) => void;
+  connectors: Connector[]; switching: Switching; onAddSkill: (file: File) => Promise<void>; onToggleConnector: (id: string, on: boolean) => void;
   decisions: Decision[]; state: CoreState; onForget: (id: string) => void;
 };
 
@@ -33,7 +34,7 @@ function toolSource(tool: string, connectors: string[]): string {
   return "built-in";
 }
 
-export function HarnessPanel({ harness, connectors, switching, onToggleConnector, memory, fired, stored, recall, decisions, state, onForget }: Props) {
+export function HarnessPanel({ harness, connectors, switching, onAddSkill, onToggleConnector, memory, fired, stored, recall, decisions, state, onForget }: Props) {
   const [tab, setTab] = useState<Tab>("memory");
   return (
     <aside className="flex h-full w-[26rem] shrink-0 flex-col border-l border-white/10">
@@ -63,16 +64,7 @@ export function HarnessPanel({ harness, connectors, switching, onToggleConnector
             <MemoryGlobe graph={memory} fired={fired} stored={stored} recall={recall} state={state} onForget={onForget} />
           </Suspense>
         )}
-        {harness && tab === "skills" && (
-          <ul className="space-y-2">
-            {harness.skills.map((s) => (
-              <li key={s.name} className="rounded-lg bg-black/20 px-3 py-2">
-                <p className="font-mono text-xs text-accent">{s.name}</p>
-                <p className="text-ink-2">{s.description}</p>
-              </li>
-            ))}
-          </ul>
-        )}
+        {harness && tab === "skills" && <SkillsTab skills={harness.skills} onAdd={onAddSkill} />}
         {harness && tab === "connectors" && (
           <ul className="space-y-2">
             {connectorRows(connectors, harness, switching).map((c) => (

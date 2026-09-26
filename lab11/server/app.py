@@ -16,6 +16,7 @@ from pydantic import BaseModel  # noqa: E402
 from agents import make_agent  # noqa: E402
 import connectors  # noqa: E402
 import memory  # noqa: E402
+import skills  # noqa: E402
 from chats import ChatStore, portable_tool_ids, title_for, turns_from_messages  # noqa: E402
 from common import config  # noqa: E402
 from common.config import MAIN_MODEL, check_ollama  # noqa: E402
@@ -204,6 +205,18 @@ def preview_tools(model: str) -> list[str]:
             settings = {"model": model, "system1_model": config.SYSTEM1_MODEL, "connectors": []}
             PREVIEWS[model] = list(make_agent(TurnHandlers([]), "preview", settings, Path(scratch)).tool_names)
     return PREVIEWS[model]
+
+
+@app.post("/api/skills")
+async def add_skill(file: UploadFile = File(...)):
+    """Install a SKILL.md or a zipped skill folder; every chat picks it up on its next message."""
+    data = await file.read(skills.MAX_BYTES + 1)
+    try:
+        name = skills.install(SKILLS, Path(file.filename or "").name, data)
+    except ValueError as error:
+        raise HTTPException(400, str(error))
+    AGENTS.clear()  # the harness loads skills when it builds an agent
+    return {"name": name}
 
 
 @app.get("/api/harness")

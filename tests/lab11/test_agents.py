@@ -18,3 +18,8 @@ def test_the_agent_can_forget(tmp_path):
     agent = agents.make_agent(TurnHandlers([]), "abcdef012345", SETTINGS, tmp_path)
     assert "forget_memory" in agent.tool_names
     assert "forget_memory" in str(agent.system_prompt)
+
+
+def test_the_agent_knows_where_skill_files_are(tmp_path):
+    agent = agents.make_agent(TurnHandlers([]), "abcdef012345", SETTINGS, tmp_path)
+    assert str(agents.ROOT / ".agent" / "skills") in str(agent.system_prompt)

@@ -8,6 +8,8 @@ import connectors
 import memory
 from events import TurnHandlers, forget_tool
 
+ROOT = Path(__file__).resolve().parents[2]  # the repo: skills live in .agent/skills under it
+
 # Lab 7 used an eager "assume Seattle" prompt to provoke the gate. The finished assistant uses memory instead.
 INSTRUCTIONS = (
     "You are a friendly travel assistant. Keep answers short and practical.\n"
@@ -16,6 +18,11 @@ INSTRUCTIONS = (
     "Memories carry the date they were saved; when two disagree, trust the newer one.\n"
     "When the user asks you to forget something, call forget_memory; say it's forgotten only if it deleted something."
 )
+
+
+# the skills tool reports a relative location, and the read tool only takes absolute paths
+SKILL_FILES = (f"\nSkill locations are relative to {ROOT}: .agent/skills/<name>/references/x.md is "
+               f"{ROOT / '.agent' / 'skills'}/<name>/references/x.md. Read skill files by that absolute path.")
 
 
 def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
@@ -41,5 +48,5 @@ def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
         callback_handler=None,  # the browser shows the reply, not the terminal
     )
     # a reopened session restores the system prompt it was saved with; use today's instructions instead
-    agent.system_prompt = build_system_prompt(INSTRUCTIONS)
+    agent.system_prompt = build_system_prompt(INSTRUCTIONS + SKILL_FILES)
     return agent
