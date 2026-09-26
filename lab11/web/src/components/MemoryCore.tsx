@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { MemoryGraph } from "../api";
 import { cloudPoints, spherePoint } from "../globe";
+import { disposeTree, setPositions } from "../dispose";
 
 const CYAN = new THREE.Color("#22D3EE");
 const ACCENT = new THREE.Color("#6EE7B7");
@@ -82,7 +83,7 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
     const gathering = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: 3.5, ...glowing(VIOLET, 1, texture) }));
     core.add(gathering);
     live.current.rebuild = (g: MemoryGraph) => {
-      anchors.clear();
+      disposeTree(anchors); // the previous notes and links
       stars = g.nodes.map((n, i) => {
         const p = spherePoint(i, g.nodes.length, RADIUS * 0.72);
         const sprite = new THREE.Sprite(new THREE.SpriteMaterial(glowing(CYAN, 1, texture)));
@@ -146,6 +147,7 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
       // links: co-firing (both ends recalled) is brightest; spreading (one end) is dimmer; idle shows
       // how strongly the two are wired (similar meaning + how often they were recalled together)
       const spread: number[] = [];
+      const starAt = new Map(stars.map((s) => [s.id, s]));
       for (const l of links) {
         const ends = Number(hot.has(l.a)) + Number(hot.has(l.b));
         const material = l.line.material as THREE.LineBasicMaterial;
@@ -153,7 +155,7 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
         material.opacity = ends === 2 ? 0.95 : ends === 1 ? 0.55 : 0.1 + Math.min(l.strength, 3) * 0.08;
         if (ends === 0) continue;
         const [from, to] = hot.has(l.a) ? [l.a, l.b] : [l.b, l.a];
-        const start = stars.find((s) => s.id === from)!.pos, end = stars.find((s) => s.id === to)!.pos;
+        const start = starAt.get(from)!.pos, end = starAt.get(to)!.pos;
         for (let i = 0; i < 4; i++) {
           const t = (time / 900 + i / 4) % 1;
           const forward = ends === 1 || i % 2 === 0; // co-firing runs both ways
@@ -171,7 +173,7 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
           incoming.push(...from.lerp(s.pos, t).toArray());
         }
       });
-      gathering.geometry.setAttribute("position", new THREE.Float32BufferAttribute(incoming, 3));
+      setPositions(gathering.geometry, incoming);
       // pulses: points travelling from the core out to each recalled note, over and over
       const targets = stars.filter((s) => hot.has(s.id));
       const trail: number[] = [...spread];
@@ -181,7 +183,7 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
           trail.push(s.pos.x * t, s.pos.y * t, s.pos.z * t);
         }
       });
-      pulses.geometry.setAttribute("position", new THREE.Float32BufferAttribute(trail, 3));
+      setPositions(pulses.geometry, trail);
       renderer.render(scene, camera);
       frame = requestAnimationFrame(animate);
     };
@@ -191,7 +193,10 @@ export function MemoryCore({ graph, fired, stored, state, height, close = false 
       cancelAnimationFrame(frame);
       observer.disconnect();
       renderer.domElement.removeEventListener("pointermove", onMove);
+      disposeTree(scene);
+      texture.dispose();
       renderer.dispose();
+      renderer.forceContextLoss(); // browsers allow only a few WebGL contexts; give this one back now
       el.removeChild(renderer.domElement);
     };
   }, [height, close]);
