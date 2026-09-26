@@ -101,3 +101,26 @@ def test_similar_notes_link_even_before_firing_together(tmp_path):
     vectors = {"beaches": [1, 0], "sand": [0.9, 0.1]}
     links = memory.graph(tmp_path, embed=lambda texts: [vectors[t] for t in texts])["links"]
     assert links[0]["together"] == 0 and links[0]["weight"] > 0.6
+
+
+def test_recalled_notes_carry_when_they_were_saved(tmp_path):
+    import os
+    relevance = lambda query, notes: {k: 0.9 for k in notes}
+    store = memory.store_for("ollama/gpt-oss:20b", tmp_path, on_search=lambda *a: None, extract=False, relevance=relevance)
+    (tmp_path / "old.md").write_text("The user's name is Syed.")
+    (tmp_path / "new.md").write_text("The user's name is John.")
+    os.utime(tmp_path / "old.md", (1790000000, 1790000000))
+    os.utime(tmp_path / "new.md", (1790100000, 1790100000))
+    found = asyncio.run(store.search("What's my name?"))
+    assert found[0].metadata["path"] == "new.md"  # on a tie, the newer note comes first
+    assert found[0].content.startswith("(saved 2026-")
+    assert "The user's name is John." in found[0].content
+
+
+def test_feedback_from_the_check_is_not_a_memory_search(tmp_path):
+    calls = []
+    store = memory.store_for("ollama/gpt-oss:20b", tmp_path, on_search=lambda *a: None, extract=False,
+                             relevance=lambda q, n: calls.append(q) or {k: 0.9 for k in n})
+    (tmp_path / "home.md").write_text("Lives in Dubai.")
+    assert asyncio.run(store.search("[system1-completion-check] Your answer skipped part of the request.")) == []
+    assert calls == []

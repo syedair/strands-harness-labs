@@ -71,3 +71,23 @@ export function turnsFromHistory(saved: SavedTurn[]): Turn[] {
 export function finishTurn(turn: AssistantTurn): AssistantTurn {
   return turn.streaming ? { ...turn, streaming: false, error: "The reply ended early." } : turn;
 }
+
+export type Summary = { recalled: number; tools: number; blocked: number; allowed: number; sentBack: number; saved: number };
+type TextPart = Extract<Part, { kind: "text" }>;
+
+/** The reply's final answer, and every step it took to get there (shown collapsed once it's done). */
+export function splitTurn(turn: AssistantTurn): { answer: TextPart | null; steps: Part[]; summary: Summary } {
+  let last = -1;
+  turn.parts.forEach((p, i) => { if (p.kind === "text" && !p.discarded) last = i; });
+  const answer = last >= 0 ? (turn.parts[last] as TextPart) : null;
+  const steps = turn.parts.filter((_, i) => i !== last);
+  const summary: Summary = { recalled: 0, tools: 0, blocked: 0, allowed: 0, sentBack: 0, saved: 0 };
+  for (const p of steps) {
+    if (p.kind === "memory") summary.recalled = Math.max(summary.recalled, p.ids.length);
+    if (p.kind === "tool") summary.tools++;
+    if (p.kind === "stored") summary.saved += p.ids.length;
+    if (p.kind === "decision" && p.source === "gate") summary[p.action === "proceed" ? "allowed" : "blocked"]++;
+    if (p.kind === "decision" && p.source === "check" && p.action !== "proceed") summary.sentBack++;
+  }
+  return { answer, steps, summary };
+}

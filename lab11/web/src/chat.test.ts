@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyEvent, finishTurn, newAssistantTurn, statusOf, turnsFromHistory } from "./chat";
+import { applyEvent, finishTurn, newAssistantTurn, splitTurn, statusOf, turnsFromHistory } from "./chat";
 
 describe("applyEvent", () => {
   it("appends streamed text into one part", () => {
@@ -88,5 +88,42 @@ describe("recall details and saved memories", () => {
   it("shows a saved memory as its own part", () => {
     const turn = applyEvent(newAssistantTurn(), { type: "stored", ids: ["airline.md"] });
     expect(turn.parts).toEqual([{ kind: "stored", ids: ["airline.md"] }]);
+  });
+});
+
+describe("splitTurn", () => {
+  const ev = (e: Parameters<typeof applyEvent>[1]) => e;
+  const turnOf = (...events: Parameters<typeof applyEvent>[1][]) => events.reduce(applyEvent, newAssistantTurn());
+
+  it("keeps only the last answer up front; everything before it is a step", () => {
+    const turn = turnOf(
+      ev({ type: "memory", ids: ["a.md", "b.md"], scores: [0.9, 0.7], query: "who am I" }),
+      ev({ type: "text", delta: "You're Syed, though…" }),
+      ev({ type: "decision", source: "check", action: "guide", why: null, p: 0.28, probs: {} }),
+      ev({ type: "tool", name: "search_memory", input: {} }),
+      ev({ type: "text", delta: "You're John." }),
+      ev({ type: "decision", source: "check", action: "proceed", why: null, p: 0.8, probs: {} }),
+      ev({ type: "stored", ids: ["c.md"] }),
+      ev({ type: "done" }),
+    );
+    const { answer, steps, summary } = splitTurn(turn);
+    expect(answer).toEqual({ kind: "text", text: "You're John.", discarded: false });
+    expect(steps.map((p) => p.kind)).toEqual(["memory", "text", "decision", "tool", "decision", "stored"]);
+    expect(summary).toEqual({ recalled: 2, tools: 1, blocked: 0, allowed: 0, sentBack: 1, saved: 1 });
+  });
+
+  it("counts the gate's decisions", () => {
+    const turn = turnOf(
+      ev({ type: "tool", name: "web_fetch", input: {} }),
+      ev({ type: "decision", source: "gate", action: "guide", why: "ask the user instead of guessing", p: 0.3, probs: {} }),
+      ev({ type: "tool", name: "web_fetch", input: {} }),
+      ev({ type: "decision", source: "gate", action: "proceed", why: null, p: 0.9, probs: {} }),
+      ev({ type: "text", delta: "Sunny." }),
+    );
+    expect(splitTurn(turn).summary).toMatchObject({ tools: 2, blocked: 1, allowed: 1 });
+  });
+
+  it("has no answer until text arrives", () => {
+    expect(splitTurn(turnOf(ev({ type: "tool", name: "web_fetch", input: {} }))).answer).toBeNull();
   });
 });

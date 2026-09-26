@@ -90,3 +90,9 @@ def test_recall_query_shows_only_the_users_words():
     turn = events.TurnHandlers(log)
     turn.recall(["name.md"], ["Syed"], [0.9], "What is my name?\n\n\n<system-reminder>\n<environment>cwd…</environment>")
     assert log[0]["query"] == "What is my name?"
+
+
+def test_the_app_leaves_out_the_environment_plugin():
+    import inspect
+    import agents
+    assert 'builtin_plugins=["todos"]' in inspect.getsource(agents.make_agent)

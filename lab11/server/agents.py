@@ -11,7 +11,8 @@ from events import TurnHandlers
 INSTRUCTIONS = (
     "You are a friendly travel assistant. Keep answers short and practical.\n"
     "For weather, fetch https://wttr.in/<city>?format=3 with web_fetch and report only what it returns.\n"
-    "If the user doesn't say which city, use what you remember about them; if you don't know, ask."
+    "If the user doesn't say which city, use what you remember about them; if you don't know, ask.\n"
+    "Memories carry the date they were saved; when two disagree, trust the newer one."
 )
 
 
@@ -31,6 +32,7 @@ def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
         session={"id": chat_id, "dir": str(data / "sessions")},  # the chat history, saved to disk
         memory={"stores": [store]},  # the harness's memory, watched so the UI sees each recall
         skills=True,
+        builtin_plugins=["todos"],  # no "environment": the app doesn't need the working directory in every prompt
         mcp_servers=mcp or None,  # connectors the user turned on
         interventions=[turn.gate, turn.check],
         callback_handler=None,  # the browser shows the reply, not the terminal

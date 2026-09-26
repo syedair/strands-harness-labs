@@ -2,6 +2,7 @@
 # calls search_memory); this store reports which notes came back, so the UI can light them up.
 import asyncio
 import json
+from datetime import datetime
 import math
 import re
 from pathlib import Path
@@ -36,17 +37,28 @@ class WatchedStore(FileMemoryStore):
         self.root, self.on_search, self.on_store, self.relevance = Path(root), on_search, on_store, relevance
 
     async def search(self, query, options=None):
+        if query.startswith("[system1-"):  # the gate's/check's feedback, not something the user asked
+            return []
         limit = (options or {}).get("max_search_results") or 5
         if self.relevance is None:  # the harness's own keyword search
             entries = await super().search(query, options)
             scores = [float(e.metadata.get("score", 0)) for e in entries]
         else:
-            notes = {p.name: p.read_text().strip() for p in sorted(self.root.glob("*.md"))}
+            files = sorted(self.root.glob("*.md"))
+            notes = {f.name: f.read_text().strip() for f in files}
+            saved = {f.name: f.stat().st_mtime for f in files}
             p = await asyncio.to_thread(self.relevance, query, notes) if notes else {}
-            ranked = sorted(((score, i) for i, score in p.items() if score >= 0.5), reverse=True)[:limit]
-            entries = [MemoryEntry(content=notes[i], store_name=self.name, metadata={"path": i, "score": round(s, 2)})
-                       for s, i in ranked]
-            scores = [round(s, 2) for s, _ in ranked]
+            # most relevant first; on a tie the newer note wins
+            ranked = sorted(((round(score, 2), saved[i], i) for i, score in p.items() if score >= 0.5), reverse=True)[:limit]
+            entries = [
+                MemoryEntry(
+                    # the date lets the model see which of two conflicting memories is newer
+                    content=f"(saved {datetime.fromtimestamp(when):%Y-%m-%d %H:%M}) {notes[i]}",
+                    store_name=self.name, metadata={"path": i, "score": score},
+                )
+                for score, when, i in ranked
+            ]
+            scores = [score for score, _, _ in ranked]
         if entries:
             self.on_search([e.metadata["path"] for e in entries], [e.content for e in entries], scores, query)
         return entries
