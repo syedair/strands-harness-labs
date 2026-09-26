@@ -48,13 +48,13 @@ class ToolCallGate(InterventionHandler):
 
         # ...plain Python decides.
         if p["matches_intent"] < self.YES:
-            return self.block("the tool doesn't match the request", "That tool doesn't match the request. Reconsider.")
+            return self.block("the tool doesn't match the request", "Blocked: that tool doesn't fit the request, so it didn't run. Don't report any results from it. Reconsider which tool, if any, fits.")
         if p["missing_info"] >= self.YES or p["args_grounded"] < self.YES:
             return self.block("ask the user instead of guessing",
-                              "Blocked: the city is a guess, so nothing was fetched and you have no weather data. "
-                              "Do not report any weather. Ask the user which city they mean.")
+                              "Blocked: the city is a guess, so the tool didn't run and you have no data. "
+                              "Don't report any weather. Ask the user which city they mean.")
         if p["premature"] >= self.YES:
-            return self.block("too early, clarify first", "Too early to call this tool. Clarify with the user first.")
+            return self.block("too early, clarify first", "Blocked: it's too early, so the tool didn't run. Don't report any results. Clarify with the user first.")
         print("[gate] -> Proceed")
         return Proceed()
 

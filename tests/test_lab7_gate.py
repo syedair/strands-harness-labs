@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+
 from strands.interventions import Deny, Guide, Proceed
 
 import lab7_tool_call_gate as lab7
@@ -49,3 +51,14 @@ def test_block_carries_its_reason(monkeypatch):
                                                           "args_grounded": 0.9, "premature": 0.1})
     action = lab7.ToolCallGate().before_tool_call(event("Paris"))
     assert action.reason == "the tool doesn't match the request"
+
+
+@pytest.mark.parametrize("probs_seen", [
+    {"matches_intent": 0.1, "missing_info": 0.1, "args_grounded": 0.9, "premature": 0.1},
+    {"matches_intent": 0.9, "missing_info": 0.1, "args_grounded": 0.1, "premature": 0.1},
+    {"matches_intent": 0.9, "missing_info": 0.1, "args_grounded": 0.9, "premature": 0.9},
+])
+def test_every_block_says_nothing_ran(monkeypatch, probs_seen):
+    monkeypatch.setattr(lab7, "yes_no_many", lambda s, q: probs_seen)
+    action = lab7.ToolCallGate().before_tool_call(event("Paris"))
+    assert "didn't run" in action.feedback and "Don't report" in action.feedback

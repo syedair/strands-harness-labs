@@ -7,11 +7,11 @@ import connectors
 import memory
 from events import TurnHandlers
 
-# Eager on purpose, like lab 7, so you can watch the gate catch a guessed city.
+# Lab 7 used an eager "assume Seattle" prompt to provoke the gate. The finished assistant uses memory instead.
 INSTRUCTIONS = (
     "You are a friendly travel assistant. Keep answers short and practical.\n"
-    "For weather, immediately fetch https://wttr.in/<city>?format=3 with web_fetch. "
-    "If no city is given, assume Seattle."
+    "For weather, fetch https://wttr.in/<city>?format=3 with web_fetch and report only what it returns.\n"
+    "If the user doesn't say which city, use what you remember about them; if you don't know, ask."
 )
 
 
