@@ -85,7 +85,7 @@ done
 
 # ---- dependencies ----------------------------------------------------------------------------------------------
 echo "→ Python dependencies"
-uv sync --extra web --quiet
+uv sync --extra web --inexact --quiet  # --inexact: never uninstall other extras (Laya for lab 10)
 STAMP=lab11/web/node_modules/.lab11-installed  # written after a successful install
 if [ ! -f "$STAMP" ] || [ lab11/web/package-lock.json -nt "$STAMP" ] || [ lab11/web/package.json -nt "$STAMP" ]; then
   echo "→ Web dependencies"

@@ -5,7 +5,7 @@
 #   ollama/<name>  a small local chat model as a stand-in (one token + its logprobs)
 #   jev            TypeSafe's hosted System 1 model (TYPESAFE_API_KEY)
 #   kev            an open Jev-alike served on your machine (KEV_URL)
-#   laya           an open, BERT-based System 1 model (uv sync --extra laya)
+#   laya           an open, BERT-based System 1 model (uv sync --extra laya --inexact)
 import functools
 import math
 import os
@@ -60,7 +60,7 @@ def unavailable(model: str | None = None) -> str | None:
     if backend == "kev" and not _kev_up():
         return f"Kev isn't running on {config.KEV_URL}. Start it with: ./kev.sh start"
     if backend == "laya" and _laya_router() is None:
-        return "Laya isn't installed. Run: uv sync --extra laya"
+        return "Laya isn't installed. Run: uv sync --extra laya --inexact"
     if backend == "ollama":
         try:
             pulled = config._pulled_models()

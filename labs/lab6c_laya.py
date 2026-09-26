@@ -6,7 +6,7 @@ from common.travel_cases import CASES, short
 try:
     from laya import Router
 except ImportError:
-    print("Laya isn't installed. Run: uv sync --extra laya")
+    print("Laya isn't installed. Run: uv sync --extra laya --inexact")
     sys.exit(1)
 
 # The same three questions as lab 6a, written as plain dicts.
