@@ -57,6 +57,15 @@ whichever you pick. Lab 10 runs all four side by side.
 
 Each lab is one short file. Lab N adds exactly one idea to lab N-1, so a diff shows the new thing.
 
+### Chat with any lab
+
+Every agent lab (1–5, 7–9) runs a short scripted demo. Add `--chat` to talk to it instead — the
+System 1 traces (`[gate]`, `[check]`, `[router]`) print live between turns:
+
+```bash
+uv run labs/lab7_tool_call_gate.py --chat
+```
+
 ### Lab 1: Your First Harness
 **File:** `labs/lab1_first_harness.py`
 One `create_harness()` call next to a hand-built `Agent`.
@@ -102,7 +111,10 @@ uv run labs/lab5_interventions.py policy   # a policy decides
 
 ### Lab 6: System 1 Basics (6a–6e)
 A System 1 model answers typed questions — yes/no (`Noul`), pick one (`Choice`), rate (`Score`) — with
-probabilities, and plain Python decides. The same questions, five ways:
+probabilities, and plain Python decides. Each lab asks the same questions about four conversations
+(a guessed city, Paris, a packing request, a vague trip idea) and prints one row each, so you can watch
+the probabilities move. Jev and Kev get all four right; Laya and the Qwen stand-in miss some — lab 10
+measures that. The same questions, five ways:
 
 | File | What it shows | Needs |
 |---|---|---|

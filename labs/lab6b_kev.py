@@ -4,12 +4,11 @@ import sys
 from dotenv import load_dotenv
 from typesafe_sdk import Choice, Noul, Score, TypeSafeClient
 
-load_dotenv()
-from common.config import KEV_URL  # noqa: E402  (http://127.0.0.1:8009 by default)
-from common.system1 import ensure_kev  # noqa: E402
+from common.config import KEV_URL
+from common.system1 import ensure_kev
+from common.travel_cases import CASES, short
 
-STATE = """user: What's the weather?
-assistant wants to call: web_fetch(url="https://wttr.in/Seattle?format=3")"""
+load_dotenv()
 
 QUESTIONS = {
     # Noul: a yes/no question -> the probability that it's true
@@ -27,19 +26,16 @@ QUESTIONS = {
 def main() -> None:
     if not ensure_kev():  # Kev is a local server: offers to start it in the background
         sys.exit(1)
-
     kev = TypeSafeClient(base_url=KEV_URL, api_key="local")  # NEW: your machine, no real key
-    answers = kev.system_one(model="kev-latest", state=STATE, questions=QUESTIONS).answers
 
-    print(f"{STATE}\n")
-    print(f"P(user named a city) = {answers['named_city'].noul:.2f}")
-    intent = answers["intent"]
-    print(f"Intent: {intent.choice}  {({k: round(v, 2) for k, v in intent.probabilities.items()})}")
-    print(f"Urgency (0-2): {answers['urgency'].score:.2f}")
+    print(f"{'user said':44}{'P(city)':>8}  {'intent':10}{'urgency 0-2':>12}  decision")
+    for case in CASES:
+        answers = kev.system_one(model="kev-latest", state=case, questions=QUESTIONS).answers
+        p_city, intent, urgency = answers["named_city"].noul, answers["intent"].choice, answers["urgency"].score
 
-    # Kev only observes. Plain Python decides.
-    decision = "ask the user for the city" if answers["named_city"].noul < 0.5 else "go ahead"
-    print(f"\nPolicy decision: {decision}")
+        # Kev only observes. Plain Python decides.
+        decision = "ask which city" if p_city < 0.5 else f"go: {intent}"
+        print(f"{short(case):44}{p_city:8.2f}  {intent:10}{urgency:12.2f}  {decision}")
 
 
 if __name__ == "__main__":
