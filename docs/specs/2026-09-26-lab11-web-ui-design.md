@@ -25,13 +25,13 @@ It is an example to extend, not a product: local, single user, no auth, no deplo
 ## Architecture
 
 ```
-web/ (React, :5173)  ──POST /api/chat (NDJSON stream)──▶  labs/lab11_web/server.py (FastAPI, :8000)
+web/ (React, :5173)  ──POST /api/chat (NDJSON stream)──▶  labs/lab11_web_server.py (FastAPI, :8000)
                       ◀──GET  /api/system1──────────────      └─ create_harness(...) per session
                                                                ├─ ToolCallGate    (from lab 7)
                                                                └─ CompletionCheck (from lab 8)
 ```
 
-### Server — `labs/lab11_web/server.py` (~80 lines)
+### Server — `labs/lab11_web_server.py` (~80 lines)
 
 - One harness agent per `session_id`, kept in memory. Same settings as the finished
   assistant: `builtin_tools=["web_fetch"]`, `memory=True`, `skills=True`, and
@@ -46,7 +46,7 @@ web/ (React, :5173)  ──POST /api/chat (NDJSON stream)──▶  labs/lab11_w
   - `{"type": "done"}` or `{"type": "error", "message": "..."}`
 - The selected System 1 model applies to the request by setting `config.SYSTEM1_MODEL`
   before the agent runs (single local user, so a process-wide setting is acceptable).
-- Run: `uv run labs/lab11_web/server.py` (uvicorn on 127.0.0.1:8000). New dependencies:
+- Run: `uv run --extra web labs/lab11_web_server.py` (uvicorn on 127.0.0.1:8000). New dependencies:
   `fastapi`, `uvicorn` (in an optional `web` extra).
 
 ### Decision events — minimal change to labs 7 and 8
@@ -76,7 +76,7 @@ the returned action and those probabilities. Labs 7 and 8 behave and print exact
 - Server errors mid-stream → an `error` event; the UI shows it inline in the reply.
 - Unavailable System 1 backend → disabled in the dropdown with its fix; selecting it is not
   possible. If it becomes unavailable mid-session, the request returns an `error` event.
-- API down → the UI shows "Start the server: uv run labs/lab11_web/server.py".
+- API down → the UI shows "Start the server: uv run labs/lab11_web_server.py".
 
 ## Testing
 
