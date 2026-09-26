@@ -6,14 +6,15 @@ from strands_harness.prompt import build_system_prompt
 
 import connectors
 import memory
-from events import TurnHandlers
+from events import TurnHandlers, forget_tool
 
 # Lab 7 used an eager "assume Seattle" prompt to provoke the gate. The finished assistant uses memory instead.
 INSTRUCTIONS = (
     "You are a friendly travel assistant. Keep answers short and practical.\n"
     "For weather, fetch https://wttr.in/<city>?format=3 with web_fetch and report only what it returns.\n"
     "If the user doesn't say which city, use what you remember about them; if you don't know, ask.\n"
-    "Memories carry the date they were saved; when two disagree, trust the newer one."
+    "Memories carry the date they were saved; when two disagree, trust the newer one.\n"
+    "When the user asks you to forget something, call forget_memory; say it's forgotten only if it deleted something."
 )
 
 
@@ -29,6 +30,7 @@ def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
     agent = create_harness(
         model=settings["model"],
         instructions=INSTRUCTIONS,
+        tools=[forget_tool(turn, notes)],  # the harness only adds memories; this deletes them
         builtin_tools=["web_fetch", "read"],  # read: files the user attaches
         session={"id": chat_id, "dir": str(data / "sessions")},  # the chat history, saved to disk
         memory={"stores": [store]},  # the harness's memory, watched so the UI sees each recall

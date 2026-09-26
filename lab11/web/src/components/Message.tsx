@@ -1,4 +1,4 @@
-import { Brain, BrainCircuit, ChevronRight, RotateCcw, ShieldAlert, ShieldCheck, TriangleAlert, Wrench } from "lucide-react";
+import { Brain, BrainCircuit, ChevronRight, Eraser, RotateCcw, ShieldAlert, ShieldCheck, TriangleAlert, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 import Markdown from "react-markdown";
@@ -30,6 +30,14 @@ function Step({ part }: { part: Part }) {
       </div>
     );
   }
+  if (part.kind === "forgot") {
+    return (
+      <div className="animate-rise inline-flex items-center gap-2 rounded-full border border-warn/50 px-3 py-1 text-xs text-warn">
+        <Eraser size={14} />
+        <span className="text-ink">Forgot {part.ids.length === 1 ? "a memory" : `${part.ids.length} memories`}</span>
+      </div>
+    );
+  }
   // text that isn't the final answer: a preamble ("I'll check…") or a draft the check sent back
   return <p className={`text-sm text-ink-2 ${part.discarded ? "line-through opacity-60" : ""}`}>{part.text}</p>;
 }
@@ -46,6 +54,7 @@ function Steps({ turn }: { turn: AssistantTurn }) {
   if (summary.allowed) facts.push([ShieldCheck, `gate allowed ${summary.allowed}`, "text-accent"]);
   if (summary.sentBack) facts.push([RotateCcw, `${summary.sentBack} ${summary.sentBack === 1 ? "draft" : "drafts"} sent back`, "text-warn"]);
   if (summary.saved) facts.push([BrainCircuit, `saved ${summary.saved}`, "text-violet"]);
+  if (summary.forgot) facts.push([Eraser, `forgot ${summary.forgot}`, "text-warn"]);
   return (
     <div className="rounded-xl border border-white/10 bg-black/20">
       <button onClick={() => setChoice(!open)} aria-expanded={open}

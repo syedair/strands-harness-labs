@@ -1,7 +1,9 @@
 # Lab 11: turn the gate's and check's decisions into events the web UI can show.
 import re
+from pathlib import Path
 from types import SimpleNamespace
 
+from strands import tool
 from strands.interventions import Deny, Proceed
 
 from lab7_tool_call_gate import ToolCallGate
@@ -87,6 +89,7 @@ class TurnHandlers:
         self.check = WebCheck(events)
         self.on_recall = None  # e.g. count hits per note
         self.last_recall: list[str] | None = None
+        self.forgot = False  # this turn deleted memories: don't save the request to forget as a new one
 
     def recall(self, ids: list[str], texts: list[str], scores: list[float] | None = None, query: str | None = None) -> None:
         """Called by the memory store when a search returns notes: which ones, how relevant, for what."""
@@ -109,3 +112,25 @@ class TurnHandlers:
         self.gate.remembered = []
         self.gate.blocks = 0
         self.check.guides = 0
+        self.forgot = False
+
+
+def forget_tool(turn: TurnHandlers, notes: Path, judge=None):
+    """A tool the agent calls when the user asks it to forget something (the harness only adds memories)."""
+    import memory  # memory imports the harness; keep events importable on its own
+
+    @tool
+    def forget_memory(about: str) -> str:
+        """Delete saved memories about something the user asked you to forget.
+
+        Args:
+            about: What to forget, with the specific values you remember, e.g. "the user's name (John, Syed)".
+        """
+        ids = memory.forget_about(notes, about, judge or memory.system1_forget)
+        if not ids:
+            return f"Found nothing saved about {about!r}; nothing was deleted."
+        turn.forgot = True
+        turn.events.append({"type": "forgot", "ids": ids})
+        return f"Deleted {len(ids)} saved memories about {about!r}."
+
+    return forget_memory

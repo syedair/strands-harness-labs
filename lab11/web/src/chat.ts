@@ -6,7 +6,8 @@ export type Part =
   | { kind: "tool"; name: string; input: Record<string, unknown> }
   | ({ kind: "decision" } & Omit<Extract<ChatEvent, { type: "decision" }>, "type">)
   | { kind: "memory"; ids: string[]; scores: number[]; query: string }
-  | { kind: "stored"; ids: string[] };
+  | { kind: "stored"; ids: string[] }
+  | { kind: "forgot"; ids: string[] };
 
 export type AssistantTurn = { role: "assistant"; parts: Part[]; streaming: boolean; error?: string };
 export type UserTurn = { role: "user"; text: string };
@@ -36,6 +37,8 @@ export function applyEvent(turn: AssistantTurn, event: ChatEvent): AssistantTurn
       return { ...turn, parts: [...parts, { kind: "memory", ids: event.ids, scores: event.scores, query: event.query }] };
     case "stored":
       return { ...turn, parts: [...parts, { kind: "stored", ids: event.ids }] };
+    case "forgot":
+      return { ...turn, parts: [...parts, { kind: "forgot", ids: event.ids }] };
     case "title":
       return turn; // the app updates the sidebar
     case "done":
@@ -72,7 +75,7 @@ export function finishTurn(turn: AssistantTurn): AssistantTurn {
   return turn.streaming ? { ...turn, streaming: false, error: "The reply ended early." } : turn;
 }
 
-export type Summary = { recalled: number; tools: number; blocked: number; allowed: number; sentBack: number; saved: number };
+export type Summary = { recalled: number; tools: number; blocked: number; allowed: number; sentBack: number; saved: number; forgot: number };
 type TextPart = Extract<Part, { kind: "text" }>;
 
 /** The reply's final answer, and every step it took to get there (shown collapsed once it's done). */
@@ -81,11 +84,12 @@ export function splitTurn(turn: AssistantTurn): { answer: TextPart | null; steps
   turn.parts.forEach((p, i) => { if (p.kind === "text" && !p.discarded) last = i; });
   const answer = last >= 0 ? (turn.parts[last] as TextPart) : null;
   const steps = turn.parts.filter((_, i) => i !== last);
-  const summary: Summary = { recalled: 0, tools: 0, blocked: 0, allowed: 0, sentBack: 0, saved: 0 };
+  const summary: Summary = { recalled: 0, tools: 0, blocked: 0, allowed: 0, sentBack: 0, saved: 0, forgot: 0 };
   for (const p of steps) {
     if (p.kind === "memory") summary.recalled = Math.max(summary.recalled, p.ids.length);
     if (p.kind === "tool") summary.tools++;
     if (p.kind === "stored") summary.saved += p.ids.length;
+    if (p.kind === "forgot") summary.forgot += p.ids.length;
     if (p.kind === "decision" && p.source === "gate") summary[p.action === "proceed" ? "allowed" : "blocked"]++;
     if (p.kind === "decision" && p.source === "check" && p.action !== "proceed") summary.sentBack++;
   }

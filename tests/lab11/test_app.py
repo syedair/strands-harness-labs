@@ -218,3 +218,29 @@ def test_forget_a_memory(client, monkeypatch, tmp_path):
     assert client.delete("/api/memory/home.md").status_code == 200
     assert not (notes / "home.md").exists()
     assert client.delete("/api/memory/..%2Fchats%2Fx.json").status_code == 404
+
+
+class ForgettingAgent(SavingAgent):
+    """Asked to forget: the tool deletes a note, then the extractor would save the request as a new note."""
+
+    async def flush(self):
+        (self.notes / "not-john.md").write_text("The user's name is not John.")
+        self.turn.stored("not-john.md")
+
+    async def stream_async(self, message):
+        self.turn.forgot = True
+        self.turn.events.append({"type": "forgot", "ids": ["name.md"]})
+        yield {"data": "Forgotten."}
+
+
+def test_a_turn_that_forgot_saves_no_new_memories(client, monkeypatch, tmp_path):
+    notes = tmp_path / "memory"; notes.mkdir()
+    monkeypatch.setattr(server, "DATA", tmp_path)
+
+    def build(turn, *rest):
+        agent = ForgettingAgent(turn); agent.notes = notes
+        return agent
+    monkeypatch.setattr(server, "make_agent", build)
+    events = chat(client)
+    assert "stored" not in [e["type"] for e in events] and "forgot" in [e["type"] for e in events]
+    assert not (notes / "not-john.md").exists()

@@ -12,3 +12,9 @@ def test_reopened_chat_gets_the_current_instructions(tmp_path, monkeypatch):
     monkeypatch.setattr(agents, "INSTRUCTIONS", "You are the NEW travel assistant.")
     reopened = agents.make_agent(TurnHandlers([]), "abcdef012345", SETTINGS, tmp_path)
     assert "NEW travel assistant" in str(reopened.system_prompt)
+
+
+def test_the_agent_can_forget(tmp_path):
+    agent = agents.make_agent(TurnHandlers([]), "abcdef012345", SETTINGS, tmp_path)
+    assert "forget_memory" in agent.tool_names
+    assert "forget_memory" in str(agent.system_prompt)

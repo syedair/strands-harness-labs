@@ -109,7 +109,13 @@ describe("splitTurn", () => {
     const { answer, steps, summary } = splitTurn(turn);
     expect(answer).toEqual({ kind: "text", text: "You're John.", discarded: false });
     expect(steps.map((p) => p.kind)).toEqual(["memory", "text", "decision", "tool", "decision", "stored"]);
-    expect(summary).toEqual({ recalled: 2, tools: 1, blocked: 0, allowed: 0, sentBack: 1, saved: 1 });
+    expect(summary).toEqual({ recalled: 2, tools: 1, blocked: 0, allowed: 0, sentBack: 1, saved: 1, forgot: 0 });
+  });
+
+  it("counts memories the agent forgot", () => {
+    const turn = turnOf(ev({ type: "forgot", ids: ["name.md", "name-2.md"] }), ev({ type: "text", delta: "Done." }));
+    expect(turn.parts[0]).toEqual({ kind: "forgot", ids: ["name.md", "name-2.md"] });
+    expect(splitTurn(turn).summary.forgot).toBe(2);
   });
 
   it("counts the gate's decisions", () => {

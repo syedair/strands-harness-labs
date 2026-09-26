@@ -128,3 +128,18 @@ def test_a_retry_after_feedback_still_recalls_for_the_users_question(tmp_path):
     retry = asyncio.run(store.search("[system1-completion-check] Your answer skipped part of the request."))
     assert [e.metadata["path"] for e in retry] == ["name.md"]
     assert calls == ["What's my name?", "What's my name?"]
+
+
+def test_forget_about_deletes_only_the_notes_on_that_topic(tmp_path):
+    (tmp_path / "name.md").write_text("The user's name is John.")
+    (tmp_path / "name-2.md").write_text("Users name is John.")
+    (tmp_path / "home.md").write_text("The user lives in Dubai.")
+    judge = lambda about, notes: {i: 0.9 if "John" in t else 0.1 for i, t in notes.items()}
+    assert sorted(memory.forget_about(tmp_path, "my name", judge)) == ["name-2.md", "name.md"]
+    assert [p.name for p in tmp_path.glob("*.md")] == ["home.md"]
+
+
+def test_forget_about_nothing_matching_deletes_nothing(tmp_path):
+    (tmp_path / "home.md").write_text("The user lives in Dubai.")
+    assert memory.forget_about(tmp_path, "my name", lambda about, notes: {i: 0.2 for i in notes}) == []
+    assert (tmp_path / "home.md").exists()

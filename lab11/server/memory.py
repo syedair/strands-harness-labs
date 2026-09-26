@@ -85,6 +85,28 @@ def store_for(model: str, root: Path, on_search, extract: bool = True, on_store=
     return WatchedStore(root=root, on_search=on_search, on_store=on_store, relevance=relevance, **kwargs)
 
 
+FORGET_QUESTION = "Does this fact mention {about}, even in passing? Fact: {fact}"
+
+
+def system1_forget(about: str, notes: dict[str, str]) -> dict[str, float]:
+    """System 1 decides which memories the user means: one yes/no question per note."""
+    from common.system1 import yes_no_many
+
+    return yes_no_many(f"The user said: forget {about}.", {i: FORGET_QUESTION.format(about=about, fact=t) for i, t in notes.items()})
+
+
+def forget_about(root: Path, about: str, judge=system1_forget) -> list[str]:
+    """Delete every note the judge says is about `about` (p >= 0.5). Returns the ids it deleted."""
+    notes = {p.name: p.read_text() for p in Path(root).glob("*.md")}
+    if not notes:
+        return []
+    scores = judge(about, notes)
+    doomed = [i for i in notes if scores.get(i, 0.0) >= 0.5]
+    for note_id in doomed:
+        forget(root, note_id)
+    return doomed
+
+
 def forget(root: Path, note_id: str) -> None:
     """Delete one memory. The harness has no forget tool, but its notes are plain files."""
     path = Path(root) / note_id

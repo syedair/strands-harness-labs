@@ -12,6 +12,7 @@ export type ChatEvent =
     }
   | { type: "memory"; ids: string[]; scores: number[]; query: string } // notes recalled, how relevant, for what
   | { type: "stored"; ids: string[] } // notes the harness just saved
+  | { type: "forgot"; ids: string[] } // notes the agent deleted with forget_memory
   | { type: "title"; title: string }
   | { type: "done" }
   | { type: "error"; message: string };

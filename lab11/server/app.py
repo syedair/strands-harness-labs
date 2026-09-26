@@ -293,6 +293,12 @@ async def send_message(chat_id: str, request: MessageRequest):
             manager = getattr(agent, "memory_manager", None)
             if manager is not None:  # save what this turn taught it; the UI refreshes memory when the stream closes
                 await manager.flush()
+                saved = [e for e in events if e["type"] == "stored"]
+                if getattr(turn, "forgot", False):  # "forget X" would otherwise be saved as a new note about X
+                    for note in saved:
+                        for note_id in note["ids"]:
+                            memory.forget(DATA / "memory", note_id)
+                    events[:] = [e for e in events if e["type"] != "stored"]
                 while events:  # notes it just saved
                     yield line(events.pop(0))
         except Exception as error:  # show it in the chat instead of breaking the stream

@@ -122,3 +122,18 @@ def test_a_check_that_hits_its_retry_limit_says_it_gave_up(monkeypatch):
         turn.check.after_model_call(final("Half an answer."))
     last = [e for e in log if e["source"] == "check"][-1]
     assert last["action"] == "proceed" and last["why"] == "gave up after 2 retries"
+
+
+def test_forget_tool_deletes_notes_and_reports_them(tmp_path):
+    (tmp_path / "name.md").write_text("The user's name is John.")
+    turn = events.TurnHandlers([])
+    forget = events.forget_tool(turn, tmp_path, judge=lambda about, notes: {i: 0.9 for i in notes})
+    result = forget(about="my name")
+    assert "1" in result and not (tmp_path / "name.md").exists()
+    assert turn.events == [{"type": "forgot", "ids": ["name.md"]}] and turn.forgot
+
+
+def test_forget_tool_says_when_nothing_matched(tmp_path):
+    turn = events.TurnHandlers([])
+    result = events.forget_tool(turn, tmp_path, judge=lambda about, notes: {})(about="my name")
+    assert "nothing" in result.lower() and not turn.forgot and turn.events == []
