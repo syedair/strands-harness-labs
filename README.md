@@ -162,6 +162,28 @@ same way. Labs 6–9 use a small general chat model (`qwen3.5:4b`) as a **stand-
 exactly one token and we read the probabilities of "yes" and "no". It's fast (~0.1 s a question) and
 works well on concrete questions; lab 10 shows where a real System 1 model does better.
 
+## 📏 System 1 models: limits
+
+| | Max input | Reliable up to | Runs on | Other limits |
+|---|---|---|---|---|
+| **Jev** (TypeSafe, hosted) | ~32K tokens, state + questions (measured 2026-09-26; not published) | Not published | TypeSafe's API (~0.4 s a call) | Up to 255 options per choice, 10 levels per score; paid; your text goes to TypeSafe |
+| **Kev** (open) | 65,536 tokens of state + 8,192 per question | Trained on states of ≤384 tokens; accuracy drops on long documents | Kev-0.8B: any Apple Silicon Mac · 4B/9B: 32 GB Mac or a big GPU · 27B: 80 GB GPU | A server you run (`./kev.sh`); first start downloads ~9 GB |
+| **Laya** (open) | English model: 512 tokens · multilingual: 1,024, up to 8,192 with `max_len=8192` | Multilingual: 16–18 of 20 correct up to ~4K tokens | CPU or GPU, on your machine | Out of the box weaker than Jev and Kev (lab 10); fine-tuning on your own decisions is where it improves |
+| **Qwen stand-in** (Ollama) | The Ollama model's context | Concrete questions | Your machine | Not a System 1 model: one call per question, probabilities not trained to be calibrated |
+
+**Where Kev falls short of Jev** (from Kev's own README):
+- **Knowledge questions:** Kev depends on its base model (MMLU: Kev-9B 0.74, Jev 0.90); the smaller models also miss day-precise date arithmetic.
+- **Long inputs:** with the question buried in 1–6K tokens of unrelated text, Kev-9B scores 0.56 and Kev-27B 0.83.
+- **Ranking confidence:** at a 5% error budget, Kev can automate 45–57% of decisions, Jev 70%.
+- **Speed on a Mac:** Kev-4B takes ~720 ms for five questions on an Apple M5 (136 ms when the text is cached).
+
+The travel labs use inputs of a few dozen tokens, so none of these limits apply to them. They matter once you
+classify long documents.
+
+Sources: [Kev README](https://github.com/jaredpalmer/kev#what-to-expect), [Laya README](https://github.com/NandhaKishorM/laya),
+[TypeSafe API docs](https://docs.typesafe.ai/api); Jev's input limit was measured by sending longer and longer
+inputs until the API returned `max_tokens_exceeded`.
+
 ## 🆘 Troubleshooting
 
 - **"Ollama isn't reachable"** — start it with `ollama serve`.

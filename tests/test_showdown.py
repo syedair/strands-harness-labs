@@ -25,6 +25,7 @@ def test_datasets_are_labelled_both_ways():
 def test_unavailable_contenders_are_skipped_with_reason(monkeypatch, capsys):
     reasons = {"jev": "Jev needs TYPESAFE_API_KEY", "kev": "Kev isn't running", "laya": "Laya isn't installed"}
     monkeypatch.setattr(showdown, "unavailable", lambda model: reasons.get(model))
+    monkeypatch.setattr(showdown, "ensure_kev", lambda: False)  # a real Kev may be running on this machine
     names = [name for name, _ in showdown.contenders()]
     assert names == ["qwen3.5 (stand-in)"]
     out = capsys.readouterr().out
