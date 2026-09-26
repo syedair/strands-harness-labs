@@ -30,14 +30,6 @@ export function toGraph(graph: MemoryGraph, fired: string[]): { nodes: GlobeNode
   };
 }
 
-/** Point i of n spread evenly over a sphere (a Fibonacci spiral), so notes sit on a globe. */
-export function spherePoint(i: number, n: number, radius: number): { x: number; y: number; z: number } {
-  const y = n === 1 ? 0 : 1 - (2 * i) / (n - 1); // from the top of the globe to the bottom
-  const ring = Math.sqrt(1 - y * y);
-  const angle = i * Math.PI * (3 - Math.sqrt(5)); // the golden angle
-  return { x: Math.cos(angle) * ring * radius, y: y * radius, z: Math.sin(angle) * ring * radius };
-}
-
 /** Particles for the memory core: a ball, denser towards the centre so the core glows. */
 export function cloudPoints(n: number, radius: number, random: () => number = Math.random) {
   return Array.from({ length: n }, () => {
@@ -67,4 +59,13 @@ export function withGhosts(graph: MemoryGraph, ghosts: MemoryGraph["nodes"], act
   const present = new Set(graph.nodes.map((n) => n.id));
   const extra = ghosts.filter((n) => active.includes(n.id) && !present.has(n.id));
   return extra.length ? { ...graph, nodes: [...graph.nodes, ...extra] } : graph;
+}
+
+/** Where a note sits on the sphere, from its id alone: forgetting or saving others never moves it. */
+export function notePoint(id: string, radius: number): { x: number; y: number; z: number } {
+  let h = 2166136261; // FNV-1a hash of the id, split into two numbers in [0, 1)
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
+  const u = ((h >>> 0) & 0xffff) / 0x10000, v = ((h >>> 16) & 0xffff) / 0x10000;
+  const y = 1 - 2 * u, ring = Math.sqrt(1 - y * y), angle = 2 * Math.PI * v;
+  return { x: Math.cos(angle) * ring * radius, y: y * radius, z: Math.sin(angle) * ring * radius };
 }

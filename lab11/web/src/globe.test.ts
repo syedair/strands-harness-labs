@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cloudPoints, showingFor, spherePoint, toGraph, withGhosts } from "./globe";
+import { cloudPoints, notePoint, showingFor, toGraph, withGhosts } from "./globe";
 
 const api = {
   nodes: [
@@ -49,20 +49,6 @@ describe("toGraph", () => {
   });
 });
 
-describe("spherePoint", () => {
-  it("puts every note on the globe's surface", () => {
-    for (let i = 0; i < 7; i++) {
-      const { x, y, z } = spherePoint(i, 7, 50);
-      expect(Math.hypot(x, y, z)).toBeCloseTo(50, 5);
-    }
-  });
-
-  it("spreads notes apart instead of stacking them", () => {
-    const a = spherePoint(0, 7, 50), b = spherePoint(1, 7, 50);
-    expect(Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)).toBeGreaterThan(20);
-  });
-});
-
 describe("cloudPoints", () => {
   const seeded = () => {
     let s = 42;
@@ -104,5 +90,18 @@ describe("withGhosts", () => {
   it("drops them once the animation is over, and never shows a note twice", () => {
     expect(withGhosts(graph, [ghost], []).nodes.map((n) => n.id)).toEqual(["home.md"]);
     expect(withGhosts(graph, [graph.nodes[0]], ["home.md"]).nodes).toHaveLength(1);
+  });
+});
+
+describe("notePoint", () => {
+  it("puts a note in the same place however many other notes there are", () => {
+    expect(notePoint("name.md", 50)).toEqual(notePoint("name.md", 50));
+    const p = notePoint("name.md", 50);
+    expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(50);
+  });
+
+  it("spreads different notes apart", () => {
+    const a = notePoint("home.md", 50), b = notePoint("trip.md", 50);
+    expect(Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)).toBeGreaterThan(1);
   });
 });

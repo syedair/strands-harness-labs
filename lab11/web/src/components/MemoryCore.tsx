@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { MemoryGraph } from "../api";
-import { cloudPoints, spherePoint } from "../globe";
+import { cloudPoints, notePoint } from "../globe";
 import { disposeTree, setPositions } from "../dispose";
 
 const CYAN = new THREE.Color("#22D3EE");
@@ -88,8 +88,8 @@ export function MemoryCore({ graph, fired, stored, forgotten = [], state, height
     core.add(scattering);
     live.current.rebuild = (g: MemoryGraph) => {
       disposeTree(anchors); // the previous notes and links
-      stars = g.nodes.map((n, i) => {
-        const p = spherePoint(i, g.nodes.length, RADIUS * 0.72);
+      stars = g.nodes.map((n) => {
+        const p = notePoint(n.id, RADIUS * 0.72); // by id, so notes stay put when others come and go
         const sprite = new THREE.Sprite(new THREE.SpriteMaterial(glowing(CYAN, 1, texture)));
         sprite.position.set(p.x, p.y, p.z);
         sprite.scale.setScalar(7 + Math.log2(1 + n.hits) * 2);
