@@ -47,7 +47,7 @@ Labs 6–9 use `SYSTEM1_MODEL` as the classifier. Pick one in `.env`:
 |---|---|---|
 | `ollama/qwen3.5:4b` (default) | A small local chat model as a **stand-in**: one token + its probabilities | `ollama pull qwen3.5:4b` |
 | `jev` | TypeSafe's hosted System 1 model (paid) | `TYPESAFE_API_KEY=...` in `.env` ([typesafe.ai](https://typesafe.ai)) |
-| `kev` | [Kev](https://github.com/jaredpalmer/kev), an open Jev-alike on your machine (Kev-4B needs a 32 GB Mac) | Start its server (see lab 10), `KEV_URL` in `.env` |
+| `kev` | [Kev](https://github.com/jaredpalmer/kev), an open Jev-alike on your machine (Kev-4B needs a 32 GB Mac) | Start its server (see lab 6), `KEV_URL` in `.env` |
 | `laya` | [Laya](https://github.com/NandhaKishorM/laya), an open BERT-based System 1 model | `uv sync --extra laya` |
 
 The labs don't change: `yes_no()` and `choice()` in `labs/common/system1.py` send the same questions to
@@ -100,12 +100,24 @@ uv run labs/lab5_interventions.py          # approve every call
 uv run labs/lab5_interventions.py policy   # a policy decides
 ```
 
-### Lab 6: System 1 Basics
-**File:** `labs/lab6_system1_basics.py`
-No agent. A small local model answers yes/no and choice questions with probabilities.
-**What's new:** `common/system1.py` — `yes_no()`, `yes_no_many()`, `choice()` (try `SYSTEM1_MODEL=jev`)
+### Lab 6: System 1 Basics (6a–6e)
+A System 1 model answers typed questions — yes/no (`Noul`), pick one (`Choice`), rate (`Score`) — with
+probabilities, and plain Python decides. The same questions, five ways:
+
+| File | What it shows | Needs |
+|---|---|---|
+| `labs/lab6a_jev.py` | Jev, TypeSafe's hosted System 1 model, through its Python SDK | `TYPESAFE_API_KEY` in `.env` |
+| `labs/lab6b_kev.py` | Kev: same SDK, same questions — only the URL changes | Kev server running (below) |
+| `labs/lab6c_laya.py` | Laya: a different open model family, same question shapes | `uv sync --extra laya` |
+| `labs/lab6d_qwen_stand_in.py` | No System 1 model? Ask a small chat model for one token and read its probabilities | `ollama pull qwen3.5:4b` |
+| `labs/lab6e_standardized.py` | One helper (`yes_no`, `choice`) for all four; switch with `SYSTEM1_MODEL` | any of the above |
+
+**Start Kev** (in a clone of [github.com/jaredpalmer/kev](https://github.com/jaredpalmer/kev); Kev-4B needs a 32 GB Mac):
+```bash
+uv sync --extra serve && uv run --extra serve python -m kev.serve --run jaredpalmer/kev-4b --port 8009
+```
 **Video:** _coming soon_
-**Run:** `uv run labs/lab6_system1_basics.py`
+**Run:** `uv run labs/lab6a_jev.py` (and so on); `SYSTEM1_MODEL=kev uv run labs/lab6e_standardized.py`
 
 ### Lab 7: Tool-Call Gate
 **File:** `labs/lab7_tool_call_gate.py`
@@ -135,13 +147,7 @@ Jev (paid) vs Kev (open) vs Laya (open) vs our Qwen stand-in, on labelled travel
 Contenders you haven't set up are skipped with a one-line hint.
 **What's new:** Brier score and accuracy; abstract vs concrete questions
 **Video:** _coming soon_
-**Setup (each optional):**
-```bash
-export TYPESAFE_API_KEY=...        # Jev — https://typesafe.ai
-uv sync --extra laya               # Laya — pulls in PyTorch
-# Kev — in a clone of github.com/jaredpalmer/kev:
-uv sync --extra serve && uv run --extra serve python -m kev.serve --run jaredpalmer/kev-4b --port 8009
-```
+**Setup:** the same as lab 6a–6d; each contender is optional.
 **Run:** `uv run labs/lab10_system1_showdown.py`
 
 ## 🧠 What is a System 1 model?

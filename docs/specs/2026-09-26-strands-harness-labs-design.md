@@ -58,7 +58,7 @@ The travel assistant evolves through the labs.
 | 3 | `lab3_sessions_memory.py` | Remembers the user's home city across runs | `session`, `memory` in `.agent/` |
 | 4 | `lab4_skills.py` | A packing-list skill | `skills` from `.agent/skills/packing-list/` |
 | 5 | `lab5_interventions.py` | Asks before writing a file | `HumanInTheLoop(ask="stdio")`, then a plain-English policy (the `"ask"` preset pauses via interrupt/resume, which a plain script can't answer) |
-| 6 | `lab6_system1_basics.py` | No agent: ask the classifier yes/no and choice questions | `labs/common/system1.py` |
+| 6a–6e | `lab6a_jev.py`, `lab6b_kev.py`, `lab6c_laya.py`, `lab6d_qwen_stand_in.py`, `lab6e_standardized.py` | No agent: the same typed questions to Jev, Kev (same SDK, new URL), Laya, a Qwen stand-in (one token + logprobs), then one helper for all four switched by `SYSTEM1_MODEL` | `typesafe-sdk`, `laya`, Ollama logprobs, `labs/common/system1.py` |
 | 7 | `lab7_tool_call_gate.py` | Blocks guessed tool arguments ("What's the weather?" with no city) | custom `InterventionHandler.before_tool_call` → `Guide` / `Proceed` |
 | 8 | `lab8_completion_check.py` | Sends the agent back when it stops before the task is done | `after_model_call` → `Guide` / `Proceed` |
 | 9 | `lab9_model_switching.py` | Picks small vs big model per request | `ModelRouter` with a strategy driven by a System 1 `choice()` |
