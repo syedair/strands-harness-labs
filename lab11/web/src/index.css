@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+/* ContentCreationKit theme: developer-studio, preset Default (sizes halved from the 4K board). */
+@theme {
+  --color-bg-1: #0B1120;
+  --color-bg-2: #0E1A2B;
+  --color-accent: #6EE7B7;
+  --color-accent-2: #22D3EE;
+  --color-ink: #F8FAFC;
+  --color-ink-2: rgba(248, 250, 252, 0.66);
+  --color-warn: #FBBF24;
+  --color-violet: #A78BFA; /* theme --hue-5: memories being stored */
+  --font-display: "SF Pro Display", -apple-system, "Inter", system-ui, sans-serif;
+  --font-sans: "SF Pro Text", -apple-system, "Inter", system-ui, sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, monospace;
+  --animate-rise: rise 0.35s ease-out both;
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@layer components {
+  /* Buttons: smooth hover, a small press-down on click, an accent focus ring. */
+  .press { transition: transform 120ms ease, filter 150ms ease, border-color 150ms ease, color 150ms ease; }
+  .press:active:not(:disabled) { transform: scale(0.95); }
+  .press:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(110, 231, 183, 0.35); }
+}
+
+body {
+  min-height: 100vh;
+  color-scheme: dark; /* native controls (select popups, file picker) follow the dark theme */
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(900px 600px at 12% 12%, rgba(34, 211, 238, 0.10) 0%, transparent 60%),
+    radial-gradient(800px 600px at 90% 90%, rgba(110, 231, 183, 0.08) 0%, transparent 60%),
+    linear-gradient(170deg, var(--color-bg-1) 0%, var(--color-bg-2) 100%);
+  background-attachment: fixed;
+}
+
+/* Theme components sit in the components layer, so utilities like `absolute` can override them. */
+@layer components {
+  .glass {
+    position: relative;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03));
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30), 0 20px 60px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  }
+  .glass::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: radial-gradient(circle at 22% 14%, rgba(255, 255, 255, 0.14) 0%, transparent 50%);
+  }
+  .glass.tint {
+    background: linear-gradient(135deg, rgba(110, 231, 183, 0.20), rgba(110, 231, 183, 0.04));
+    border-color: rgba(110, 231, 183, 0.50);
+  }
+  .eyebrow { color: var(--color-accent); font-family: var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase; }
+}
+
+/* Markdown in replies */
+.reply > * + * { margin-top: 0.6rem; }
+.reply h1, .reply h2, .reply h3 { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--color-accent); margin-top: 1rem; }
+.reply ul { list-style: disc; padding-left: 1.25rem; }
+.reply ol { list-style: decimal; padding-left: 1.25rem; }
+.reply li::marker { color: var(--color-accent-2); }
+.reply strong { color: var(--color-ink); font-weight: 600; }
+.reply code { font-family: var(--font-mono); font-size: 0.85em; color: var(--color-accent-2); }
+.reply hr { border-color: rgba(255, 255, 255, 0.10); }
+.reply a { color: var(--color-accent-2); text-decoration: underline; }

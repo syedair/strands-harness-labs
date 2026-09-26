@@ -14,7 +14,7 @@ INSTRUCTIONS = (
 )
 
 QUESTIONS = {
-    "matches_intent": "Does the proposed tool match what the user is asking for?",
+    "matches_intent": "Is this tool call a sensible step towards answering the user, even if it only helps with part of it?",
     "missing_info": "Is information missing that the tool needs to run correctly?",
     # Small open models need concrete questions: "grounded?" is too abstract for a 4B model.
     "args_grounded": "Did the user mention the same city that the tool call uses?",
@@ -38,32 +38,38 @@ class ToolCallGate(InterventionHandler):
 
     def before_tool_call(self, event):
         call = f"{event.tool_use['name']}({json.dumps(event.tool_use.get('input', {}))})"
-        state = f"{user_text(event.agent.messages)}\n\nProposed tool call: {call}"
+        state = f"{self.context(event)}\n\nProposed tool call: {call}"
         print(f"\n[gate] model proposes: {call}")
 
         p = yes_no_many(state, QUESTIONS)  # System 1 observes...
+        self.last_probs = p  # lab 11 shows these in the web UI
         for name, value in p.items():
             print(f"[gate]   P({name}) = {value:.2f}")
 
         # ...plain Python decides.
         if p["matches_intent"] < self.YES:
-            return self.block("the tool doesn't match the request", "That tool doesn't match the request. Reconsider.")
+            return self.block("the tool doesn't match the request", "Blocked: that tool doesn't fit the request, so it didn't run. Don't report any results from it. Reconsider which tool, if any, fits.")
         if p["missing_info"] >= self.YES or p["args_grounded"] < self.YES:
             return self.block("ask the user instead of guessing",
-                              "Blocked: the city is a guess, so nothing was fetched and you have no weather data. "
-                              "Do not report any weather. Ask the user which city they mean.")
+                              "Blocked: the city is a guess, so the tool didn't run and you have no data. "
+                              "Don't report any weather. Ask the user which city they mean.")
         if p["premature"] >= self.YES:
-            return self.block("too early, clarify first", "Too early to call this tool. Clarify with the user first.")
+            return self.block("too early, clarify first", "Blocked: it's too early, so the tool didn't run. Don't report any results. Clarify with the user first.")
         print("[gate] -> Proceed")
         return Proceed()
 
+    def context(self, event) -> str:
+        """What the classifier sees besides the tool call: here, only what the user said."""
+        return user_text(event.agent.messages)
+
     def block(self, why: str, feedback: str):
+        self.last_why = why  # lab 11 shows which rule fired
         self.blocks += 1
         if self.blocks > self.MAX_BLOCKS:
             print(f"[gate] -> Deny: {why} (blocked {self.MAX_BLOCKS}x already)")
             return Deny(reason=feedback)
         print(f"[gate] -> Guide ({self.blocks}/{self.MAX_BLOCKS}): {why}")
-        return Guide(feedback=feedback)
+        return Guide(feedback=feedback, reason=why)
 
 
 def main() -> None:

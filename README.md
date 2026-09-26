@@ -134,6 +134,8 @@ and the agent asks you instead. A real city goes straight through.
 **File:** `labs/lab8_completion_check.py`
 The agent answers only half the question; the classifier notices and sends it back.
 **What's new:** `after_model_call` returning `Guide` (capped at two retries)
+A reply that ends by asking the user a question isn't judged — asking back is a fine way to end a turn
+(it prints `[check] -> Proceed (asked the user a question)`).
 **Video:** _coming soon_
 **Run:** `uv run labs/lab8_completion_check.py`
 
@@ -152,6 +154,77 @@ Contenders you haven't set up are skipped with a one-line hint.
 **Video:** _coming soon_
 **Setup:** the same as lab 6a–6d; each contender is optional.
 **Run:** `uv run labs/lab10_system1_showdown.py`
+
+### Lab 11: The Harness App
+**Folder:** `lab11/` — `server/` (FastAPI) and `web/` (React + Vite + Tailwind, lucide icons)
+The finished travel assistant as a web app that shows everything the harness does:
+
+- **Chat history** — every chat is a harness session saved to disk; reopen it after a restart.
+- **Model pickers** under the chat — the LLM (Kimi K2.5, Nemotron, Claude Sonnet 5, Kimi K3, local
+  gpt-oss) and the System 1 model (Qwen stand-in, Jev, Kev, Laya). Switch the LLM mid-chat; history carries over.
+- **Attach files** — the agent reads them with the harness's built-in `read` tool.
+- **Connectors** — turn on MCP servers (AWS Documentation, the chat's files, or your own command).
+- **Skills** — add one from the Skills tab: a `SKILL.md`, or the skill folder as a `.zip` with its references.
+- **Inside the harness** — tools, skills, session, connectors, and every System 1 decision.
+- **How it works** — a click-through of one turn: the Agent at the centre, calling the session, memory, skills,
+  System 1, the LLM and tools in order, one step per click.
+- **Clear all** — delete every chat from the sidebar, or every memory from the Memory tab.
+- **The memory core** — a rotating nebula of your memories. Recalled notes fire in green (hover a chip to
+  see what was searched and each note's score); newly saved notes arrive in violet; forget any note.
+  System 1 decides what to recall: for each note it answers *"would this fact help answer the message?"*,
+  and only notes at 0.5 or above are used — the harness's own keyword search recalls notes for almost any
+  question. The harness only adds memories, so the app gives the agent a `forget_memory` tool: ask it to forget
+  something and System 1 picks the notes that mention it (*"does this fact mention …?"*); the files are deleted,
+  and that turn saves no new notes (otherwise "forget my name" would be saved as a note about your name).
+  Similarity links need `ollama pull nomic-embed-text`; without it, notes sharing a name or place are linked.
+
+**One turn, step by step:**
+
+```mermaid
+sequenceDiagram
+    participant U as You (browser)
+    participant S as App server
+    participant A as Agent
+    participant H as Session · Memory · Skills
+    participant S1 as System 1
+    participant L as LLM
+    participant T as Tools
+    U->>S: message
+    S->>A: message
+    A->>H: restore the chat, search memory
+    A->>S1: which notes help? (p ≥ 0.5, best 5)
+    A->>L: message + notes
+    L-->>A: load the packing-list skill
+    A->>H: load the skill
+    A->>L: skill
+    L-->>A: fetch the forecast
+    A->>S1: tool gate (before_tool_call intervention)
+    A->>T: web_fetch
+    A->>L: forecast
+    L-->>A: answer
+    A->>S1: completion check (after_model_call intervention)
+    A->>S: answer
+    S-->>U: stream
+    S->>A: save what you learned
+    A->>H: new dated notes
+```
+
+**What's new:** `create_harness(session={"id", "dir"}, memory={"stores": [...]}, mcp_servers=..., tools=[...])`,
+`agent.stream_async()` as a stream of JSON events, a tool gate and a completion check as `interventions=[...]`
+**Video:** _coming soon_
+**Run:**
+```bash
+uv sync --extra web
+uv run --extra web lab11/server/app.py        # API on http://127.0.0.1:8000
+cd lab11/web && npm install && npm run dev    # UI on http://localhost:5173
+```
+**Extending it:** add routes in `lab11/server/app.py`, an event type in `lab11/server/events.py`, and
+a `case` in `lab11/web/src/chat.ts`. The UI only reads events, so any web framework can replace `lab11/web/`.
+Runtime data (chats, sessions, files, memory) lives in `lab11/data/`; `./cleanup.sh` offers to remove it.
+
+![Lab 11: chat history, recalled memories and System 1 decisions](docs/lab11.png)
+![The memory core](docs/lab11-memory.png)
+![How it works: one turn, step by step](docs/lab11-architecture.png)
 
 ## 🧠 What is a System 1 model?
 
@@ -197,6 +270,7 @@ inputs until the API returned `max_tokens_exceeded`.
 
 ## 🙏 Credits
 
+- The lab 11 UI uses the Developer Studio theme from the author's ContentCreationKit.
 - [Mike Chambers — jev-strands-video](https://github.com/mikegc-aws/jev-strands-video) (MIT): the System 1 + Strands interventions pattern that labs 7–9 rebuild on the harness.
 - [TypeSafe Jev](https://typesafe.ai), [Kev](https://github.com/jaredpalmer/kev), [Laya](https://github.com/NandhaKishorM/laya).
 - The beach-destination set in lab 10 comes from the author's `systemone-model-typesafeai` demo.
