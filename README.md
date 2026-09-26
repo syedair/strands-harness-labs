@@ -1,6 +1,7 @@
 # Strands Harness Labs
 
-Hands-on labs for the open-source [Strands Harness SDK](https://strandsagents.com/docs/user-guide/harness/)
+Hands-on labs for the open-source [Strands harness](https://strandsagents.com/docs/user-guide/harness/)
+(`pip install strands-harness`, `create_harness`)
 and the **System 1** pattern. You build one travel assistant, one idea per lab: the harness
 basics first, then a fast classifier that watches the agent and lets plain Python decide.
 By lab 9 the assistant looks up the forecast, remembers where you live, writes a packing
@@ -293,7 +294,8 @@ inputs until the API returned `max_tokens_exceeded`.
 - [Mike Chambers — jev-strands-video](https://github.com/mikegc-aws/jev-strands-video) (MIT): the System 1 + Strands interventions pattern that labs 7–9 rebuild on the harness.
 - [TypeSafe Jev](https://typesafe.ai), [Kev](https://github.com/jaredpalmer/kev), [Laya](https://github.com/NandhaKishorM/laya).
 - The beach-destination set in lab 10 comes from the author's `systemone-model-typesafeai` demo.
-- [Strands Agents](https://strandsagents.com) and the [Strands Harness SDK](https://github.com/strands-agents/harness-sdk).
+- [Strands Agents](https://strandsagents.com) and the [Strands harness](https://github.com/strands-agents/harness-sdk/tree/main/harness-py),
+  built on the [Strands Harness SDK](https://github.com/strands-agents/harness-sdk).
 
 ## 📄 License
 
