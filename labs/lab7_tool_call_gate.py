@@ -14,7 +14,7 @@ INSTRUCTIONS = (
 )
 
 QUESTIONS = {
-    "matches_intent": "Could this tool call help with what the user asked for?",
+    "matches_intent": "Is this tool call a sensible step towards answering the user, even if it only helps with part of it?",
     "missing_info": "Is information missing that the tool needs to run correctly?",
     # Small open models need concrete questions: "grounded?" is too abstract for a 4B model.
     "args_grounded": "Did the user mention the same city that the tool call uses?",

@@ -8,8 +8,10 @@ export function DecisionChip({ decision }: { decision: Decision }) {
   const [Icon, text] =
     decision.source === "gate"
       ? [blocked ? ShieldAlert : ShieldCheck, blocked ? `Gate blocked: ${decision.why ?? "guessed argument"}` : "Gate allowed the call"]
-      : [blocked ? RotateCcw : CircleCheck, blocked ? "Sent back to finish" : "Completion check passed"];
-  const tone = blocked ? "border-warn/50 text-warn" : "border-accent/40 text-accent";
+      : decision.why // the check ran out of retries: it didn't pass
+        ? [RotateCcw, `Completion check ${decision.why}`]
+        : [blocked ? RotateCcw : CircleCheck, blocked ? "Sent back to finish" : "Completion check passed"];
+  const tone = blocked || decision.why ? "border-warn/50 text-warn" : "border-accent/40 text-accent";
   return (
     <div className={`glass animate-rise inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs ${tone}`}
          title={JSON.stringify(decision.probs)}>

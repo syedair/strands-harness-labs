@@ -17,7 +17,7 @@ RULE_PROB = {
 
 def decision(source: str, action, probs: dict[str, float], why: str | None = None) -> dict:
     kind = "proceed" if isinstance(action, Proceed) else "deny" if isinstance(action, Deny) else "guide"
-    if kind == "proceed":
+    if kind == "proceed" and not (source == "check" and why):
         why = None
     elif why is None:
         why = getattr(action, "reason", None)
@@ -59,13 +59,23 @@ class WebCheck(CompletionCheck):
 
     def after_model_call(self, event):
         self.last_probs = None
+        if self.request and not has_several_parts(self.request):
+            return Proceed()  # a one-question request can't be half answered: nothing for the check to catch
         if self.request:  # lab 8 reads messages[0]; in a chat that's the first turn, not this one
             current = {"role": "user", "content": [{"text": self.request}]}
             event = SimpleNamespace(stop_response=event.stop_response, agent=SimpleNamespace(messages=[current]))
         action = super().after_model_call(event)
         if self.last_probs is not None:
-            self.events.append(decision("check", action, self.last_probs))
+            gave_up = isinstance(action, Proceed) and self.last_probs["answered_everything"] < 0.6
+            why = f"gave up after {self.MAX_GUIDES} retries" if gave_up else None  # not a pass: out of retries
+            self.events.append(decision("check", action, self.last_probs, why=why))
         return action
+
+
+def has_several_parts(request: str) -> bool:
+    """'Weather and what to pack?' has two parts; 'what's my name' has one."""
+    text = request.lower()
+    return text.count("?") > 1 or any(joiner in text for joiner in (" and ", " also ", "; ", ". "))
 
 
 class TurnHandlers:

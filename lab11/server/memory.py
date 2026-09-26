@@ -35,9 +35,16 @@ class WatchedStore(FileMemoryStore):
     def __init__(self, *args, root: Path, on_search, on_store=None, relevance=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.root, self.on_search, self.on_store, self.relevance = Path(root), on_search, on_store, relevance
+        self.last_query: str | None = None
 
     async def search(self, query, options=None):
-        if query.startswith("[system1-"):  # the gate's/check's feedback, not something the user asked
+        if query.startswith("[system1-"):
+            # the check's feedback became the latest "user" message; memories are injected for one
+            # model call only, so the retry needs the ones for the user's real question again
+            query = self.last_query or ""
+        else:
+            self.last_query = query
+        if not query:
             return []
         limit = (options or {}).get("max_search_results") or 5
         if self.relevance is None:  # the harness's own keyword search

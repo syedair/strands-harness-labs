@@ -15,9 +15,9 @@ def test_check_judges_the_current_message(monkeypatch):
     seen = []
     monkeypatch.setattr(lab8, "yes_no", lambda state, q: seen.append(state) or 0.9)
     turn = events.TurnHandlers([])
-    turn.start_turn("Pack for 4 days in Istanbul")
+    turn.start_turn("Pack for 4 days in Istanbul and check the weather")
     turn.check.after_model_call(final("Here is your list."))
-    assert "Pack for 4 days in Istanbul" in seen[0] and "What's the weather?" not in seen[0]
+    assert "Pack for 4 days in Istanbul and check the weather" in seen[0] and "What's the weather?" not in seen[0]
 
 
 def test_counters_reset_each_turn(monkeypatch):
@@ -96,3 +96,29 @@ def test_the_app_leaves_out_the_environment_plugin():
     import inspect
     import agents
     assert 'builtin_plugins=["todos"]' in inspect.getsource(agents.make_agent)
+
+
+@pytest.mark.parametrize("request_text,judged", [
+    ("what's my name", False),
+    ("Who am I?", False),
+    ("What's the weather in Istanbul, and what should I pack for 4 days there?", True),
+    ("Plan 3 days in Rome. Also suggest a hotel?", True),
+])
+def test_check_only_judges_requests_with_more_than_one_part(monkeypatch, request_text, judged):
+    asked = []
+    monkeypatch.setattr(lab8, "yes_no", lambda state, q: asked.append(state) or 0.2)
+    turn = events.TurnHandlers([])
+    turn.start_turn(request_text)
+    turn.check.after_model_call(final("An answer."))
+    assert bool(asked) == judged
+
+
+def test_a_check_that_hits_its_retry_limit_says_it_gave_up(monkeypatch):
+    monkeypatch.setattr(lab8, "yes_no", lambda state, q: 0.2)
+    log = []
+    turn = events.TurnHandlers(log)
+    turn.start_turn("Weather in Istanbul and what to pack?")
+    for _ in range(lab8.CompletionCheck.MAX_GUIDES + 1):
+        turn.check.after_model_call(final("Half an answer."))
+    last = [e for e in log if e["source"] == "check"][-1]
+    assert last["action"] == "proceed" and last["why"] == "gave up after 2 retries"

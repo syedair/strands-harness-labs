@@ -117,10 +117,14 @@ def test_recalled_notes_carry_when_they_were_saved(tmp_path):
     assert "The user's name is John." in found[0].content
 
 
-def test_feedback_from_the_check_is_not_a_memory_search(tmp_path):
+def test_a_retry_after_feedback_still_recalls_for_the_users_question(tmp_path):
+    # Injected memories last one model call; the retry's search sees the check's feedback as the
+    # latest "user" message, so it must search with the user's real question again.
     calls = []
     store = memory.store_for("ollama/gpt-oss:20b", tmp_path, on_search=lambda *a: None, extract=False,
                              relevance=lambda q, n: calls.append(q) or {k: 0.9 for k in n})
-    (tmp_path / "home.md").write_text("Lives in Dubai.")
-    assert asyncio.run(store.search("[system1-completion-check] Your answer skipped part of the request.")) == []
-    assert calls == []
+    (tmp_path / "name.md").write_text("The user's name is John.")
+    asyncio.run(store.search("What's my name?"))
+    retry = asyncio.run(store.search("[system1-completion-check] Your answer skipped part of the request."))
+    assert [e.metadata["path"] for e in retry] == ["name.md"]
+    assert calls == ["What's my name?", "What's my name?"]

@@ -62,3 +62,8 @@ def test_every_block_says_nothing_ran(monkeypatch, probs_seen):
     monkeypatch.setattr(lab7, "yes_no_many", lambda s, q: probs_seen)
     action = lab7.ToolCallGate().before_tool_call(event("Paris"))
     assert "didn't run" in action.feedback and "Don't report" in action.feedback
+
+
+def test_intent_question_accepts_a_step_towards_the_answer():
+    # a weather lookup is a sensible step for a packing request; the older wording blocked it on Qwen
+    assert "step towards answering" in lab7.QUESTIONS["matches_intent"]
