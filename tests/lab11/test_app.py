@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from strands.interventions import Guide, Proceed  # noqa: E402
 
 import app as server  # noqa: E402
+import chats  # noqa: E402
 
 
 class FakeAgent:
@@ -27,18 +28,26 @@ class FakeAgent:
 
 
 @pytest.fixture
-def client(monkeypatch):
-    server.SESSIONS.clear()
+def client(monkeypatch, tmp_path):
+    server.AGENTS.clear()
+    CHAT_IDS.clear()
+    monkeypatch.setattr(server, "STORE", chats.ChatStore(tmp_path))
     monkeypatch.setattr(server.config, "SYSTEM1_MODEL", "ollama/qwen3.5:4b")  # restored after each test
-    monkeypatch.setattr(server, "make_agent", lambda turn: FakeAgent(turn.events))
+    monkeypatch.setattr(server, "make_agent", lambda turn, chat_id, settings, data: FakeAgent(turn.events))
     monkeypatch.setattr(server, "unavailable", lambda model: None)
     return TestClient(server.app)
 
 
+CHAT_IDS: dict[str, str] = {}
+
+
 def chat(client, session="s1", model="ollama/qwen3.5:4b"):
-    response = client.post("/api/chat", json={"session_id": session, "message": "Weather in Paris?",
-                                               "system1_model": model})
-    return [json.loads(line) for line in response.text.splitlines()]
+    """Send one message in the chat named `session` (created on first use); title events left out."""
+    if session not in CHAT_IDS:
+        CHAT_IDS[session] = client.post("/api/chats").json()["id"]
+    response = client.post(f"/api/chats/{CHAT_IDS[session]}/messages",
+                           json={"message": "Weather in Paris?", "system1_model": model})
+    return [e for e in (json.loads(line) for line in response.text.splitlines()) if e["type"] != "title"]
 
 
 def test_stream_has_text_tool_decision_in_order(client):
@@ -48,9 +57,11 @@ def test_stream_has_text_tool_decision_in_order(client):
                          "probs": {"args_grounded": 0.94}}
 
 
-def test_same_session_reuses_agent_and_new_session_gets_a_new_one(client):
-    chat(client, "a"); chat(client, "a"); chat(client, "b")
-    assert set(server.SESSIONS) == {"a", "b"}
+def test_same_chat_reuses_agent_and_new_chat_gets_a_new_one(client):
+    chat(client, "a"); first = server.AGENTS[CHAT_IDS["a"]][0]
+    chat(client, "a"); chat(client, "b")
+    assert server.AGENTS[CHAT_IDS["a"]][0] is first
+    assert set(server.AGENTS) == {CHAT_IDS["a"], CHAT_IDS["b"]}
 
 
 def test_unavailable_system1_returns_one_error(client, monkeypatch):
@@ -59,7 +70,7 @@ def test_unavailable_system1_returns_one_error(client, monkeypatch):
 
 
 def test_agent_failure_ends_stream_with_error(client, monkeypatch):
-    monkeypatch.setattr(server, "make_agent", lambda turn: FakeAgent(turn.events, fail=True))
+    monkeypatch.setattr(server, "make_agent", lambda turn, *rest: FakeAgent(turn.events, fail=True))
     events = chat(client)
     assert events[-1] == {"type": "error", "message": "Bedrock throttled"}
 
@@ -148,13 +159,13 @@ class RaisingAgent:
 
 
 def test_events_recorded_before_an_error_are_sent_first(client, monkeypatch):
-    monkeypatch.setattr(server, "make_agent", lambda turn: RaisingAgent(turn.events))
+    monkeypatch.setattr(server, "make_agent", lambda turn, *rest: RaisingAgent(turn.events))
     events = chat(client)
     assert [e["type"] for e in events] == ["tool", "error"]
 
 
 def test_agent_construction_failure_is_one_error(client, monkeypatch):
-    def broken(turn):
+    def broken(turn, *rest):
         raise RuntimeError("no Bedrock access")
 
     monkeypatch.setattr(server, "make_agent", broken)

@@ -1,0 +1,80 @@
+# Lab 11: chat history. Each chat is a harness session; this keeps its title and settings.
+import json
+import shutil
+import time
+import uuid
+from pathlib import Path
+
+from common import config
+
+
+def title_for(message: str, limit: int = 40) -> str:
+    text = " ".join(message.split())
+    return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + "…"
+
+
+def turns_from_messages(messages: list[dict]) -> list[dict]:
+    """The user's and assistant's words: no tool calls or results, no feedback the gate/check injected."""
+    turns: list[dict] = []
+    for message in messages:
+        text = "\n".join(block["text"] for block in message.get("content", []) if "text" in block).strip()
+        if not text or text.startswith("[system1-"):  # e.g. "[system1-completion-check] Your answer skipped…"
+            continue
+        if turns and turns[-1]["role"] == message["role"]:  # one reply spread over several messages
+            turns[-1]["text"] += "\n\n" + text
+        else:
+            turns.append({"role": message["role"], "text": text})
+    return turns
+
+
+class ChatStore:
+    def __init__(self, root: Path):
+        self.root = Path(root)
+        (self.root / "chats").mkdir(parents=True, exist_ok=True)
+
+    def _path(self, chat_id: str) -> Path:
+        return self.root / "chats" / f"{chat_id}.json"
+
+    def _read(self, chat_id: str) -> dict:
+        return json.loads(self._path(chat_id).read_text())
+
+    def _write(self, chat: dict) -> None:
+        self._path(chat["id"]).write_text(json.dumps(chat, indent=2))
+
+    def exists(self, chat_id: str) -> bool:
+        return self._path(chat_id).exists()
+
+    def create(self) -> str:
+        chat_id = uuid.uuid4().hex[:12]
+        now = time.time_ns()
+        self._write({"id": chat_id, "title": "New chat", "created_at": now, "updated_at": now,
+                     "model": config.MAIN_MODEL, "system1_model": config.SYSTEM1_MODEL, "connectors": []})
+        return chat_id
+
+    def list(self) -> list[dict]:
+        chats = [json.loads(p.read_text()) for p in (self.root / "chats").glob("*.json")]
+        chats.sort(key=lambda c: c["updated_at"], reverse=True)
+        return [{"id": c["id"], "title": c["title"], "updated_at": c["updated_at"] // 1_000_000} for c in chats]
+
+    def settings(self, chat_id: str) -> dict:
+        chat = self._read(chat_id)
+        return {key: chat[key] for key in ("model", "system1_model", "connectors")}
+
+    def save_settings(self, chat_id: str, **changes) -> None:
+        chat = self._read(chat_id)
+        chat.update({k: v for k, v in changes.items() if v is not None})
+        self._write(chat)
+
+    def set_title(self, chat_id: str, title: str) -> None:
+        self.save_settings(chat_id, title=title)
+
+    def touch(self, chat_id: str) -> None:
+        self.save_settings(chat_id, updated_at=time.time_ns())
+
+    def title(self, chat_id: str) -> str:
+        return self._read(chat_id)["title"]
+
+    def delete(self, chat_id: str) -> None:
+        self._path(chat_id).unlink(missing_ok=True)
+        shutil.rmtree(self.root / "sessions" / "session" / chat_id, ignore_errors=True)
+        shutil.rmtree(self.root / "files" / chat_id, ignore_errors=True)

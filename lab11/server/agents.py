@@ -1,7 +1,8 @@
 # Lab 11: build the finished travel assistant as a harness agent.
+from pathlib import Path
+
 from strands_harness import create_harness
 
-from common.config import MAIN_MODEL
 from events import TurnHandlers
 
 # Eager on purpose, like lab 7, so you can watch the gate catch a guessed city.
@@ -12,12 +13,12 @@ INSTRUCTIONS = (
 )
 
 
-def make_agent(turn: TurnHandlers):
+def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
     return create_harness(
-        model=MAIN_MODEL,
+        model=settings["model"],
         instructions=INSTRUCTIONS,
         builtin_tools=["web_fetch"],
-        session=False,  # the server keeps each chat in memory
+        session={"id": chat_id, "dir": str(data / "sessions")},  # the chat history, saved to disk
         memory=True,
         skills=True,
         interventions=[turn.gate, turn.check],
