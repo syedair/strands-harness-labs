@@ -9,3 +9,4 @@ trips/
 .kev/
 lab11/data/
 lab11/seed_memory.py
+lab11/server.log

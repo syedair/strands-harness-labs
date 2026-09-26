@@ -1,6 +1,7 @@
 # Lab 11: the finished travel assistant behind a web API. The React app in lab11/web talks to it.
 import json
 import logging
+import os
 import sys
 import tempfile
 from contextlib import contextmanager
@@ -391,4 +392,4 @@ async def send_message(chat_id: str, request: MessageRequest):
 
 if __name__ == "__main__":
     check_ollama(MAIN_MODEL)
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("LAB11_API_PORT", "8000")))

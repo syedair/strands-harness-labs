@@ -165,6 +165,9 @@ The finished travel assistant as a web app that shows everything the harness doe
 - **Attach files** — the agent reads them with the harness's built-in `read` tool.
 - **Connectors** — turn on MCP servers (AWS Documentation, the chat's files, or your own command).
 - **Skills** — add one from the Skills tab: a `SKILL.md`, or the skill folder as a `.zip` with its references.
+- **Knowledge bases** (Settings) — point it at folders of markdown, like an Obsidian vault. Files at any depth are
+  split into sections and indexed, recalled the same way as memories, and never written to. They show as the pale
+  outer shell of the memory core.
 - **Inside the harness** — tools, skills, session, connectors, and every System 1 decision.
 - **How it works** — a click-through of one turn: the Agent at the centre, calling the session, memory, skills,
   System 1, the LLM and tools in order, one step per click.
@@ -179,8 +182,8 @@ The finished travel assistant as a web app that shows everything the harness doe
   notes that name it are deleted, with System 1 catching the ones that say it another way (*"does this fact
   mention …?"*), or `everything` for all of them. The files are deleted,
   and that turn saves no new notes (otherwise "forget my name" would be saved as a note about your name).
-  `ollama pull nomic-embed-text` for retrieval and the core's links; without it System 1 scores every note, and notes
-  sharing a name or place are linked.
+  `start.sh` pulls `nomic-embed-text` for this; without it System 1 scores every note, and notes sharing a name or
+  place are linked.
 
 **One turn, step by step:**
 
@@ -218,10 +221,10 @@ sequenceDiagram
 **Video:** _coming soon_
 **Run:**
 ```bash
-uv sync --extra web
-uv run --extra web lab11/server/app.py        # API on http://127.0.0.1:8000
-cd lab11/web && npm install && npm run dev    # UI on http://localhost:5173
+./lab11/start.sh    # checks Ollama, pulls nomic-embed-text once, installs, starts both, opens the browser
 ```
+Ports taken? `LAB11_API_PORT=8001 LAB11_UI_PORT=5174 ./lab11/start.sh`. To run the two halves yourself:
+`uv run --extra web lab11/server/app.py` and `cd lab11/web && npm install && npm run dev`.
 **Extending it:** add routes in `lab11/server/app.py`, an event type in `lab11/server/events.py`, and
 a `case` in `lab11/web/src/chat.ts`. The UI only reads events, so any web framework can replace `lab11/web/`.
 Runtime data (chats, sessions, files, memory) lives in `lab11/data/`; `./cleanup.sh` offers to remove it.
