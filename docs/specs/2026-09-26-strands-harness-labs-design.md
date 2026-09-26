@@ -63,6 +63,8 @@ The travel assistant evolves through the labs.
 | 8 | `lab8_completion_check.py` | Sends the agent back when it stops before the task is done | `after_model_call` → `Guide` / `Proceed` |
 | 9 | `lab9_model_switching.py` | Picks small vs big model per request | `ModelRouter` with a strategy driven by a System 1 `choice()` |
 
+| 10 | `lab10_system1_showdown.py` | *(no agent)* Jev vs Kev vs Laya vs the Qwen stand-in on labelled travel questions | Brier score, accuracy, ms per item; abstract vs concrete questions |
+
 Labs 7–9 mirror Mike Chambers' three Strands demos, rebuilt on the harness
 with the local classifier. Lab 6 mirrors his `jev_basics` notebook as a
 script.
@@ -117,10 +119,21 @@ P(yes)=0.26 for an ungrounded-argument question.
 - Before completion, every lab is run end to end against local Ollama and its
   output checked by eye; results noted in the PR/commit.
 
+## System 1 models vs the stand-in
+
+Qwen 3.5 4B is a general chat model used *as* a System 1 classifier (one
+token + logprobs). Lab 10 compares it with real System 1 models: Jev (TypeSafe,
+paid API, `TYPESAFE_API_KEY`), Kev-4B (open fine-tune of Qwen 3.5, served
+locally by the Kev repo on `KEV_URL`), and Laya (open, ModernBERT; optional
+`laya` extra because it pulls in PyTorch). A contender that is not available is
+skipped with a one-line reason. Data: the 44-destination beach set from
+`systemone-model-typesafeai` and 12 labelled weather tool calls. Measured on
+2026-09-26: small open models need concrete questions (Qwen: 50% → 100% on
+the tool calls when the question names the city).
+
 ## Out of scope
 
 - A notebook, TypeScript, or the Strands CLI.
-- Calling hosted Jev, Laya or Kev (possible later episode).
 - A `score()` question type (no lab needs it).
 
 ## Delivery

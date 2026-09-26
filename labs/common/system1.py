@@ -1,4 +1,5 @@
-# System 1: a small local model answers narrow, typed questions with probabilities.
+# System 1 stand-in: a small local chat model answers narrow, typed questions with probabilities
+# (one token + its logprobs). Real System 1 models like Jev, Kev and Laya are compared in lab 10.
 # It never decides anything — your Python code does.
 import math
 from concurrent.futures import ThreadPoolExecutor

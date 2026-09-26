@@ -1,4 +1,4 @@
-# Lab 6: System 1 basics — a small local model answers typed questions with probabilities.
+# Lab 6: System 1 basics — a small local model stands in for a System 1 model: typed questions in, probabilities out.
 from common.config import SYSTEM1_MODEL, check_ollama
 from common.system1 import choice, yes_no, yes_no_many
 
