@@ -1,5 +1,6 @@
 import { MessageSquare, SquarePen, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { ConfirmButton } from "./ConfirmButton";
 import type { ChatSummary } from "../api";
 
 type Props = {
@@ -9,11 +10,12 @@ type Props = {
   onOpen: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onClearAll: () => void;
 };
 
 const DAY = 24 * 60 * 60 * 1000;
 
-export function Sidebar({ chats, activeId, busy, onOpen, onNew, onDelete }: Props) {
+export function Sidebar({ chats, activeId, busy, onOpen, onNew, onDelete, onClearAll }: Props) {
   const [confirming, setConfirming] = useState<string | null>(null);
   const today = chats.filter((c) => Date.now() - c.updated_at < DAY);
   const earlier = chats.filter((c) => Date.now() - c.updated_at >= DAY);
@@ -60,6 +62,10 @@ export function Sidebar({ chats, activeId, busy, onOpen, onNew, onDelete }: Prop
         {group("Earlier", earlier)}
         {chats.length === 0 && <p className="px-2 text-sm text-ink-2">Your chats will appear here.</p>}
       </nav>
+      {chats.length > 0 && (
+        <ConfirmButton label="Clear all chats" disabled={busy} onConfirm={onClearAll}
+                       question={`Delete all ${chats.length} chats?`} />
+      )}
     </aside>
   );
 }

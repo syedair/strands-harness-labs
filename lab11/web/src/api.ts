@@ -61,6 +61,8 @@ export const addConnector = (label: string, command: string, args: string[]) =>
 export const setConnectors = (id: string, enabled: string[]) =>
   send(`/api/chats/${id}/connectors`, "PUT", { enabled }).then((r) => json(r));
 export const fetchMemory = () => fetch("/api/memory").then((r) => json<MemoryGraph>(r));
+export const clearChats = () => send("/api/chats", "DELETE").then((r) => json<{ deleted: number }>(r));
+export const clearMemory = () => send("/api/memory", "DELETE").then((r) => json<{ deleted: number }>(r));
 export const forgetMemory = (id: string) => send(`/api/memory/${encodeURIComponent(id)}`, "DELETE").then((r) => json(r));
 
 export async function uploadFile(id: string, file: File): Promise<FileInfo> {

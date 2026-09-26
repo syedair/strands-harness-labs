@@ -78,3 +78,10 @@ def test_rebuilding_for_another_model_makes_tool_ids_portable(client):
     HISTORY[chat_id].append({"role": "assistant", "content": [{"toolUse": {"toolUseId": "functions.read:0", "name": "read", "input": {}}}]})
     send(client, chat_id, "two", model="bedrock/us.anthropic.claude-sonnet-5")
     assert HISTORY[chat_id][2]["content"][0]["toolUse"]["toolUseId"] == "functions_read_0"
+
+
+def test_clear_all_chats_removes_every_chat_and_its_session(client):
+    ids = [client.post("/api/chats").json()["id"] for _ in range(2)]
+    assert client.delete("/api/chats").json() == {"deleted": 2}
+    assert client.get("/api/chats").json() == []
+    assert all(client.get(f"/api/chats/{i}").status_code == 404 for i in ids)

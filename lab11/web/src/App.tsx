@@ -167,6 +167,18 @@ export default function App() {
     setConnectors(await api.listConnectors());
   }
 
+  async function forgetAll() {
+    await api.clearMemory();
+    dissolve(memoryNow.current.nodes.map((n) => n.id)); // every note dissolves in amber
+    setMemory(await api.fetchMemory());
+  }
+
+  async function clearChats() {
+    await api.clearChats();
+    await newChat();
+    setChats(await api.listChats());
+  }
+
   async function forget(id: string) {
     await api.forgetMemory(id);
     dissolve([id]);
@@ -181,7 +193,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar chats={chats} activeId={chat?.id ?? null} busy={busy} onOpen={openChat} onNew={newChat} onDelete={removeChat} />
+      <Sidebar chats={chats} activeId={chat?.id ?? null} busy={busy} onOpen={openChat} onNew={newChat} onDelete={removeChat} onClearAll={clearChats} />
       <div className="flex min-w-0 flex-1 flex-col gap-4 px-6 py-6">
         <Header title={chat?.title && chat.title !== "New chat" ? chat.title : "Travel assistant"} onTogglePanel={() => setPanelOpen(!panelOpen)}
                 showingArchitecture={architecture} onToggleArchitecture={() => setArchitecture(!architecture)} />
@@ -209,7 +221,7 @@ export default function App() {
       </div>
       {!architecture && (
       <div className={`${panelOpen ? "fixed inset-y-0 right-0 z-30 bg-bg-1/95 backdrop-blur" : "hidden"} lg:static lg:block`}>
-        <HarnessPanel harness={harness} connectors={connectors} switching={switching} onAddSkill={addSkill} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} forgot={forgot} recall={recall} decisions={decisions} state={coreState} onForget={forget} />
+        <HarnessPanel harness={harness} connectors={connectors} switching={switching} onAddSkill={addSkill} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} forgot={forgot} recall={recall} decisions={decisions} state={coreState} onForget={forget} onForgetAll={forgetAll} />
       </div>
       )}
     </div>

@@ -244,3 +244,12 @@ def test_a_turn_that_forgot_saves_no_new_memories(client, monkeypatch, tmp_path)
     events = chat(client)
     assert "stored" not in [e["type"] for e in events] and "forgot" in [e["type"] for e in events]
     assert not (notes / "not-john.md").exists()
+
+
+def test_clear_all_memory(client, monkeypatch, tmp_path):
+    notes = tmp_path / "memory"; notes.mkdir()
+    for name in ("home.md", "trip.md"):
+        (notes / name).write_text("A fact.")
+    monkeypatch.setattr(server, "DATA", tmp_path)
+    assert client.delete("/api/memory").json() == {"deleted": 2}
+    assert list(notes.glob("*.md")) == []

@@ -2,6 +2,7 @@
 import { Brain, Eraser, Maximize2, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { MemoryGraph } from "../api";
+import { ConfirmButton } from "./ConfirmButton";
 import { MemoryCore, type CoreState } from "./MemoryCore";
 import { showingFor, withGhosts, type Burst, type Ghosts } from "../globe";
 
@@ -11,6 +12,7 @@ export type Recall = { query: string; ids: string[]; scores: number[] };
 type Props = {
   graph: MemoryGraph; fired: Burst; stored: Burst; forgot: Ghosts; recall: Recall | null; state: CoreState;
   onForget: (id: string) => void;
+  onForgetAll: () => void;
 };
 
 function useForAWhile(burst: Burst) {
@@ -25,7 +27,7 @@ function useForAWhile(burst: Burst) {
   return active;
 }
 
-export default function MemoryGlobe({ graph, fired, stored, forgot, recall, state, onForget }: Props) {
+export default function MemoryGlobe({ graph, fired, stored, forgot, recall, state, onForget, onForgetAll }: Props) {
   const firing = useForAWhile(fired);
   const saving = useForAWhile(stored);
   const forgetting = useForAWhile(forgot);
@@ -110,6 +112,10 @@ export default function MemoryGlobe({ graph, fired, stored, forgot, recall, stat
           </li>
         ))}
       </ul>
+      {graph.nodes.length > 0 && (
+        <ConfirmButton label="Clear all memory" onConfirm={onForgetAll}
+                       question={`Forget all ${graph.nodes.length} memories?`} />
+      )}
 
       {expanded && (
         <div className="fixed inset-0 z-50 flex flex-col items-center bg-bg-1/95 backdrop-blur">

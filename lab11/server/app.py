@@ -143,6 +143,16 @@ def create_chat():
     return {"id": STORE.create()}
 
 
+@app.delete("/api/chats")
+def clear_chats():
+    """Delete every chat, with its session and files."""
+    ids = [c["id"] for c in STORE.list()]
+    for chat_id in ids:
+        AGENTS.pop(chat_id, None)
+        STORE.delete(chat_id)
+    return {"deleted": len(ids)}
+
+
 @app.delete("/api/chats/{chat_id}")
 def delete_chat(chat_id: str):
     require_chat(chat_id)
@@ -244,6 +254,16 @@ def harness(chat_id: str | None = None):
 @app.get("/api/memory")
 def memory_graph():
     return memory.graph(DATA / "memory")
+
+
+@app.delete("/api/memory")
+def clear_memory():
+    """Forget every memory."""
+    notes = DATA / "memory"
+    ids = [p.name for p in notes.glob("*.md")] if notes.exists() else []
+    for note_id in ids:
+        memory.forget(notes, note_id)
+    return {"deleted": len(ids)}
 
 
 @app.delete("/api/memory/{note_id}")

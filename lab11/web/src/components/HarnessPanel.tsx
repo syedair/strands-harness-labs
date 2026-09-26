@@ -23,7 +23,7 @@ const TABS: [Tab, string, LucideIcon][] = [
 type Props = {
   harness: Harness | null; memory: MemoryGraph; fired: Burst; stored: Burst; forgot: Ghosts; recall: Recall | null;
   connectors: Connector[]; switching: Switching; onAddSkill: (file: File) => Promise<void>; onToggleConnector: (id: string, on: boolean) => void;
-  decisions: Decision[]; state: CoreState; onForget: (id: string) => void;
+  decisions: Decision[]; state: CoreState; onForget: (id: string) => void; onForgetAll: () => void;
 };
 
 function toolSource(tool: string, connectors: string[]): string {
@@ -34,7 +34,7 @@ function toolSource(tool: string, connectors: string[]): string {
   return "built-in";
 }
 
-export function HarnessPanel({ harness, connectors, switching, onAddSkill, onToggleConnector, memory, fired, stored, forgot, recall, decisions, state, onForget }: Props) {
+export function HarnessPanel({ harness, connectors, switching, onAddSkill, onToggleConnector, memory, fired, stored, forgot, recall, decisions, state, onForget, onForgetAll }: Props) {
   const [tab, setTab] = useState<Tab>("memory");
   return (
     <aside className="flex h-full w-[26rem] shrink-0 flex-col border-l border-white/10">
@@ -61,7 +61,7 @@ export function HarnessPanel({ harness, connectors, switching, onAddSkill, onTog
         )}
         {tab === "memory" && (
           <Suspense fallback={<p className="text-ink-2">Loading the memory globe…</p>}>
-            <MemoryGlobe graph={memory} fired={fired} stored={stored} forgot={forgot} recall={recall} state={state} onForget={onForget} />
+            <MemoryGlobe graph={memory} fired={fired} stored={stored} forgot={forgot} recall={recall} state={state} onForget={onForget} onForgetAll={onForgetAll} />
           </Suspense>
         )}
         {harness && tab === "skills" && <SkillsTab skills={harness.skills} onAdd={onAddSkill} />}
