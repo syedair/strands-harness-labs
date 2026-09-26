@@ -24,7 +24,7 @@ export function ConnectorsMenu({ connectors, enabled, errors, onToggle, onAdd }:
         {enabled.length > 0 && <span className="rounded-full bg-accent/20 px-1.5 text-accent">{enabled.length}</span>}
       </button>
       {open && (
-        <div className="glass animate-rise absolute bottom-10 left-0 z-20 w-80 space-y-2 rounded-2xl p-3">
+        <div className="glass animate-rise absolute bottom-full left-0 z-30 mb-2 w-80 space-y-2 rounded-2xl bg-bg-1/95 p-3 shadow-2xl">
           <div className="flex items-center justify-between">
             <p className="eyebrow text-[0.6rem]">MCP connectors</p>
             <button aria-label="Close" onClick={() => setOpen(false)} className="press text-ink-2 hover:text-ink"><X size={14} /></button>

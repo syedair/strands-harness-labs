@@ -15,7 +15,7 @@ from pydantic import BaseModel  # noqa: E402
 from agents import make_agent  # noqa: E402
 import connectors  # noqa: E402
 import memory  # noqa: E402
-from chats import ChatStore, title_for, turns_from_messages  # noqa: E402
+from chats import ChatStore, portable_tool_ids, title_for, turns_from_messages  # noqa: E402
 from common import config  # noqa: E402
 from common.config import MAIN_MODEL, check_ollama  # noqa: E402
 from common.system1 import unavailable  # noqa: E402
@@ -74,6 +74,7 @@ def agent_for(chat_id: str):
         # a connector didn't start: keep the chat working without connectors, and say which one failed
         CONNECTOR_ERRORS[chat_id] = [{"id": c, "error": str(error)} for c in settings["connectors"]]
         agent = make_agent(turn, chat_id, {**settings, "connectors": []}, DATA)
+    portable_tool_ids(getattr(agent, "messages", []))  # the restored history may come from a different model
     AGENTS[chat_id] = (agent, turn, key)
     return agent, turn
 

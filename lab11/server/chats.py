@@ -1,6 +1,7 @@
 # Lab 11: chat history. Each chat is a harness session; this keeps its title and settings.
 from __future__ import annotations  # ChatStore has a list() method; keep annotations lazy
 import json
+import re
 import shutil
 import time
 import uuid
@@ -19,6 +20,7 @@ def turns_from_messages(messages: list[dict]) -> list[dict]:
     turns: list[dict] = []
     for message in messages:
         text = "\n".join(block["text"] for block in message.get("content", []) if "text" in block).strip()
+        text = re.sub(r"\n*Attached file: .*", "", text).strip()  # a note for the agent, not for the reader
         if not text or text.startswith("[system1-"):  # e.g. "[system1-completion-check] Your answer skipped…"
             continue
         if turns and turns[-1]["role"] == message["role"]:  # one reply spread over several messages
@@ -26,6 +28,15 @@ def turns_from_messages(messages: list[dict]) -> list[dict]:
         else:
             turns.append({"role": message["role"], "text": text})
     return turns
+
+
+def portable_tool_ids(messages: list[dict]) -> None:
+    """Rewrite tool-call ids so any model accepts the history (Claude on Bedrock only allows [a-zA-Z0-9_-])."""
+    for message in messages:
+        for block in message.get("content", []):
+            for kind in ("toolUse", "toolResult"):
+                if kind in block and "toolUseId" in block[kind]:
+                    block[kind]["toolUseId"] = re.sub(r"[^a-zA-Z0-9_-]", "_", block[kind]["toolUseId"])
 
 
 class ChatStore:

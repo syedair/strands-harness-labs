@@ -37,3 +37,17 @@ def test_turns_hide_intervention_feedback_and_merge_one_reply():
         {"role": "user", "text": "I live in Dubai"},
         {"role": "assistant", "text": "Let me check my memory.\n\nNice to meet you!"},
     ]
+
+
+def test_tool_ids_become_portable_across_models():
+    messages = [{"role": "assistant", "content": [{"toolUse": {"toolUseId": "functions.read:0", "name": "read", "input": {}}}]},
+                {"role": "user", "content": [{"toolResult": {"toolUseId": "functions.read:0", "content": []}}]}]
+    chats.portable_tool_ids(messages)
+    use = messages[0]["content"][0]["toolUse"]["toolUseId"]
+    result = messages[1]["content"][0]["toolResult"]["toolUseId"]
+    assert use == result == "functions_read_0"
+
+
+def test_attachment_notes_are_not_shown_in_history():
+    messages = [{"role": "user", "content": [{"text": "What's on day 1?\n\nAttached file: /tmp/x/plan.md"}]}]
+    assert chats.turns_from_messages(messages) == [{"role": "user", "text": "What's on day 1?"}]

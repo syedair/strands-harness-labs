@@ -28,9 +28,9 @@ function glowTexture(): THREE.Texture {
 const glowing = (color: THREE.Color, opacity: number, map: THREE.Texture) =>
   ({ color, opacity, map, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
 
-type Props = { graph: MemoryGraph; fired: string[]; state: CoreState; height: number; floor?: boolean };
+type Props = { graph: MemoryGraph; fired: string[]; state: CoreState; height: number; close?: boolean };
 
-export function MemoryCore({ graph, fired, state, height, floor = false }: Props) {
+export function MemoryCore({ graph, fired, state, height, close = false }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const live = useRef({ fired: new Set<string>(), state, rebuild: (_g: MemoryGraph) => {} });
   const [hover, setHover] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -44,8 +44,8 @@ export function MemoryCore({ graph, fired, state, height, floor = false }: Props
     el.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, 1, 1, 2000);
-    camera.position.set(0, floor ? 12 : 0, RADIUS * (floor ? 2.5 : 3.2));
-    camera.lookAt(0, floor ? -8 : 0, 0);
+    camera.position.set(0, 0, RADIUS * (close ? 2.5 : 3.2)); // closer in the full-screen view
+    camera.lookAt(0, 0, 0);
     const texture = glowTexture();
     const core = new THREE.Group();
     scene.add(core);
@@ -68,13 +68,6 @@ export function MemoryCore({ graph, fired, state, height, floor = false }: Props
     const glow = new THREE.Sprite(new THREE.SpriteMaterial(glowing(CYAN, 0.35, texture)));
     glow.scale.setScalar(RADIUS * 1.6);
     core.add(glow);
-    if (floor) {
-      const grid = new THREE.GridHelper(700, 50, ACCENT, ACCENT);
-      (grid.material as THREE.Material).transparent = true;
-      (grid.material as THREE.Material).opacity = 0.1;
-      grid.position.y = -RADIUS * 1.75;
-      scene.add(grid);
-    }
 
     // the memory notes: anchor stars, links between related notes, and pulses from the core when recalled
     const anchors = new THREE.Group();
@@ -165,9 +158,9 @@ export function MemoryCore({ graph, fired, state, height, floor = false }: Props
       renderer.dispose();
       el.removeChild(renderer.domElement);
     };
-  }, [height, floor]);
+  }, [height, close]);
 
-  useEffect(() => live.current.rebuild(graph), [graph, height, floor]);
+  useEffect(() => live.current.rebuild(graph), [graph, height, close]);
 
   return (
     <div ref={box} className="relative w-full" style={{ height }}>

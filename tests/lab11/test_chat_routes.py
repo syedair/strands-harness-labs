@@ -70,3 +70,11 @@ def test_delete_removes_the_chat(client):
     client.delete(f"/api/chats/{chat_id}")
     assert client.get("/api/chats").json() == []
     assert client.get(f"/api/chats/{chat_id}").status_code == 404
+
+
+def test_rebuilding_for_another_model_makes_tool_ids_portable(client):
+    chat_id = client.post("/api/chats").json()["id"]
+    send(client, chat_id, "one")
+    HISTORY[chat_id].append({"role": "assistant", "content": [{"toolUse": {"toolUseId": "functions.read:0", "name": "read", "input": {}}}]})
+    send(client, chat_id, "two", model="bedrock/us.anthropic.claude-sonnet-5")
+    assert HISTORY[chat_id][2]["content"][0]["toolUse"]["toolUseId"] == "functions_read_0"

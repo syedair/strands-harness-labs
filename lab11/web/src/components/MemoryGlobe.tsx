@@ -54,7 +54,7 @@ export default function MemoryGlobe({ graph, fired, state }: { graph: MemoryGrap
           <p className="eyebrow mt-10 text-xs">
             Core · {state} · {graph.nodes.length} memories{active.length > 0 ? ` · recalled ${active.length}` : ""}
           </p>
-          <div className="w-full flex-1"><MemoryCore graph={graph} fired={active} state={state} height={Math.round(window.innerHeight * 0.66)} floor /></div>
+          <div className="w-full flex-1"><MemoryCore graph={graph} fired={active} state={state} height={Math.round(window.innerHeight * 0.66)} close /></div>
           <h2 className="font-display text-6xl font-light tracking-[0.3em] text-ink">MEMORY</h2>
           <p className="mt-2 font-mono text-xs text-ink-2">Strands Harness memory · recalled before every turn</p>
           <div className="mb-10 mt-4 flex gap-2">
