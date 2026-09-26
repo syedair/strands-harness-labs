@@ -60,7 +60,7 @@ class CompletionCheck(InterventionHandler):
             self.judging, self.guides = request, 0
         answer = text_of(response.message)
         short = " ".join(answer.split())
-        print(f"\n  check · the model's answer: “{short[:90]}{'…' if len(short) > 90 else ''}”")
+        print(f"\n  check · the model's draft: “{short[:90]}{'…' if len(short) > 90 else ''}”")
         if self.PAUSE:
             wait(f"press Enter to ask {display_name()}")
         p = yes_no_many(request_state(turns, answer), QUESTIONS)  # System 1 observes...
@@ -100,14 +100,15 @@ def main() -> None:
         memory=False,
         skills=False,
         interventions=CompletionCheck(),  # NEW
+        callback_handler=None,  # don't stream: you only see an answer once the check has passed it
     )
     if wants_chat():  # uv run labs/<this lab>.py --chat
-        chat(agent)
+        chat(agent, print_reply=True)
         return
 
     question = "What's the weather in Istanbul, and what should I pack for 4 days there?"
     print(f"\nyou: {question}")
-    agent(question)
+    print(f"\nassistant: {str(agent(question)).strip()}")
 
 
 if __name__ == "__main__":

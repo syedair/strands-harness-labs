@@ -148,6 +148,7 @@ and the agent asks you instead. A real city goes straight through.
 **File:** `labs/lab8_completion_check.py`
 The agent answers only half the question; the classifier notices and sends it back.
 **What's new:** `after_model_call` returning `Guide` (capped at two retries)
+Lab 8 doesn't stream: you see the draft being judged, and the answer only once it passes.
 A reply that asks the user a question ("which city?") isn't judged — asking back is a fine way to end a turn
 (it prints `check → Proceed: it asked you a question, nothing to judge`).
 **Video:** _coming soon_

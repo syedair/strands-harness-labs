@@ -102,3 +102,9 @@ def test_running_out_of_retries_says_so(monkeypatch, capsys):
     for _ in range(check.MAX_GUIDES + 1):
         check.after_model_call(event("It's 21°C."))
     assert "out of retries" in capsys.readouterr().out.splitlines()[-1]
+
+
+def test_the_card_calls_it_a_draft(monkeypatch, capsys):
+    monkeypatch.setattr(lab8, "yes_no_many", system1(0.05, 0.9))
+    lab8.CompletionCheck().after_model_call(event("It's 21°C, pack layers."))
+    assert "check · the model's draft:" in capsys.readouterr().out
