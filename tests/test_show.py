@@ -42,3 +42,17 @@ def test_show_lists_choice_options_best_first(capsys):
     show(CONVERSATION, QUESTIONS, ANSWERS)
     out = capsys.readouterr().out
     assert out.index("weather ") < out.index("packing") and out.index("weather ") < out.index("itinerary")
+
+
+def test_pause_shows_the_conversation_and_never_waits_off_a_terminal(capsys, monkeypatch):
+    from common.show import pause
+
+    monkeypatch.setattr("builtins.input", lambda *_: (_ for _ in ()).throw(AssertionError("waited")))
+    pause(CONVERSATION)
+    out = capsys.readouterr().out
+    assert "What's the weather?" in out and "wttr.in/Seattle" in out
+
+
+def test_show_can_skip_the_conversation_line(capsys):
+    show(CONVERSATION, QUESTIONS, ANSWERS, header=False)
+    assert "What's the weather?" not in capsys.readouterr().out

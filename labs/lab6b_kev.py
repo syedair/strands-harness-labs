@@ -4,7 +4,7 @@ import sys
 from typesafe_sdk import TypeSafeClient
 
 from common.config import KEV_URL
-from common.show import show
+from common.show import pause, show
 from common.system1 import ensure_kev
 from lab6a_jev import conversation, more, questions  # the same conversations and questions as lab 6a
 
@@ -15,9 +15,11 @@ def main() -> None:
     kev = TypeSafeClient(base_url=KEV_URL, api_key="local")  # NEW: your machine, no real key
 
     for state in [conversation, *more]:
+        pause(state)  # show the conversation, then wait for Enter
+
         # Ask. One call, three answers.
         answers = kev.system_one(model="kev-latest", state=state, questions=questions).answers
-        show(state, questions, answers)
+        show(state, questions, answers, header=False)
 
         # Kev only observes. Plain Python decides.
         if answers["named_city"].noul < 0.5:

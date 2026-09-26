@@ -17,11 +17,25 @@ def _paint(text: str, color: str) -> str:
     return f"\x1b[{codes[color]}m{text}\x1b[0m" if sys.stdout.isatty() else text
 
 
-def show(conversation: str, questions: dict, answers: dict, threshold: float = 0.5) -> None:
-    """One card per conversation: the question, then a bar per probability.
-    Noul: P(yes) against your threshold. Choice: P per option, best first. Score: P per level, then the score."""
+def _conversation_line(conversation: str) -> str:
     said, _, rest = conversation.partition("\n")
-    print(_paint(said.removeprefix("user: "), "bold") + (_paint(f"   ({rest})", "dim") if rest else ""))
+    return _paint(said.removeprefix("user: "), "bold") + (_paint(f"   ({rest})", "dim") if rest else "")
+
+
+def pause(conversation: str) -> None:
+    """Show the conversation, then wait for Enter before asking, so you can explain it first.
+    Only waits in a real terminal: piped or tested runs go straight through."""
+    print(_conversation_line(conversation))
+    if sys.stdin.isatty():
+        input(_paint("  press Enter to ask ", "dim"))
+
+
+def show(conversation: str, questions: dict, answers: dict, threshold: float = 0.5, header: bool = True) -> None:
+    """One card per conversation: the question, then a bar per probability.
+    Noul: P(yes) against your threshold. Choice: P per option, best first. Score: P per level, then the score.
+    header=False skips the conversation line (pause() already printed it)."""
+    if header:
+        print(_conversation_line(conversation))
     for name, answer in answers.items():
         label = f"  {answer.type.capitalize():7} {questions[name].instructions}"
         print(label)

@@ -5,7 +5,7 @@ import sys
 from dotenv import load_dotenv
 from typesafe_sdk import Choice, Noul, Score, TypeSafeClient
 
-from common.show import show
+from common.show import pause, show
 
 load_dotenv()
 
@@ -42,9 +42,11 @@ def main() -> None:
     jev = TypeSafeClient(api_key=os.environ["TYPESAFE_API_KEY"])
 
     for state in [conversation, *more]:
+        pause(state)  # show the conversation, then wait for Enter
+
         # 3. Ask. One call, three answers.
         answers = jev.system_one(model="jev-latest", state=state, questions=questions).answers
-        show(state, questions, answers)
+        show(state, questions, answers, header=False)
 
         # 4. Jev only observes. Plain Python decides.
         if answers["named_city"].noul < 0.5:
