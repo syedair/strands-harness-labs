@@ -1,4 +1,5 @@
 import asyncio
+import pathlib
 import pytest
 pytest.importorskip("fastapi")
 import memory
@@ -157,3 +158,20 @@ def test_notes_that_name_the_topic_are_forgotten_without_asking_system1(tmp_path
 def test_common_words_in_the_topic_dont_match_every_note(tmp_path):
     (tmp_path / "home.md").write_text("The user lives in Dubai.")
     assert memory.forget_about(tmp_path, "the user's trip", lambda about, notes: {i: 0.1 for i in notes}) == []
+
+
+def test_only_what_the_user_said_is_given_to_the_extractor():
+    messages = [
+        {"role": "user", "content": [{"text": "yes.. where was I planning to go"}]},
+        {"role": "assistant", "content": [{"text": "You're planning a trip to Mount Rainier, possibly for hiking."}]},
+        {"role": "user", "content": [{"toolResult": {"toolUseId": "t1", "content": [{"text": "Rainier: -2°C"}]}}]},
+        {"role": "user", "content": [{"text": "[system1-completion-check] Your answer skipped part of the question."}]},
+        {"role": "user", "content": [{"text": "I live in Seattle\n\nAttached file: /tmp/itinerary.md"}]},
+    ]
+    said = memory.user_said(messages)
+    assert [m["content"][0]["text"] for m in said] == ["yes.. where was I planning to go", "I live in Seattle"]
+
+
+def test_the_store_extracts_only_from_the_user():
+    store = memory.store_for("ollama/gpt-oss:20b", pathlib.Path("/tmp"), on_search=lambda *a: None)
+    assert isinstance(store.extraction["extractor"], memory.UserOnlyExtractor)

@@ -77,11 +77,46 @@ class WatchedStore(FileMemoryStore):
         return key
 
 
+USER_FACTS_PROMPT = (
+    "You extract durable facts about the user from what the user said.\n"
+    "\n"
+    'Return ONLY a JSON array of objects, each: {"content": string}. Each object is one discrete, self-contained '
+    "fact the user stated about themselves: who they are, where they live, their plans, preferences and decisions. "
+    "Do not include questions, chit-chat, guesses, or anything the user did not say. If there is nothing worth "
+    "remembering, return []."
+)
+
+
+def user_said(messages: list[dict]) -> list[dict]:
+    """The user's own words: no assistant replies, tool results, System 1 feedback or attachment notes."""
+    said = []
+    for message in messages:
+        if message.get("role") != "user":
+            continue
+        text = "\n".join(block["text"] for block in message.get("content", []) if "text" in block)
+        text = re.sub(r"\n*Attached file: .*", "", text).strip()
+        if text and not text.startswith("[system1-"):
+            said.append({"role": "user", "content": [{"text": text}]})
+    return said
+
+
+class UserOnlyExtractor(ModelExtractor):
+    """Saves only what the user said. Otherwise the assistant's answers, which restate recalled memories and
+    add guesses, come back as new "facts" every turn."""
+
+    def __init__(self, model):
+        super().__init__(model=model, system_prompt=USER_FACTS_PROMPT)
+
+    async def extract(self, messages, context=None):
+        said = user_said(messages)
+        return await super().extract(said, context) if said else []
+
+
 def store_for(model: str, root: Path, on_search, extract: bool = True, on_store=None, relevance=None) -> WatchedStore:
     """Built like the harness's default store: markdown notes under `root`, facts extracted by a model."""
     kwargs = {"name": "memory", "storage": LocalFileStorage(str(root)).namespace(""), "writable": True}
     if extract:
-        kwargs["extraction"] = ExtractionConfig(extractor=ModelExtractor(model=resolve_web_fetch_model(model, None)))
+        kwargs["extraction"] = ExtractionConfig(extractor=UserOnlyExtractor(resolve_web_fetch_model(model, None)))
     return WatchedStore(root=root, on_search=on_search, on_store=on_store, relevance=relevance, **kwargs)
 
 
