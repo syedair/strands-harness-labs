@@ -143,3 +143,17 @@ def test_forget_about_nothing_matching_deletes_nothing(tmp_path):
     (tmp_path / "home.md").write_text("The user lives in Dubai.")
     assert memory.forget_about(tmp_path, "my name", lambda about, notes: {i: 0.2 for i in notes}) == []
     assert (tmp_path / "home.md").exists()
+
+
+def test_notes_that_name_the_topic_are_forgotten_without_asking_system1(tmp_path):
+    (tmp_path / "trip.md").write_text("User is planning a trip to Istanbul.")
+    (tmp_path / "plug.md").write_text("Electrical outlets in istanbul are Type C/F.")
+    (tmp_path / "home.md").write_text("The user lives in Dubai.")
+    unsure = lambda about, notes: {i: 0.2 for i in notes}  # a weak classifier that misses them
+    assert sorted(memory.forget_about(tmp_path, "Istanbul", unsure)) == ["plug.md", "trip.md"]
+    assert (tmp_path / "home.md").exists()
+
+
+def test_common_words_in_the_topic_dont_match_every_note(tmp_path):
+    (tmp_path / "home.md").write_text("The user lives in Dubai.")
+    assert memory.forget_about(tmp_path, "the user's trip", lambda about, notes: {i: 0.1 for i in notes}) == []

@@ -124,13 +124,16 @@ def forget_tool(turn: TurnHandlers, notes: Path, judge=None):
         """Delete saved memories about something the user asked you to forget.
 
         Args:
-            about: What to forget, with the specific values you remember, e.g. "the user's name (John, Syed)".
+            about: The topic in the user's own words, plus any names or values you remember for it,
+                e.g. "Istanbul" or "my name (John, Syed)". Don't narrow it to one memory.
         """
+        before = {p.name: p.read_text().strip() for p in Path(notes).glob("*.md")}
         ids = memory.forget_about(notes, about, judge or memory.system1_forget)
         if not ids:
             return f"Found nothing saved about {about!r}; nothing was deleted."
         turn.forgot = True
         turn.events.append({"type": "forgot", "ids": ids})
-        return f"Deleted {len(ids)} saved memories about {about!r}."
+        deleted = "\n".join(f"- {before[i]}" for i in ids)
+        return f"Deleted {len(ids)} saved memories about {about!r}. They are gone now:\n{deleted}"
 
     return forget_memory

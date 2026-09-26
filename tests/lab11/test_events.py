@@ -137,3 +137,17 @@ def test_forget_tool_says_when_nothing_matched(tmp_path):
     turn = events.TurnHandlers([])
     result = events.forget_tool(turn, tmp_path, judge=lambda about, notes: {})(about="my name")
     assert "nothing" in result.lower() and not turn.forgot and turn.events == []
+
+
+def test_forget_tool_tells_the_agent_exactly_what_it_deleted(tmp_path):
+    (tmp_path / "cruise.md").write_text("User is interested in a Bosphorus cruise.")
+    (tmp_path / "home.md").write_text("The user lives in Dubai.")
+    turn = events.TurnHandlers([])
+    judge = lambda about, notes: {i: 0.9 if "Bosphorus" in t else 0.1 for i, t in notes.items()}
+    result = events.forget_tool(turn, tmp_path, judge=judge)(about="Istanbul")
+    assert "User is interested in a Bosphorus cruise." in result and "Dubai" not in result
+
+
+def test_forget_tool_asks_for_the_topic_in_the_users_words():
+    spec = events.forget_tool(events.TurnHandlers([]), None).tool_spec
+    assert "user's own words" in spec["inputSchema"]["json"]["properties"]["about"]["description"]

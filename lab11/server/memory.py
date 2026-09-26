@@ -95,13 +95,25 @@ def system1_forget(about: str, notes: dict[str, str]) -> dict[str, float]:
     return yes_no_many(f"The user said: forget {about}.", {i: FORGET_QUESTION.format(about=about, fact=t) for i, t in notes.items()})
 
 
+COMMON = {"the", "and", "about", "user", "users", "my", "our", "me", "that", "this", "with", "from", "discussion",
+          "related", "memory", "memories", "everything", "anything", "all", "his", "her", "their"}
+
+
+def topic_words(about: str) -> set[str]:
+    """The words that make a note obviously about the topic ("Istanbul", "John"); not "the" or "user"."""
+    return {w for w in re.findall(r"[a-z0-9]+", about.lower()) if len(w) >= 3 and w not in COMMON}
+
+
 def forget_about(root: Path, about: str, judge=system1_forget) -> list[str]:
     """Delete every note the judge says is about `about` (p >= 0.5). Returns the ids it deleted."""
     notes = {p.name: p.read_text() for p in Path(root).glob("*.md")}
     if not notes:
         return []
-    scores = judge(about, notes)
-    doomed = [i for i in notes if scores.get(i, 0.0) >= 0.5]
+    words = topic_words(about)
+    named = [i for i, text in notes.items() if words & set(re.findall(r"[a-z0-9]+", text.lower()))]  # says it outright
+    rest = {i: t for i, t in notes.items() if i not in named}
+    scores = judge(about, rest) if rest else {}  # System 1 for the ones that only say it another way
+    doomed = named + [i for i in rest if scores.get(i, 0.0) >= 0.5]
     for note_id in doomed:
         forget(root, note_id)
     return doomed
