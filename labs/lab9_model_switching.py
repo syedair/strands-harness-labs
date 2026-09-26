@@ -4,6 +4,7 @@ import asyncio
 from strands.models.routing import ModelRouter, RoutingCandidate
 from strands_harness import create_harness
 
+from common.chat import chat, wants_chat
 from common.config import BIG_MODEL, SMALL_MODEL, build_model, check_ollama
 from common.system1 import check_system1, yes_no
 
@@ -57,6 +58,10 @@ def main() -> None:
         memory=False,
         skills=False,
     )
+
+    if wants_chat():  # uv run labs/<this lab>.py --chat
+        chat(agent)
+        return
 
     agent("What's the weather in Paris?")
     agent("Plan a 5-day Istanbul itinerary under $1000, with a day trip and where to stay.")

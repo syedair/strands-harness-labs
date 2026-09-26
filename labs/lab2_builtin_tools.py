@@ -1,6 +1,7 @@
 # Lab 2: built-in tools — the assistant looks up the real forecast with no tool code written.
 from strands_harness import create_harness
 
+from common.chat import chat, wants_chat
 from common.config import MAIN_MODEL, check_ollama
 
 INSTRUCTIONS = (
@@ -20,6 +21,10 @@ def main() -> None:
         skills=False,
     )
     print(f"Tools this agent can use: {agent.tool_names}\n")
+
+    if wants_chat():  # uv run labs/<this lab>.py --chat
+        chat(agent)
+        return
 
     agent("What's the weather in Istanbul right now?")
 

@@ -2,6 +2,7 @@
 from strands import Agent
 from strands_harness import create_harness
 
+from common.chat import chat, wants_chat
 from common.config import MAIN_MODEL, check_ollama
 
 INSTRUCTIONS = "You are a friendly travel assistant. Keep answers short and practical."
@@ -25,6 +26,10 @@ def main() -> None:
         skills=False,
     )
     print(f"Harness agent is a {type(agent).__name__} running on {MAIN_MODEL}\n")
+
+    if wants_chat():  # uv run labs/<this lab>.py --chat
+        chat(agent)
+        return
 
     agent("I have a free weekend in March. Suggest one city break from Dubai and why.")
 

@@ -4,6 +4,7 @@ import json
 from strands.interventions import Deny, Guide, InterventionHandler, Proceed
 from strands_harness import create_harness
 
+from common.chat import chat, wants_chat
 from common.config import MAIN_MODEL, check_ollama
 from common.system1 import check_system1, yes_no_many
 
@@ -78,6 +79,10 @@ def main() -> None:
         skills=False,
         interventions=ToolCallGate(),  # NEW: our own System 1 gate
     )
+    if wants_chat():  # uv run labs/<this lab>.py --chat
+        chat(agent)
+        return
+
     agent("What's the weather?")  # no city: the model guesses, the gate blocks it
     agent.messages.clear()
     agent("What's the weather in Paris?")  # a real city: the gate lets it through

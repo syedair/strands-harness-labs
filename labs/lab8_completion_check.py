@@ -2,6 +2,7 @@
 from strands.interventions import Guide, InterventionHandler, Proceed
 from strands_harness import create_harness
 
+from common.chat import chat, wants_chat
 from common.config import MAIN_MODEL, check_ollama
 from common.system1 import check_system1, yes_no
 
@@ -57,6 +58,10 @@ def main() -> None:
         skills=False,
         interventions=CompletionCheck(),  # NEW
     )
+    if wants_chat():  # uv run labs/<this lab>.py --chat
+        chat(agent)
+        return
+
     agent("What's the weather in Istanbul, and what should I pack for 4 days there?")
 
 

@@ -3,6 +3,7 @@ import sys
 
 from strands_harness import create_harness
 
+from common.chat import chat, wants_chat
 from common.config import MAIN_MODEL, check_ollama
 
 INSTRUCTIONS = (
@@ -22,6 +23,10 @@ def main() -> None:
         memory=True,  # NEW: long-term notes saved as markdown under .agent/memory
         skills=False,
     )
+
+    if wants_chat():  # uv run labs/<this lab>.py --chat
+        chat(agent)
+        return
 
     # Run 1: uv run labs/lab3_sessions_memory.py tell
     # Run 2: uv run labs/lab3_sessions_memory.py ask   (a fresh process — nothing in RAM)

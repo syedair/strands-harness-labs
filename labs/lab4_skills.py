@@ -1,6 +1,7 @@
 # Lab 4: skills — teach the assistant a repeatable task with a markdown file, not code.
 from strands_harness import create_harness
 
+from common.chat import chat, wants_chat
 from common.config import MAIN_MODEL, check_ollama
 
 INSTRUCTIONS = (
@@ -19,6 +20,10 @@ def main() -> None:
         memory=False,
         skills=True,  # NEW: loads .agent/skills/* on demand
     )
+
+    if wants_chat():  # uv run labs/<this lab>.py --chat
+        chat(agent)
+        return
 
     agent("I'm going to Istanbul next week for 4 days. What should I pack?")
 
