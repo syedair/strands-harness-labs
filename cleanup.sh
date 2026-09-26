@@ -11,6 +11,10 @@ ask() { read -r -p "$1 [y/N] " answer <&3; [[ "$answer" =~ ^[Yy] ]]; }
 ./reset.sh
 rm -rf .kev
 
+if [ -d lab11/data ]; then
+  ask "Delete lab 11's chats, files and memories (lab11/data)?" && rm -rf lab11/data
+fi
+
 echo
 echo "Downloads — each one is kept unless you answer y (you may use these models elsewhere):"
 
