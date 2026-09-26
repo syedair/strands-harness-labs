@@ -133,3 +133,16 @@ describe("splitTurn", () => {
     expect(splitTurn(turnOf(ev({ type: "tool", name: "web_fetch", input: {} }))).answer).toBeNull();
   });
 });
+
+describe("reasoning a model streams as text", () => {
+  it("moves everything before </think> into the steps, even when the tag is split across deltas", () => {
+    const turn = [
+      { type: "text", delta: "I can see the user wants AWS docs.</thi" },
+      { type: "text", delta: "nk> Yes! I now have" },
+      { type: "text", delta: " access." },
+    ].reduce((t, e) => applyEvent(t, e as Parameters<typeof applyEvent>[1]), newAssistantTurn());
+    const { answer, steps } = splitTurn(turn);
+    expect(answer?.text).toBe("Yes! I now have access.");
+    expect(steps).toEqual([{ kind: "text", text: "I can see the user wants AWS docs.", discarded: false }]);
+  });
+});

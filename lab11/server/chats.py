@@ -21,6 +21,7 @@ def turns_from_messages(messages: list[dict]) -> list[dict]:
     for message in messages:
         text = "\n".join(block["text"] for block in message.get("content", []) if "text" in block).strip()
         text = re.sub(r"\n*Attached file: .*", "", text).strip()  # a note for the agent, not for the reader
+        text = text.split("</think>")[-1].strip()  # reasoning some models (Kimi) write as text
         if not text or text.startswith("[system1-"):  # e.g. "[system1-completion-check] Your answer skipped…"
             continue
         if turns and turns[-1]["role"] == message["role"]:  # one reply spread over several messages

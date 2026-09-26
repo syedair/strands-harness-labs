@@ -19,10 +19,16 @@ export function applyEvent(turn: AssistantTurn, event: ChatEvent): AssistantTurn
   const parts = [...turn.parts];
   const last = parts[parts.length - 1];
   switch (event.type) {
-    case "text":
-      if (last?.kind === "text" && !last.discarded) parts[parts.length - 1] = { ...last, text: last.text + event.delta };
-      else parts.push({ kind: "text", text: event.delta, discarded: false });
-      return { ...turn, parts };
+    case "text": {
+      const growing = last?.kind === "text" && !last.discarded;
+      const text = (growing ? last.text : "") + event.delta;
+      const end = text.indexOf("</think>"); // some models (Kimi) write their reasoning as text before this tag
+      const next: Part[] = end < 0 ? [{ kind: "text", text, discarded: false }] : [
+        { kind: "text", text: text.slice(0, end).replace("<think>", "").trim(), discarded: false }, // a step
+        { kind: "text", text: text.slice(end + "</think>".length).trimStart(), discarded: false }, // the answer so far
+      ];
+      return { ...turn, parts: [...(growing ? parts.slice(0, -1) : parts), ...next] };
+    }
     case "tool":
       return { ...turn, parts: [...parts, { kind: "tool", name: event.name, input: event.input }] };
     case "decision":

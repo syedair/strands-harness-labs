@@ -60,3 +60,8 @@ def test_delete_refuses_ids_that_escape_the_data_folder(tmp_path):
         with pytest.raises(ValueError):
             store.delete(bad)
     assert (tmp_path / "files" / "keep").exists() and (tmp_path / "chats").exists()
+
+
+def test_restored_replies_drop_reasoning_the_model_wrote_as_text():
+    messages = [{"role": "assistant", "content": [{"text": "<think>The user wants AWS docs.</think> Yes, I can."}]}]
+    assert chats.turns_from_messages(messages) == [{"role": "assistant", "text": "Yes, I can."}]
