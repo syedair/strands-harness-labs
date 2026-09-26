@@ -1,4 +1,5 @@
 import math
+from types import SimpleNamespace
 
 import pytest
 
@@ -141,3 +142,64 @@ def test_unavailable_reasons(monkeypatch):
 def test_unknown_backend_is_rejected():
     with pytest.raises(ValueError, match="ollama/<name>, jev, kev or laya"):
         system1.yes_no("s", "Q?", model="gpt")
+
+
+# --- ensure_kev: offer to start Kev in the background, once ---
+
+class FakeStdin:
+    def __init__(self, tty):
+        self.tty = tty
+
+    def isatty(self):
+        return self.tty
+
+
+def test_ensure_kev_does_nothing_when_running(monkeypatch):
+    monkeypatch.setattr(system1, "_kev_up", lambda: True)
+    monkeypatch.setattr(system1.subprocess, "run", lambda *a, **k: pytest.fail("should not start Kev"))
+    assert system1.ensure_kev() is True
+
+
+def test_ensure_kev_prints_command_without_a_terminal(monkeypatch, capsys):
+    monkeypatch.setattr(system1, "_kev_up", lambda: False)
+    monkeypatch.setattr(system1.sys, "stdin", FakeStdin(tty=False))
+    assert system1.ensure_kev() is False
+    assert "./kev.sh start" in capsys.readouterr().out
+
+
+def test_ensure_kev_starts_it_when_user_agrees(monkeypatch):
+    started = []
+    monkeypatch.setattr(system1, "_kev_up", lambda: False)
+    monkeypatch.setattr(system1.sys, "stdin", FakeStdin(tty=True))
+    monkeypatch.setattr("builtins.input", lambda prompt: "")
+    monkeypatch.setattr(system1.subprocess, "run",
+                        lambda cmd, **k: started.append(cmd) or SimpleNamespace(returncode=0))
+    assert system1.ensure_kev() is True
+    assert started[0][-2:] == [str(system1.KEV_SCRIPT), "start"]
+
+
+def test_ensure_kev_respects_no(monkeypatch):
+    monkeypatch.setattr(system1, "_kev_up", lambda: False)
+    monkeypatch.setattr(system1.sys, "stdin", FakeStdin(tty=True))
+    monkeypatch.setattr("builtins.input", lambda prompt: "n")
+    monkeypatch.setattr(system1.subprocess, "run", lambda *a, **k: pytest.fail("should not start Kev"))
+    assert system1.ensure_kev() is False
+
+
+def test_check_system1_offers_kev(monkeypatch):
+    monkeypatch.setattr(system1, "_kev_up", lambda: False)
+    monkeypatch.setattr(system1, "ensure_kev", lambda: True)
+    system1.check_system1("kev")  # no exit: Kev was started
+
+
+@pytest.mark.parametrize("error", [EOFError, KeyboardInterrupt])
+def test_ensure_kev_treats_no_answer_as_no(monkeypatch, capsys, error):
+    monkeypatch.setattr(system1, "_kev_up", lambda: False)
+    monkeypatch.setattr(system1.sys, "stdin", FakeStdin(tty=True))
+
+    def no_answer(prompt):
+        raise error
+
+    monkeypatch.setattr("builtins.input", no_answer)
+    assert system1.ensure_kev() is False
+    assert "./kev.sh start" in capsys.readouterr().out

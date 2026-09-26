@@ -9,14 +9,17 @@
 import functools
 import math
 import os
+import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import httpx
 
 from common import config
 
 JEV_URL = "https://api.typesafe.ai/v1/systemone"
+KEV_SCRIPT = Path(__file__).resolve().parents[2] / "kev.sh"
 
 
 def yes_no(state: str, question: str, model: str | None = None) -> float:
@@ -55,7 +58,7 @@ def unavailable(model: str | None = None) -> str | None:
     if backend == "jev" and not os.environ.get("TYPESAFE_API_KEY"):
         return "Jev needs TYPESAFE_API_KEY (get one at typesafe.ai)"
     if backend == "kev" and not _kev_up():
-        return f"Kev isn't running on {config.KEV_URL} (see README to start it)"
+        return f"Kev isn't running on {config.KEV_URL}. Start it with: ./kev.sh start"
     if backend == "laya" and _laya_router() is None:
         return "Laya isn't installed. Run: uv sync --extra laya"
     if backend == "ollama":
@@ -69,11 +72,31 @@ def unavailable(model: str | None = None) -> str | None:
 
 
 def check_system1(model: str | None = None) -> None:
-    """Exit with a one-line fix if the classifier can't run."""
+    """Exit with a one-line fix if the classifier can't run (offers to start Kev)."""
+    if _backend(model)[0] == "kev" and ensure_kev():
+        return
     problem = unavailable(model)
     if problem:
         print(problem)
         sys.exit(1)
+
+
+def ensure_kev() -> bool:
+    """Kev runs as a local server. If it's down, offer to start it in the background (it stays up)."""
+    if _kev_up():
+        return True
+    print(f"Kev isn't running on {config.KEV_URL}.")
+    if not sys.stdin.isatty():
+        print("Start it with: ./kev.sh start")
+        return False
+    try:
+        answer = input("Start it now in the background? It keeps running for the next labs. [Y/n] ")
+    except (EOFError, KeyboardInterrupt):  # no answer: don't start anything
+        answer = "n"
+    if answer.strip().lower() not in ("", "y", "yes"):
+        print("\nStart it later with: ./kev.sh start")
+        return False
+    return subprocess.run(["bash", str(KEV_SCRIPT), "start"]).returncode == 0
 
 
 # --- plumbing ---------------------------------------------------------------

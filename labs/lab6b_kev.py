@@ -1,12 +1,12 @@
 # Lab 6b: Kev — an open Jev-alike on your own machine. Same SDK, same questions: only the URL changes.
 import sys
 
-import httpx
 from dotenv import load_dotenv
 from typesafe_sdk import Choice, Noul, Score, TypeSafeClient
 
 load_dotenv()
 from common.config import KEV_URL  # noqa: E402  (http://127.0.0.1:8009 by default)
+from common.system1 import ensure_kev  # noqa: E402
 
 STATE = """user: What's the weather?
 assistant wants to call: web_fetch(url="https://wttr.in/Seattle?format=3")"""
@@ -25,10 +25,7 @@ QUESTIONS = {
 
 
 def main() -> None:
-    try:
-        httpx.get(KEV_URL, timeout=5)
-    except httpx.HTTPError:
-        print(f"Kev isn't running on {KEV_URL}. Start it (see README, lab 6b).")
+    if not ensure_kev():  # Kev is a local server: offers to start it in the background
         sys.exit(1)
 
     kev = TypeSafeClient(base_url=KEV_URL, api_key="local")  # NEW: your machine, no real key

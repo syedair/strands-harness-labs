@@ -1,7 +1,7 @@
 # Lab 10 helpers: labelled travel questions and four System 1 contenders.
 from functools import partial
 
-from common.system1 import unavailable, yes_no
+from common.system1 import ensure_kev, unavailable, yes_no
 
 # 1 = primarily a beach / tropical getaway. From the systemone-model-typesafeai demo.
 BEACH = {
@@ -58,6 +58,8 @@ def contenders() -> list[tuple[str, object]]:
     found = []
     for name, model in CONTENDERS:
         problem = unavailable(model)
+        if problem and model == "kev" and ensure_kev():  # offer to start the local Kev server
+            problem = None
         if problem:
             print(f"skip {name}: {problem}")
         else:
