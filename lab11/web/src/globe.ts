@@ -61,11 +61,35 @@ export function withGhosts(graph: MemoryGraph, ghosts: MemoryGraph["nodes"], act
   return extra.length ? { ...graph, nodes: [...graph.nodes, ...extra] } : graph;
 }
 
-/** Where a note sits on the sphere, from its id alone: forgetting or saving others never moves it. */
-export function notePoint(id: string, radius: number): { x: number; y: number; z: number } {
-  let h = 2166136261; // FNV-1a hash of the id, split into two numbers in [0, 1)
+/** Where a note sits on the sphere, from its id alone: forgetting or saving others never moves it.
+ * `shell` scales the radius: memories 1, knowledge sections an outer shell. */
+export function notePoint(id: string, radius: number, shell = 1): { x: number; y: number; z: number } {
+  let h = 2166136261; // FNV-1a hash of the id...
   for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
-  const u = ((h >>> 0) & 0xffff) / 0x10000, v = ((h >>> 16) & 0xffff) / 0x10000;
-  const y = 1 - 2 * u, ring = Math.sqrt(1 - y * y), angle = 2 * Math.PI * v;
-  return { x: Math.cos(angle) * ring * radius, y: y * radius, z: Math.sin(angle) * ring * radius };
+  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16; // ...mixed, so ids
+  const u = ((h >>> 0) & 0xffff) / 0x10000;                                                               // ending #1, #2 scatter
+  let g = Math.imul(h ^ 0x9e3779b9, 0x85ebca6b); g ^= g >>> 15;
+  const v = ((g >>> 0) & 0xffff) / 0x10000;
+  const y = 1 - 2 * u, ring = Math.sqrt(1 - y * y), angle = 2 * Math.PI * v, r = radius * shell;
+  return { x: Math.cos(angle) * ring * r, y: y * r, z: Math.sin(angle) * ring * r };
 }
+
+/** How big and bright stars and links are drawn for this many notes: unchanged up to 30, thinner beyond. */
+export function density(count: number): { star: number; glow: number; link: number } {
+  const f = Math.min(1, Math.sqrt(30 / Math.max(count, 1)));
+  return { star: Math.max(0.4, f ** 0.7), glow: Math.max(0.4, Math.sqrt(f)), link: Math.max(0.15, f) };
+}
+
+/** Notes from KNOWLEDGE_DIR have ids starting "kb:"; everything else is a memory. */
+export const isKnowledge = (id: string) => id.startsWith("kb:");
+
+export function recallLabel(ids: string[]): string {
+  const notes = ids.filter(isKnowledge).length, memories = ids.length - notes;
+  const parts = [];
+  if (memories) parts.push(`${memories} ${memories === 1 ? "memory" : "memories"}`);
+  if (notes) parts.push(`${notes} ${notes === 1 ? "note" : "notes"}`);
+  return parts.join(", ");
+}
+
+/** The user's memories without the knowledge sections, for the list and Clear all. */
+export const memoriesOnly = (graph: MemoryGraph) => graph.nodes.filter((n) => n.kind !== "knowledge");

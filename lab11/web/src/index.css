@@ -68,6 +68,9 @@ body {
 .reply ol { list-style: decimal; padding-left: 1.25rem; }
 .reply li::marker { color: var(--color-accent-2); }
 .reply strong { color: var(--color-ink); font-weight: 600; }
+.reply { min-width: 0; overflow-wrap: anywhere; } /* long URLs and words wrap inside the bubble */
 .reply code { font-family: var(--font-mono); font-size: 0.85em; color: var(--color-accent-2); }
+.reply pre { white-space: pre-wrap; overflow-wrap: anywhere; background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 0.6rem; padding: 0.6rem 0.8rem; }
 .reply hr { border-color: rgba(255, 255, 255, 0.10); }
 .reply a { color: var(--color-accent-2); text-decoration: underline; }

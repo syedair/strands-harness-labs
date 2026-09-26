@@ -3,12 +3,12 @@
 import asyncio
 import json
 from datetime import datetime
-import math
 import re
 from pathlib import Path
 from typing import Callable
 
 import httpx
+import numpy as np
 from strands.memory import ExtractionConfig, MemoryEntry, ModelExtractor
 from strands.storage import LocalFileStorage
 from strands.vended_memory_stores.file_memory_store import FileMemoryStore
@@ -32,9 +32,10 @@ class WatchedStore(FileMemoryStore):
     - recall filtered by relevance (the harness's keyword search matches words like "the"), and
     - callbacks with what each search returned and each note saved, so the UI can show it."""
 
-    def __init__(self, *args, root: Path, on_search, on_store=None, relevance=None, **kwargs):
+    def __init__(self, *args, root: Path, on_search, on_store=None, relevance=None, embed=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.root, self.on_search, self.on_store, self.relevance = Path(root), on_search, on_store, relevance
+        self.embed = embed or ollama_embed
         self.last_query: str | None = None
 
     async def search(self, query, options=None):
@@ -54,7 +55,9 @@ class WatchedStore(FileMemoryStore):
             files = sorted(self.root.glob("*.md"))
             notes = {f.name: f.read_text().strip() for f in files}
             saved = {f.name: f.stat().st_mtime for f in files}
-            p = await asyncio.to_thread(self.relevance, query, notes) if notes else {}
+            # retrieve the closest notes by meaning, then let System 1 rerank just those
+            pool = await asyncio.to_thread(closest, _embeddings_file(self.root), notes, query, self.embed) if notes else []
+            p = await asyncio.to_thread(self.relevance, query, {i: notes[i] for i in pool}) if pool else {}
             # most relevant first; on a tie the newer note wins
             ranked = sorted(((round(score, 2), saved[i], i) for i, score in p.items() if score >= 0.5), reverse=True)[:limit]
             entries = [
@@ -77,12 +80,49 @@ class WatchedStore(FileMemoryStore):
         return key
 
 
-def store_for(model: str, root: Path, on_search, extract: bool = True, on_store=None, relevance=None) -> WatchedStore:
+USER_FACTS_PROMPT = (
+    "You extract durable facts about the user from what the user said.\n"
+    "\n"
+    'Return ONLY a JSON array of objects, each: {"content": string}. Each object is one discrete, self-contained '
+    "fact the user stated about themselves: who they are, where they live, their plans, preferences and decisions. "
+    "Write each fact in the third person about the user, never in the user's own words: "
+    '"I am Syed" becomes "The user\'s name is Syed.", "we fly on Friday" becomes "The user flies on Friday." '
+    "Do not include questions, chit-chat, guesses, or anything the user did not say. If there is nothing worth "
+    "remembering, return []."
+)
+
+
+def user_said(messages: list[dict]) -> list[dict]:
+    """The user's own words: no assistant replies, tool results, System 1 feedback or attachment notes."""
+    said = []
+    for message in messages:
+        if message.get("role") != "user":
+            continue
+        text = "\n".join(block["text"] for block in message.get("content", []) if "text" in block)
+        text = re.sub(r"\n*Attached file: .*", "", text).strip()
+        if text and not text.startswith("[system1-"):
+            said.append({"role": "user", "content": [{"text": text}]})
+    return said
+
+
+class UserOnlyExtractor(ModelExtractor):
+    """Saves only what the user said. Otherwise the assistant's answers, which restate recalled memories and
+    add guesses, come back as new "facts" every turn."""
+
+    def __init__(self, model):
+        super().__init__(model=model, system_prompt=USER_FACTS_PROMPT)
+
+    async def extract(self, messages, context=None):
+        said = user_said(messages)
+        return await super().extract(said, context) if said else []
+
+
+def store_for(model: str, root: Path, on_search, extract: bool = True, on_store=None, relevance=None, embed=None) -> WatchedStore:
     """Built like the harness's default store: markdown notes under `root`, facts extracted by a model."""
     kwargs = {"name": "memory", "storage": LocalFileStorage(str(root)).namespace(""), "writable": True}
     if extract:
-        kwargs["extraction"] = ExtractionConfig(extractor=ModelExtractor(model=resolve_web_fetch_model(model, None)))
-    return WatchedStore(root=root, on_search=on_search, on_store=on_store, relevance=relevance, **kwargs)
+        kwargs["extraction"] = ExtractionConfig(extractor=UserOnlyExtractor(resolve_web_fetch_model(model, None)))
+    return WatchedStore(root=root, on_search=on_search, on_store=on_store, relevance=relevance, embed=embed, **kwargs)
 
 
 FORGET_QUESTION = "Does this fact mention {about}, even in passing? Fact: {fact}"
@@ -104,7 +144,7 @@ def topic_words(about: str) -> set[str]:
     return {w for w in re.findall(r"[a-z0-9]+", about.lower()) if len(w) >= 3 and w not in COMMON}
 
 
-def forget_about(root: Path, about: str, judge=system1_forget) -> list[str]:
+def forget_about(root: Path, about: str, judge=system1_forget, embed=None) -> list[str]:
     """Delete every note the judge says is about `about` (p >= 0.5). Returns the ids it deleted."""
     notes = {p.name: p.read_text() for p in Path(root).glob("*.md")}
     if not notes:
@@ -112,8 +152,9 @@ def forget_about(root: Path, about: str, judge=system1_forget) -> list[str]:
     words = topic_words(about)
     named = [i for i, text in notes.items() if words & set(re.findall(r"[a-z0-9]+", text.lower()))]  # says it outright
     rest = {i: t for i, t in notes.items() if i not in named}
-    scores = judge(about, rest) if rest else {}  # System 1 for the ones that only say it another way
-    doomed = named + [i for i in rest if scores.get(i, 0.0) >= 0.5]
+    pool = closest(_embeddings_file(root), rest, about, embed or ollama_embed) if rest else []  # the likeliest of the rest, by meaning
+    scores = judge(about, {i: rest[i] for i in pool}) if pool else {}  # System 1 for the ones that say it another way
+    doomed = named + [i for i in pool if scores.get(i, 0.0) >= 0.5]
     for note_id in doomed:
         forget(root, note_id)
     return doomed
@@ -165,20 +206,62 @@ def record_hits(root: Path, ids: list[str]) -> None:
     together_path.write_text(json.dumps(together))
 
 
-def ollama_embed(texts: list[str]) -> list[list[float]] | None:
-    """Embeddings from Ollama's nomic-embed-text, or None if it isn't available."""
+def ollama_embed(texts: list[str], batch: int = 64) -> list[list[float]] | None:
+    """Embeddings from Ollama's nomic-embed-text, or None if it isn't available. Sent in batches, with time for the
+    model to load on the first call."""
+    vectors: list[list[float]] = []
     try:
-        response = httpx.post(f"{OLLAMA_HOST}/api/embed", json={"model": "nomic-embed-text", "input": texts}, timeout=30)
-        response.raise_for_status()
-        return response.json()["embeddings"]
+        for start in range(0, len(texts), batch):
+            response = httpx.post(f"{OLLAMA_HOST}/api/embed",
+                                  json={"model": "nomic-embed-text", "input": texts[start:start + batch]}, timeout=120)
+            response.raise_for_status()
+            vectors += response.json()["embeddings"]
     except httpx.HTTPError:
         return None
+    return vectors
 
 
-def _cosine(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b))
-    norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
-    return dot / norm if norm else 0.0
+CANDIDATES = 12  # notes System 1 reranks; measured: the right notes were in the embedding top 12 86% of the time
+
+
+def _embeddings_file(root: Path) -> Path:
+    return Path(root).parent / f"{Path(root).name}_embeddings.json"  # beside the notes, like the hit counts
+
+
+def note_vectors(cache: Path, notes: dict[str, str], embed=ollama_embed) -> dict[str, list[float]] | None:
+    """Each note's embedding, cached in `cache` and recomputed only when a note changes. None without a model."""
+    path = Path(cache)
+    cache = json.loads(path.read_text()) if path.exists() else {}
+    fresh = {i: c for i, c in cache.items() if i in notes}  # forgotten notes drop out
+    stale = [i for i in notes if fresh.get(i, {}).get("text") != notes[i]]  # new or edited notes
+    if stale:
+        vectors = embed([notes[i] for i in stale])
+        if vectors is None:
+            return None
+        fresh.update({i: {"text": notes[i], "vector": v} for i, v in zip(stale, vectors)})
+    if stale or len(fresh) != len(cache):
+        path.write_text(json.dumps(fresh))
+    return {i: fresh[i]["vector"] for i in notes}
+
+
+def closest(cache: Path, notes: dict[str, str], query: str, embed=ollama_embed, k: int = CANDIDATES) -> list[str]:
+    """The k notes nearest the query by meaning (embeddings cached in `cache`). All of them when there are few,
+    or no embedding model."""
+    if len(notes) <= k:
+        return list(notes)
+    vectors = note_vectors(cache, notes, embed)
+    asked = embed([query]) if vectors is not None else None
+    if asked is None:
+        return list(notes)
+    ids = list(notes)
+    matrix = _unit(np.array([vectors[i] for i in ids]))
+    scores = matrix @ _unit(np.array(asked[0]))
+    return [ids[j] for j in np.argsort(-scores)[:k]]
+
+
+def _unit(a):
+    """Rows (or a vector) scaled to length 1, so a dot product is the cosine."""
+    return a / np.maximum(np.linalg.norm(a, axis=-1, keepdims=True), 1e-12)
 
 
 def _names(text: str) -> set[str]:
@@ -201,16 +284,18 @@ def graph(root: Path, embed=ollama_embed, threshold: float = 0.6, per_node: int 
     hits_file = _hits_file(root)
     hits = json.loads(hits_file.read_text()) if hits_file.exists() else {}
     ids = list(notes)
-    vectors = embed([notes[i] for i in ids]) if embed else None
+    vectors = note_vectors(_embeddings_file(root), notes, embed) if embed else None
     pairs = []
-    for a in range(len(ids)):
-        for b in range(a + 1, len(ids)):
-            if vectors:
-                weight = _cosine(vectors[a], vectors[b])
-            else:
-                weight = 1.0 if _names(notes[ids[a]]) & _names(notes[ids[b]]) else 0.0
-            if weight > threshold:
-                pairs.append((weight, ids[a], ids[b]))
+    if vectors:  # every pair at once: the cosine of each note with each other
+        matrix = _unit(np.array([vectors[i] for i in ids]))
+        similar = np.triu(matrix @ matrix.T, k=1)
+        for a, b in zip(*np.nonzero(similar > threshold)):
+            pairs.append((float(similar[a, b]), ids[a], ids[b]))
+    else:
+        for a in range(len(ids)):
+            for b in range(a + 1, len(ids)):
+                if _names(notes[ids[a]]) & _names(notes[ids[b]]):
+                    pairs.append((1.0, ids[a], ids[b]))
     pairs.sort(reverse=True)
     degree: dict[str, int] = {}
     links: dict[str, dict] = {}

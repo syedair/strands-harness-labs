@@ -5,6 +5,7 @@ from strands_harness import create_harness
 from strands_harness.prompt import build_system_prompt
 
 import connectors
+import knowledge
 import memory
 from events import TurnHandlers, forget_tool
 
@@ -27,13 +28,18 @@ SKILL_FILES = (f"\nSkill locations are relative to {ROOT}: .agent/skills/<name>/
                f"{ROOT / '.agent' / 'skills'}/<name>/references/x.md. Read skill files by that absolute path.")
 
 
+def knowledge_for(turn: TurnHandlers, data: Path) -> list:
+    """One read-only store per knowledge base added in Settings."""
+    return knowledge.Bases(data).stores(on_search=turn.recall)
+
+
 def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
     chat_dir = data / "files" / chat_id
     chat_dir.mkdir(parents=True, exist_ok=True)
     mcp = connectors.mcp_config(settings["connectors"], chat_dir, connectors.load_custom(data))
     notes = data / "memory"  # shared by every chat: memory outlives sessions
     notes.mkdir(parents=True, exist_ok=True)
-    turn.on_recall = lambda ids: memory.record_hits(notes, ids)
+    turn.on_recall = lambda ids: memory.record_hits(notes, [i for i in ids if not i.startswith("kb:")])  # your notes only
     store = memory.store_for(settings["model"], notes, on_search=turn.recall, on_store=turn.stored,
                              relevance=memory.system1_relevance)  # System 1 decides which memories are relevant
     agent = create_harness(
@@ -42,7 +48,7 @@ def make_agent(turn: TurnHandlers, chat_id: str, settings: dict, data: Path):
         tools=[forget_tool(turn, notes)],  # the harness only adds memories; this deletes them
         builtin_tools=["web_fetch", "read"],  # read: files the user attaches
         session={"id": chat_id, "dir": str(data / "sessions")},  # the chat history, saved to disk
-        memory={"stores": [store]},  # the harness's memory, watched so the UI sees each recall
+        memory={"stores": [store, *knowledge_for(turn, data)]},  # yours, plus your read-only knowledge bases
         skills=True,
         builtin_plugins=["todos"],  # no "environment": the app doesn't need the working directory in every prompt
         mcp_servers=mcp or None,  # connectors the user turned on

@@ -27,3 +27,21 @@ def test_the_agent_knows_where_skill_files_are(tmp_path):
 
 def test_the_agent_knows_memories_are_saved_for_it():
     assert "saved automatically" in agents.INSTRUCTIONS
+
+
+def test_each_knowledge_base_in_settings_is_a_store(tmp_path, monkeypatch):
+    assert agents.knowledge_for(TurnHandlers([]), tmp_path / "empty") == []
+    (tmp_path / "Memory" / "Technical").mkdir(parents=True)
+    (tmp_path / "Memory" / "Technical" / "AWS.md").write_text("VPC peering is not transitive.")
+    agents.knowledge.Bases(tmp_path / "data").add(str(tmp_path / "Memory"), ["Technical"], embed=lambda texts: None)
+    (store,) = agents.knowledge_for(TurnHandlers([]), tmp_path / "data")
+    assert store.folders == ["Technical"] and store.cache.parent == tmp_path / "data" / "knowledge"
+
+
+def test_the_agent_recalls_from_both_stores(tmp_path, monkeypatch):
+    (tmp_path / "Memory").mkdir()
+    (tmp_path / "Memory" / "Notes.md").write_text("A note.")
+    agents.knowledge.Bases(tmp_path / "data").add(str(tmp_path / "Memory"), embed=lambda texts: None)
+    agent = agents.make_agent(TurnHandlers([]), "abcdef012345", SETTINGS, tmp_path / "data")
+    names = [s.name for s in agent.memory_manager._stores]
+    assert names[0] == "memory" and names[1].startswith("knowledge-memory-")

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cloudPoints, notePoint, showingFor, toGraph, withGhosts } from "./globe";
+import { cloudPoints, density, memoriesOnly, notePoint, recallLabel, showingFor, toGraph, withGhosts } from "./globe";
 
 const api = {
   nodes: [
@@ -103,5 +103,47 @@ describe("notePoint", () => {
   it("spreads different notes apart", () => {
     const a = notePoint("home.md", 50), b = notePoint("trip.md", 50);
     expect(Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)).toBeGreaterThan(1);
+  });
+});
+
+describe("density", () => {
+  it("keeps a small memory as it was and thins stars and links out as it grows", () => {
+    expect(density(20)).toEqual({ star: 1, glow: 1, link: 1 });
+    const big = density(500);
+    expect(big.star).toBeLessThan(0.45);
+    expect(big.glow).toBeLessThan(0.5);
+    expect(big.link).toBeLessThan(0.5);
+    expect(density(100).star).toBeGreaterThan(big.star); // shrinks steadily, not in a jump
+  });
+});
+
+describe("knowledge notes", () => {
+  it("labels a recall by where the notes came from", () => {
+    expect(recallLabel(["a.md"])).toBe("1 memory");
+    expect(recallLabel(["a.md", "b.md"])).toBe("2 memories");
+    expect(recallLabel(["kb:Technical/AWS.md#0"])).toBe("1 note");
+    expect(recallLabel(["a.md", "kb:x#0", "kb:y#1"])).toBe("1 memory, 2 notes");
+  });
+
+  it("keeps knowledge sections out of the memory list", () => {
+    const graph = { nodes: [{ id: "a.md", text: "", hits: 0, created: 1 }, { id: "kb:x#0", text: "", hits: 0, created: 0, kind: "knowledge" as const }], links: [], knowledge: null };
+    expect(memoriesOnly(graph).map((n) => n.id)).toEqual(["a.md"]);
+  });
+});
+
+describe("notePoint spread", () => {
+  it("scatters ids that differ only at the end, instead of lining them up", () => {
+    const ys = Array.from({ length: 200 }, (_, i) => notePoint(`kb:USER.md#${i}`, 1).y);
+    const bins = [0, 0, 0, 0];
+    for (const y of ys) bins[Math.min(3, Math.floor((y + 1) * 2))]++;
+    for (const b of bins) expect(b).toBeGreaterThan(30); // roughly 50 per quarter of the sphere
+    const angles = Array.from({ length: 200 }, (_, i) => { const p = notePoint(`kb:USER.md#${i}`, 1); return Math.atan2(p.z, p.x); });
+    const steps = angles.slice(1).map((a, i) => Math.abs(a - angles[i]));
+    expect(steps.filter((d) => d < 0.05).length).toBeLessThan(20); // neighbours don't sit next to each other
+  });
+
+  it("puts knowledge on an outer shell", () => {
+    const p = notePoint("kb:x#0", 50, 1.25);
+    expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(62.5);
   });
 });

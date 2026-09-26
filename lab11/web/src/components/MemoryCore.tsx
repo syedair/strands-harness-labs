@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { MemoryGraph } from "../api";
-import { cloudPoints, notePoint } from "../globe";
+import { cloudPoints, density, notePoint } from "../globe";
 import { disposeTree, setPositions } from "../dispose";
 
 const CYAN = new THREE.Color("#22D3EE");
 const ACCENT = new THREE.Color("#6EE7B7");
 const VIOLET = new THREE.Color("#A78BFA"); // a memory being stored
 const AMBER = new THREE.Color("#FBBF24"); // a memory being forgotten
+const PALE = new THREE.Color("#CBD5E1"); // a section of KNOWLEDGE_DIR, read-only
 const PRIMED = CYAN.clone().lerp(ACCENT, 0.5); // a neighbour the activation spread to
 const RADIUS = 60;
 const PARTICLES = 2600;
@@ -32,13 +33,17 @@ function glowTexture(): THREE.Texture {
 const glowing = (color: THREE.Color, opacity: number, map: THREE.Texture) =>
   ({ color, opacity, map, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
 
-type Props = { graph: MemoryGraph; fired: string[]; stored: string[]; forgotten?: string[]; state: CoreState; height: number; close?: boolean };
+type Props = { graph: MemoryGraph; fired: string[]; stored: string[]; forgotten?: string[]; state: CoreState; height: number; close?: boolean;
+  paused?: boolean; // hidden behind another tab: keep the canvas and its WebGL context, skip drawing
+};
 
-export function MemoryCore({ graph, fired, stored, forgotten = [], state, height, close = false }: Props) {
+export function MemoryCore({ graph, fired, stored, forgotten = [], state, height, close = false, paused = false }: Props) {
   const box = useRef<HTMLDivElement>(null);
-  const live = useRef({ fired: new Set<string>(), stored: new Set<string>(), forgotten: new Set<string>(), state, rebuild: (_g: MemoryGraph) => {} });
+  const live = useRef({ fired: new Set<string>(), stored: new Set<string>(), forgotten: new Set<string>(), state, paused,
+                       rebuild: (_g: MemoryGraph) => {} });
   const [hover, setHover] = useState<{ text: string; x: number; y: number } | null>(null);
   live.current.state = state;
+  live.current.paused = paused;
   live.current.fired = new Set(fired);
   live.current.stored = new Set(stored);
   live.current.forgotten = new Set(forgotten);
@@ -86,13 +91,17 @@ export function MemoryCore({ graph, fired, stored, forgotten = [], state, height
     core.add(gathering);
     const scattering = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: 4.5, ...glowing(AMBER, 1, texture) }));
     core.add(scattering);
+    let dense = density(0); // star and link sizes for how many notes there are
     live.current.rebuild = (g: MemoryGraph) => {
+      dense = density(g.nodes.length);
       disposeTree(anchors); // the previous notes and links
       stars = g.nodes.map((n) => {
-        const p = notePoint(n.id, RADIUS * 0.72); // by id, so notes stay put when others come and go
+        // by id, so notes stay put when others come and go; knowledge sections form a fainter outer shell
+        const p = notePoint(n.id, RADIUS * 0.72, n.kind === "knowledge" ? 1.3 : 1);
         const sprite = new THREE.Sprite(new THREE.SpriteMaterial(glowing(CYAN, 1, texture)));
+        sprite.userData.knowledge = n.kind === "knowledge";
         sprite.position.set(p.x, p.y, p.z);
-        sprite.scale.setScalar(7 + Math.log2(1 + n.hits) * 2);
+        sprite.scale.setScalar((7 + Math.log2(1 + n.hits) * 2) * dense.star);
         anchors.add(sprite);
         return { id: n.id, text: n.text, sprite, pos: sprite.position.clone() };
       });
@@ -128,6 +137,10 @@ export function MemoryCore({ graph, fired, stored, forgotten = [], state, height
 
     let frame = 0;
     const animate = (time: number) => {
+      if (live.current.paused) {
+        frame = requestAnimationFrame(animate);
+        return;
+      }
       const { fired: hot, stored: fresh, forgotten: gone, state: now } = live.current;
       const busy = now !== "idle";
       core.rotation.y += SPEED[now];
@@ -145,15 +158,17 @@ export function MemoryCore({ graph, fired, stored, forgotten = [], state, height
         if (gone.has(s.id)) {
           s.sprite.material.color = AMBER;
           s.sprite.material.opacity = 0.6 + 0.4 * fade;
-          s.sprite.scale.setScalar(11 + 5 * fade);
+          s.sprite.scale.setScalar((11 + 5 * fade) * Math.max(dense.star, 0.6));
           continue;
         }
         const on = hot.has(s.id);
         const saving = fresh.has(s.id);
         const warm = primed.has(s.id);
-        s.sprite.material.color = saving ? VIOLET : on ? ACCENT : warm ? PRIMED : CYAN;
-        s.sprite.material.opacity = on || saving ? 1 : warm ? 0.95 : 0.8;
-        s.sprite.scale.setScalar(on || saving ? 12 * flare : warm ? 9 + Math.sin(time / 300) : 7);
+        const kb = s.sprite.userData.knowledge === true;
+        s.sprite.material.color = saving ? VIOLET : on ? ACCENT : warm ? PRIMED : kb ? PALE : CYAN;
+        s.sprite.material.opacity = on || saving ? 1 : warm ? 0.95 : 0.8 * dense.glow;
+        const lit = Math.max(dense.star, 0.6); // firing notes stay easy to spot among many
+        s.sprite.scale.setScalar(on || saving ? 12 * flare * lit : warm ? (9 + Math.sin(time / 300)) * lit : 7 * dense.star * (kb ? 0.7 : 1));
       }
       // links: co-firing (both ends recalled) is brightest; spreading (one end) is dimmer; idle shows
       // how strongly the two are wired (similar meaning + how often they were recalled together)
@@ -168,7 +183,7 @@ export function MemoryCore({ graph, fired, stored, forgotten = [], state, height
           continue;
         }
         material.color = ends > 0 ? ACCENT : CYAN;
-        material.opacity = ends === 2 ? 0.95 : ends === 1 ? 0.55 : 0.1 + Math.min(l.strength, 3) * 0.08;
+        material.opacity = ends === 2 ? 0.95 : ends === 1 ? 0.55 : (0.1 + Math.min(l.strength, 3) * 0.08) * dense.link;
         if (ends === 0) continue;
         const [from, to] = hot.has(l.a) ? [l.a, l.b] : [l.b, l.a];
         const start = starAt.get(from)!.pos, end = starAt.get(to)!.pos;

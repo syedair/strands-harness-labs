@@ -7,7 +7,8 @@ import { ComposerBar } from "./components/ComposerBar";
 import { EmptyState } from "./components/EmptyState";
 import { HarnessPanel } from "./components/HarnessPanel";
 import { Architecture } from "./components/Architecture";
-import { Header } from "./components/Header";
+import { Header, type View } from "./components/Header";
+import { Settings } from "./components/Settings";
 import { Message } from "./components/Message";
 import type { Recall } from "./components/MemoryGlobe";
 import { NO_BURST, NO_GHOSTS, type Burst, type Ghosts } from "./globe";
@@ -37,7 +38,7 @@ export default function App() {
   const [recall, setRecall] = useState<Recall | null>(null);
   const [attached, setAttached] = useState<FileInfo[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [architecture, setArchitecture] = useState(false); // the "How it works" page instead of the chat
+  const [view, setView] = useState<View>("chat"); // the chat, "How it works", or Settings
   const [serverDown, setServerDown] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
   const [switching, setSwitching] = useState<Switching>(null); // a connector starting or stopping
@@ -196,13 +197,13 @@ export default function App() {
       <Sidebar chats={chats} activeId={chat?.id ?? null} busy={busy} onOpen={openChat} onNew={newChat} onDelete={removeChat} onClearAll={clearChats} />
       <div className="flex min-w-0 flex-1 flex-col gap-4 px-6 py-6">
         <Header title={chat?.title && chat.title !== "New chat" ? chat.title : "Travel assistant"} onTogglePanel={() => setPanelOpen(!panelOpen)}
-                showingArchitecture={architecture} onToggleArchitecture={() => setArchitecture(!architecture)} />
+                view={view} onView={setView} />
         {serverDown && (
           <p className="glass flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-warn">
             <ServerOff size={16} /> Can't reach the server. Start it: <code className="font-mono">uv run --extra web lab11/server/app.py</code>
           </p>
         )}
-        {architecture ? <Architecture /> : <>
+        {view === "architecture" ? <Architecture /> : view === "settings" ? <Settings onChanged={() => api.fetchMemory().then(setMemory)} /> : <>
         <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 overflow-y-auto">
           {turns.length === 0 ? <EmptyState onPick={send} /> : turns.map((turn, i) => <Message key={i} turn={turn} />)}
           <div ref={bottom} />
@@ -219,11 +220,10 @@ export default function App() {
         </div>
         </>}
       </div>
-      {!architecture && (
-      <div className={`${panelOpen ? "fixed inset-y-0 right-0 z-30 bg-bg-1/95 backdrop-blur" : "hidden"} lg:static lg:block`}>
-        <HarnessPanel harness={harness} connectors={connectors} switching={switching} onAddSkill={addSkill} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} forgot={forgot} recall={recall} decisions={decisions} state={coreState} onForget={forget} onForgetAll={forgetAll} />
+      {/* always mounted, hidden on other pages, so the memory core isn't rebuilt on every switch */}
+      <div hidden={view !== "chat"} className={`${panelOpen ? "fixed inset-y-0 right-0 z-30 bg-bg-1/95 backdrop-blur" : "hidden"} lg:static lg:block`}>
+        <HarnessPanel harness={harness} connectors={connectors} switching={switching} onAddSkill={addSkill} onToggleConnector={toggleConnector} memory={memory} fired={fired} stored={stored} forgot={forgot} recall={recall} decisions={decisions} state={coreState} onForget={forget} onForgetAll={forgetAll} visible={view === "chat"} />
       </div>
-      )}
     </div>
   );
 }

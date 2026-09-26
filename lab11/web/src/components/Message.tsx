@@ -4,6 +4,7 @@ import { useState } from "react";
 import Markdown from "react-markdown";
 import type { AssistantTurn, Part, Turn } from "../chat";
 import { splitTurn } from "../chat";
+import { recallLabel } from "../globe";
 import { DecisionChip } from "./DecisionChip";
 import { ToolCard } from "./ToolCard";
 import { Waiting } from "./Waiting";
@@ -17,7 +18,7 @@ function Step({ part }: { part: Part }) {
       <div title={`Searched for: "${part.query}"\n${detail}`}
            className="animate-rise inline-flex items-center gap-2 rounded-full border border-accent-2/40 px-3 py-1 text-xs text-accent-2">
         <Brain size={14} />
-        <span className="text-ink">Recalled {part.ids.length} {part.ids.length === 1 ? "memory" : "memories"}</span>
+        <span className="text-ink">Recalled {recallLabel(part.ids)}</span>
         {part.scores.length > 0 && <span className="font-mono">best {Math.max(...part.scores).toFixed(2)}</span>}
       </div>
     );

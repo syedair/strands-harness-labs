@@ -253,3 +253,18 @@ def test_clear_all_memory(client, monkeypatch, tmp_path):
     monkeypatch.setattr(server, "DATA", tmp_path)
     assert client.delete("/api/memory").json() == {"deleted": 2}
     assert list(notes.glob("*.md")) == []
+
+
+def test_the_memory_graph_includes_knowledge_sections(client, monkeypatch, tmp_path):
+    kb = tmp_path / "Memory"; (kb / "Technical").mkdir(parents=True)
+    (kb / "Technical" / "AWS.md").write_text("# VPC\nPeering is not transitive.\n")
+    monkeypatch.setattr(server, "DATA", tmp_path)
+    server.knowledge.Bases(tmp_path).add(str(kb), embed=lambda texts: None)
+    g = client.get("/api/memory").json()
+    assert [n["kind"] for n in g["nodes"] if n["id"].startswith("kb:")] == ["knowledge"]
+    assert g["knowledge"] == {"dir": str(kb), "sections": 1}
+
+
+def test_without_a_knowledge_folder_the_graph_is_just_memory(client, monkeypatch, tmp_path):
+    monkeypatch.setattr(server, "DATA", tmp_path)
+    assert client.get("/api/memory").json()["knowledge"] is None

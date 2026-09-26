@@ -1,4 +1,5 @@
 import asyncio
+import pathlib
 import pytest
 pytest.importorskip("fastapi")
 import memory
@@ -157,3 +158,107 @@ def test_notes_that_name_the_topic_are_forgotten_without_asking_system1(tmp_path
 def test_common_words_in_the_topic_dont_match_every_note(tmp_path):
     (tmp_path / "home.md").write_text("The user lives in Dubai.")
     assert memory.forget_about(tmp_path, "the user's trip", lambda about, notes: {i: 0.1 for i in notes}) == []
+
+
+def test_only_what_the_user_said_is_given_to_the_extractor():
+    messages = [
+        {"role": "user", "content": [{"text": "yes.. where was I planning to go"}]},
+        {"role": "assistant", "content": [{"text": "You're planning a trip to Mount Rainier, possibly for hiking."}]},
+        {"role": "user", "content": [{"toolResult": {"toolUseId": "t1", "content": [{"text": "Rainier: -2°C"}]}}]},
+        {"role": "user", "content": [{"text": "[system1-completion-check] Your answer skipped part of the question."}]},
+        {"role": "user", "content": [{"text": "I live in Seattle\n\nAttached file: /tmp/itinerary.md"}]},
+    ]
+    said = memory.user_said(messages)
+    assert [m["content"][0]["text"] for m in said] == ["yes.. where was I planning to go", "I live in Seattle"]
+
+
+def test_the_store_extracts_only_from_the_user():
+    store = memory.store_for("ollama/gpt-oss:20b", pathlib.Path("/tmp"), on_search=lambda *a: None)
+    assert isinstance(store.extraction["extractor"], memory.UserOnlyExtractor)
+
+
+def test_facts_are_written_about_the_user_not_in_their_words():
+    assert "third person" in memory.USER_FACTS_PROMPT and "The user's name is" in memory.USER_FACTS_PROMPT
+
+
+def _twenty_notes(root):
+    for i in range(20):
+        (root / f"n{i:02}.md").write_text(f"note {i}")
+
+
+def _fake_embed(calls):
+    """Note i sits at angle i; the query "near 3" sits at angle 3, so notes 0..9 are closest in order of distance."""
+    import math
+
+    def embed(texts):
+        calls.extend(texts)
+        out = []
+        for t in texts:
+            a = float(t.split()[-1]) / 10
+            out.append([math.cos(a), math.sin(a)])
+        return out
+    return embed
+
+
+def test_recall_asks_system1_only_about_the_closest_notes(tmp_path):
+    _twenty_notes(tmp_path)
+    asked = []
+    relevance = lambda query, notes: asked.append(sorted(notes)) or {k: 0.1 for k in notes}
+    store = memory.store_for("ollama/gpt-oss:20b", tmp_path, on_search=lambda *a: None, extract=False,
+                             relevance=relevance, embed=_fake_embed([]))
+    asyncio.run(store.search("near 3"))
+    assert len(asked[-1]) == memory.CANDIDATES == 12
+    assert "n03.md" in asked[-1] and "n19.md" not in asked[-1]
+
+
+def test_without_embeddings_system1_scores_every_note(tmp_path):
+    _twenty_notes(tmp_path)
+    asked = []
+    relevance = lambda query, notes: asked.append(len(notes)) or {}
+    store = memory.store_for("ollama/gpt-oss:20b", tmp_path, on_search=lambda *a: None, extract=False,
+                             relevance=relevance, embed=lambda texts: None)
+    asyncio.run(store.search("near 3"))
+    assert asked == [20]
+
+
+def test_note_embeddings_are_computed_once(tmp_path):
+    _twenty_notes(tmp_path)
+    calls = []
+    store = memory.store_for("ollama/gpt-oss:20b", tmp_path, on_search=lambda *a: None, extract=False,
+                             relevance=lambda q, notes: {}, embed=_fake_embed(calls))
+    asyncio.run(store.search("near 3"))
+    asyncio.run(store.search("near 5"))
+    assert sum(1 for t in calls if t.startswith("note")) == 20  # the notes once; only the queries again
+
+
+def test_the_memory_graph_reuses_the_recall_embeddings(tmp_path):
+    _twenty_notes(tmp_path)
+    calls = []
+    embed = _fake_embed(calls)
+    memory.closest(memory._embeddings_file(tmp_path), {p.name: p.read_text() for p in tmp_path.glob("*.md")}, "near 3", embed)
+    memory.graph(tmp_path, embed=embed)
+    assert sum(1 for t in calls if t.startswith("note")) == 20  # embedded once, for recall; the graph read the cache
+
+
+def test_forgetting_asks_system1_only_about_the_closest_notes(tmp_path):
+    _twenty_notes(tmp_path)
+    asked = []
+    judge = lambda about, notes: asked.append(len(notes)) or {}
+    memory.forget_about(tmp_path, "near 3", judge, embed=_fake_embed([]))
+    assert asked == [memory.CANDIDATES]
+
+
+def test_embeddings_are_fetched_in_batches_with_room_for_a_cold_start(monkeypatch):
+    sent = []
+
+    class Reply:
+        def __init__(self, n): self.n = n
+        def raise_for_status(self): pass
+        def json(self): return {"embeddings": [[1.0, 0.0]] * self.n}
+
+    def post(url, json, timeout):
+        sent.append((len(json["input"]), timeout))
+        return Reply(len(json["input"]))
+    monkeypatch.setattr(memory.httpx, "post", post)
+    vectors = memory.ollama_embed([f"t{i}" for i in range(150)])
+    assert len(vectors) == 150 and [n for n, _ in sent] == [64, 64, 22] and all(t >= 120 for _, t in sent)

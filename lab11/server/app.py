@@ -1,6 +1,7 @@
 # Lab 11: the finished travel assistant behind a web API. The React app in lab11/web talks to it.
 import json
 import logging
+import os
 import sys
 import tempfile
 from contextlib import contextmanager
@@ -15,6 +16,7 @@ from pydantic import BaseModel  # noqa: E402
 
 from agents import make_agent  # noqa: E402
 import connectors  # noqa: E402
+import knowledge  # noqa: E402
 import memory  # noqa: E402
 import skills  # noqa: E402
 from chats import ChatStore, portable_tool_ids, title_for, turns_from_messages  # noqa: E402
@@ -251,9 +253,53 @@ def harness(chat_id: str | None = None):
     }
 
 
+class KnowledgeRequest(BaseModel):
+    path: str
+    folders: list[str] | None = None
+
+
+@app.get("/api/knowledge")
+def list_knowledge():
+    return knowledge.Bases(DATA).list()
+
+
+@app.post("/api/knowledge")
+def add_knowledge(request: KnowledgeRequest):
+    """Add a folder of markdown (an Obsidian vault works) as a read-only knowledge base, and index it."""
+    try:
+        base = knowledge.Bases(DATA).add(request.path, request.folders)
+    except ValueError as error:
+        raise HTTPException(400, str(error))
+    AGENTS.clear()  # chats pick it up on their next message
+    return base
+
+
+@app.post("/api/knowledge/{base_id}/index")
+def reindex_knowledge(base_id: str):
+    try:
+        base = knowledge.Bases(DATA).index(base_id)
+    except KeyError:
+        raise HTTPException(404, "No such knowledge base")
+    AGENTS.clear()
+    return base
+
+
+@app.delete("/api/knowledge/{base_id}")
+def remove_knowledge(base_id: str):
+    knowledge.Bases(DATA).remove(base_id)  # drops the index; the folder itself is never touched
+    AGENTS.clear()
+    return {"ok": True}
+
+
 @app.get("/api/memory")
 def memory_graph():
-    return memory.graph(DATA / "memory")
+    """Your memories, plus the sections of every knowledge base added in Settings (read-only)."""
+    graph = memory.graph(DATA / "memory")
+    sections = knowledge.Bases(DATA).sections()
+    graph["nodes"] += [{"id": i, "text": t[:300], "hits": 0, "created": 0, "kind": "knowledge"} for i, t in sections.items()]
+    bases = knowledge.Bases(DATA).list()
+    graph["knowledge"] = {"dir": ", ".join(b["path"] for b in bases), "sections": len(sections)} if bases else None
+    return graph
 
 
 @app.delete("/api/memory")
@@ -346,4 +392,4 @@ async def send_message(chat_id: str, request: MessageRequest):
 
 if __name__ == "__main__":
     check_ollama(MAIN_MODEL)
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("LAB11_API_PORT", "8000")))

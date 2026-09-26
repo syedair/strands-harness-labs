@@ -1,3 +1,4 @@
+import type { KnowledgeBase } from "./knowledge";
 // Talks to lab11/server/app.py. A reply arrives as one JSON event per line.
 export type ChatEvent =
   | { type: "text"; delta: string }
@@ -34,7 +35,8 @@ export type Harness = {
   connectors: { enabled: string[]; errors: { id: string; error: string }[] };
 };
 export type MemoryGraph = {
-  nodes: { id: string; text: string; hits: number; created: number }[]; // newest first
+  nodes: { id: string; text: string; hits: number; created: number; kind?: "knowledge" }[]; // newest first
+  knowledge?: { dir: string; sections: number } | null; // KNOWLEDGE_DIR, recalled read-only
   links: { source: string; target: string; weight: number; together: number }[]; // similarity + co-recall count
 };
 
@@ -76,6 +78,12 @@ export async function uploadSkill(file: File): Promise<{ name: string }> {
   form.append("file", file);
   return json<{ name: string }>(await fetch("/api/skills", { method: "POST", body: form }));
 }
+
+export const listKnowledge = () => fetch("/api/knowledge").then((r) => json<KnowledgeBase[]>(r));
+export const addKnowledge = (path: string, folders: string[] | null) =>
+  send("/api/knowledge", "POST", { path, folders }).then((r) => json<KnowledgeBase>(r));
+export const reindexKnowledge = (id: string) => send(`/api/knowledge/${id}/index`, "POST").then((r) => json<KnowledgeBase>(r));
+export const removeKnowledge = (id: string) => send(`/api/knowledge/${id}`, "DELETE").then((r) => json(r));
 
 export async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<ChatEvent> {
   const reader = body.getReader();
