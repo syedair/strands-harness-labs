@@ -191,19 +191,19 @@ sequenceDiagram
         H->>S1: which saved notes help? (p ≥ 0.5, best 5)
         S1-->>H: recalled notes
         H->>L: message + notes
-        L->>S1: tool call → tool gate (lab 7)
+        L->>S1: tool call → tool gate (an intervention)
         S1-->>L: proceed / guide / deny
         L->>T: web_fetch, read, skills, MCP…
         T-->>L: result
     end
-    L->>S1: answer → completion check (lab 8, multi-part only)
+    L->>S1: answer → completion check (an intervention, multi-part only)
     S1-->>L: proceed / send back
     S-->>U: answer streams, steps folded above it
     H->>H: save new facts as notes (skipped if the turn forgot)
 ```
 
 **What's new:** `create_harness(session={"id", "dir"}, memory={"stores": [...]}, mcp_servers=..., tools=[...])`,
-`agent.stream_async()` as a stream of JSON events, lab 7's gate and lab 8's check reused per chat
+`agent.stream_async()` as a stream of JSON events, a tool gate and a completion check as `interventions=[...]`
 **Video:** _coming soon_
 **Run:**
 ```bash
