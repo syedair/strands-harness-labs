@@ -26,15 +26,16 @@ def latest_user_text(messages: list[dict]) -> str:
 
 
 class System1Strategy:
-    """A routing strategy: the ModelRouter calls select() before every model call, and we return which
-    candidate model answers. Here System 1 judges the request, and a threshold picks small or big."""
+    """A custom routing strategy: the ModelRouter calls select() once per message you send (and again if a
+    model call fails), and we return which candidate answers. That model then handles the whole reply,
+    tool calls included. Here System 1 judges the request, and a threshold picks small or big."""
 
     QUICK = 0.5  # the policy knob: at or above this, the small model answers
     PAUSE = True  # wait for Enter before asking System 1 (only in a terminal)
 
     async def select(self, context, **kwargs):
         if context.attempts:
-            return None  # a call failed: let the router's default handle it
+            return None  # a model call failed: decline, and the router surfaces the error
         # 1. What the user asked.
         request = latest_user_text(context.messages)
         print("\n  router · which model should answer this?")
