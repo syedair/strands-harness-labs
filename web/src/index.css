@@ -12,7 +12,17 @@
   --font-display: "SF Pro Display", -apple-system, "Inter", system-ui, sans-serif;
   --font-sans: "SF Pro Text", -apple-system, "Inter", system-ui, sans-serif;
   --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, monospace;
+  --animate-rise: rise 0.35s ease-out both;
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }
+
+/* Buttons: smooth hover, a small press-down on click, an accent focus ring. */
+.press { transition: transform 120ms ease, filter 150ms ease, border-color 150ms ease, color 150ms ease; }
+.press:active:not(:disabled) { transform: scale(0.95); }
+.press:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(110, 231, 183, 0.35); }
 
 body {
   min-height: 100vh;

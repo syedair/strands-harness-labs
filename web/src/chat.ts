@@ -36,3 +36,16 @@ export function applyEvent(turn: AssistantTurn, event: ChatEvent): AssistantTurn
       return { ...turn, streaming: false, error: event.message };
   }
 }
+
+export type Status = "thinking" | "working" | "writing" | "done";
+
+/** What the assistant is doing right now, for the waiting indicators. */
+export function statusOf(turn: AssistantTurn): Status {
+  if (!turn.streaming) return "done";
+  const last = turn.parts[turn.parts.length - 1];
+  if (!last) return "thinking";
+  if (last.kind === "tool") return "working"; // the tool is running
+  if (last.kind === "decision" && last.source === "gate" && last.action === "proceed") return "working";
+  if (last.kind === "text" && !last.discarded) return "writing";
+  return "thinking";
+}

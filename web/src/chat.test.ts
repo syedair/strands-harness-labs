@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyEvent, newAssistantTurn } from "./chat";
+import { applyEvent, newAssistantTurn, statusOf } from "./chat";
 
 describe("applyEvent", () => {
   it("appends streamed text into one part", () => {
@@ -34,5 +34,26 @@ describe("applyEvent", () => {
     expect(applyEvent(newAssistantTurn(), { type: "done" }).streaming).toBe(false);
     const failed = applyEvent(newAssistantTurn(), { type: "error", message: "Bedrock throttled" });
     expect(failed).toMatchObject({ streaming: false, error: "Bedrock throttled" });
+  });
+});
+
+describe("statusOf", () => {
+  it("is thinking before anything arrives", () => {
+    expect(statusOf(newAssistantTurn())).toBe("thinking");
+  });
+
+  it("is working while a tool runs: after the call, and after the gate allows it", () => {
+    let turn = applyEvent(newAssistantTurn(), { type: "tool", name: "web_fetch", input: {} });
+    expect(statusOf(turn)).toBe("working");
+    turn = applyEvent(turn, { type: "decision", source: "gate", action: "proceed", why: null, p: 0.9, probs: {} });
+    expect(statusOf(turn)).toBe("working");
+    turn = applyEvent(turn, { type: "decision", source: "check", action: "proceed", why: null, p: 0.9, probs: {} });
+    expect(statusOf(turn)).toBe("thinking");
+  });
+
+  it("is writing while text streams, and done at the end", () => {
+    const writing = applyEvent(newAssistantTurn(), { type: "text", delta: "Hi" });
+    expect(statusOf(writing)).toBe("writing");
+    expect(statusOf(applyEvent(writing, { type: "done" }))).toBe("done");
   });
 });

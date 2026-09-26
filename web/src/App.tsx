@@ -1,3 +1,4 @@
+import { ServerOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { fetchSystem1, sendMessage, type System1Option } from "./api";
 import { applyEvent, newAssistantTurn, type Turn } from "./chat";
@@ -38,15 +39,15 @@ export default function App() {
       <Header options={options} value={system1} onChange={setSystem1}
               onNewChat={() => { setTurns([]); setSessionId(crypto.randomUUID()); }} />
       {serverDown && (
-        <p className="glass rounded-xl px-4 py-3 text-sm text-warn">
-          Can't reach the server. Start it: <code className="font-mono">uv run --extra web labs/lab11_web_server.py</code>
+        <p className="glass flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-warn">
+          <ServerOff size={16} /> Can't reach the server. Start it: <code className="font-mono">uv run --extra web labs/lab11_web_server.py</code>
         </p>
       )}
       <main className="flex flex-1 flex-col gap-4 overflow-y-auto">
         {turns.length === 0 ? <EmptyState onPick={send} /> : turns.map((turn, i) => <Message key={i} turn={turn} />)}
         <div ref={bottom} />
       </main>
-      <Composer disabled={busy || serverDown} onSend={send} />
+      <Composer busy={busy} disabled={serverDown} onSend={send} />
     </div>
   );
 }
