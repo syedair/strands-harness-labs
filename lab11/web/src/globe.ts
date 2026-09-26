@@ -75,3 +75,17 @@ export function density(count: number): { star: number; glow: number; link: numb
   const f = Math.min(1, Math.sqrt(30 / Math.max(count, 1)));
   return { star: Math.max(0.4, f ** 0.7), glow: Math.max(0.4, Math.sqrt(f)), link: Math.max(0.15, f) };
 }
+
+/** Notes from KNOWLEDGE_DIR have ids starting "kb:"; everything else is a memory. */
+export const isKnowledge = (id: string) => id.startsWith("kb:");
+
+export function recallLabel(ids: string[]): string {
+  const notes = ids.filter(isKnowledge).length, memories = ids.length - notes;
+  const parts = [];
+  if (memories) parts.push(`${memories} ${memories === 1 ? "memory" : "memories"}`);
+  if (notes) parts.push(`${notes} ${notes === 1 ? "note" : "notes"}`);
+  return parts.join(", ");
+}
+
+/** The user's memories without the knowledge sections, for the list and Clear all. */
+export const memoriesOnly = (graph: MemoryGraph) => graph.nodes.filter((n) => n.kind !== "knowledge");

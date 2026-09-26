@@ -235,7 +235,7 @@ def test_the_memory_graph_reuses_the_recall_embeddings(tmp_path):
     _twenty_notes(tmp_path)
     calls = []
     embed = _fake_embed(calls)
-    memory.closest(tmp_path, {p.name: p.read_text() for p in tmp_path.glob("*.md")}, "near 3", embed)
+    memory.closest(memory._embeddings_file(tmp_path), {p.name: p.read_text() for p in tmp_path.glob("*.md")}, "near 3", embed)
     memory.graph(tmp_path, embed=embed)
     assert sum(1 for t in calls if t.startswith("note")) == 20  # embedded once, for recall; the graph read the cache
 

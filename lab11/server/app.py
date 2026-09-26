@@ -1,6 +1,7 @@
 # Lab 11: the finished travel assistant behind a web API. The React app in lab11/web talks to it.
 import json
 import logging
+import os
 import sys
 import tempfile
 from contextlib import contextmanager
@@ -15,6 +16,7 @@ from pydantic import BaseModel  # noqa: E402
 
 from agents import make_agent  # noqa: E402
 import connectors  # noqa: E402
+import knowledge  # noqa: E402
 import memory  # noqa: E402
 import skills  # noqa: E402
 from chats import ChatStore, portable_tool_ids, title_for, turns_from_messages  # noqa: E402
@@ -253,7 +255,17 @@ def harness(chat_id: str | None = None):
 
 @app.get("/api/memory")
 def memory_graph():
-    return memory.graph(DATA / "memory")
+    """Your memories, plus the sections of KNOWLEDGE_DIR (read-only) when one is set."""
+    graph = memory.graph(DATA / "memory")
+    graph["knowledge"] = None
+    found = knowledge.settings()
+    if found:
+        folder, folders = found
+        sections = knowledge.load_sections(folder, folders)
+        graph["nodes"] += [{"id": f"kb:{i}", "text": t[:300], "hits": 0, "created": 0, "kind": "knowledge"}
+                           for i, t in sections.items()]
+        graph["knowledge"] = {"dir": os.environ["KNOWLEDGE_DIR"], "sections": len(sections)}
+    return graph
 
 
 @app.delete("/api/memory")

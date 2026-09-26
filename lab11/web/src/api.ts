@@ -34,7 +34,8 @@ export type Harness = {
   connectors: { enabled: string[]; errors: { id: string; error: string }[] };
 };
 export type MemoryGraph = {
-  nodes: { id: string; text: string; hits: number; created: number }[]; // newest first
+  nodes: { id: string; text: string; hits: number; created: number; kind?: "knowledge" }[]; // newest first
+  knowledge?: { dir: string; sections: number } | null; // KNOWLEDGE_DIR, recalled read-only
   links: { source: string; target: string; weight: number; together: number }[]; // similarity + co-recall count
 };
 

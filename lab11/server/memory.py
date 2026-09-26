@@ -56,7 +56,7 @@ class WatchedStore(FileMemoryStore):
             notes = {f.name: f.read_text().strip() for f in files}
             saved = {f.name: f.stat().st_mtime for f in files}
             # retrieve the closest notes by meaning, then let System 1 rerank just those
-            pool = await asyncio.to_thread(closest, self.root, notes, query, self.embed) if notes else []
+            pool = await asyncio.to_thread(closest, _embeddings_file(self.root), notes, query, self.embed) if notes else []
             p = await asyncio.to_thread(self.relevance, query, {i: notes[i] for i in pool}) if pool else {}
             # most relevant first; on a tie the newer note wins
             ranked = sorted(((round(score, 2), saved[i], i) for i, score in p.items() if score >= 0.5), reverse=True)[:limit]
@@ -152,7 +152,7 @@ def forget_about(root: Path, about: str, judge=system1_forget, embed=None) -> li
     words = topic_words(about)
     named = [i for i, text in notes.items() if words & set(re.findall(r"[a-z0-9]+", text.lower()))]  # says it outright
     rest = {i: t for i, t in notes.items() if i not in named}
-    pool = closest(root, rest, about, embed or ollama_embed) if rest else []  # the likeliest of the rest, by meaning
+    pool = closest(_embeddings_file(root), rest, about, embed or ollama_embed) if rest else []  # the likeliest of the rest, by meaning
     scores = judge(about, {i: rest[i] for i in pool}) if pool else {}  # System 1 for the ones that say it another way
     doomed = named + [i for i in pool if scores.get(i, 0.0) >= 0.5]
     for note_id in doomed:
@@ -223,9 +223,9 @@ def _embeddings_file(root: Path) -> Path:
     return Path(root).parent / f"{Path(root).name}_embeddings.json"  # beside the notes, like the hit counts
 
 
-def note_vectors(root: Path, notes: dict[str, str], embed=ollama_embed) -> dict[str, list[float]] | None:
-    """Each note's embedding, cached beside the notes and recomputed only when a note changes. None without a model."""
-    path = _embeddings_file(root)
+def note_vectors(cache: Path, notes: dict[str, str], embed=ollama_embed) -> dict[str, list[float]] | None:
+    """Each note's embedding, cached in `cache` and recomputed only when a note changes. None without a model."""
+    path = Path(cache)
     cache = json.loads(path.read_text()) if path.exists() else {}
     fresh = {i: c for i, c in cache.items() if i in notes}  # forgotten notes drop out
     stale = [i for i in notes if fresh.get(i, {}).get("text") != notes[i]]  # new or edited notes
@@ -239,11 +239,12 @@ def note_vectors(root: Path, notes: dict[str, str], embed=ollama_embed) -> dict[
     return {i: fresh[i]["vector"] for i in notes}
 
 
-def closest(root: Path, notes: dict[str, str], query: str, embed=ollama_embed, k: int = CANDIDATES) -> list[str]:
-    """The k notes nearest the query by meaning. All of them when there are few, or no embedding model."""
+def closest(cache: Path, notes: dict[str, str], query: str, embed=ollama_embed, k: int = CANDIDATES) -> list[str]:
+    """The k notes nearest the query by meaning (embeddings cached in `cache`). All of them when there are few,
+    or no embedding model."""
     if len(notes) <= k:
         return list(notes)
-    vectors = note_vectors(root, notes, embed)
+    vectors = note_vectors(cache, notes, embed)
     asked = embed([query]) if vectors is not None else None
     if asked is None:
         return list(notes)
@@ -278,7 +279,7 @@ def graph(root: Path, embed=ollama_embed, threshold: float = 0.6, per_node: int 
     hits_file = _hits_file(root)
     hits = json.loads(hits_file.read_text()) if hits_file.exists() else {}
     ids = list(notes)
-    vectors = note_vectors(root, notes, embed) if embed else None
+    vectors = note_vectors(_embeddings_file(root), notes, embed) if embed else None
     pairs = []
     if vectors:  # every pair at once: the cosine of each note with each other
         matrix = _unit(np.array([vectors[i] for i in ids]))

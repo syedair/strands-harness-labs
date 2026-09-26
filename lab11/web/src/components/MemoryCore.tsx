@@ -10,6 +10,7 @@ const CYAN = new THREE.Color("#22D3EE");
 const ACCENT = new THREE.Color("#6EE7B7");
 const VIOLET = new THREE.Color("#A78BFA"); // a memory being stored
 const AMBER = new THREE.Color("#FBBF24"); // a memory being forgotten
+const PALE = new THREE.Color("#CBD5E1"); // a section of KNOWLEDGE_DIR, read-only
 const PRIMED = CYAN.clone().lerp(ACCENT, 0.5); // a neighbour the activation spread to
 const RADIUS = 60;
 const PARTICLES = 2600;
@@ -93,6 +94,7 @@ export function MemoryCore({ graph, fired, stored, forgotten = [], state, height
       stars = g.nodes.map((n) => {
         const p = notePoint(n.id, RADIUS * 0.72); // by id, so notes stay put when others come and go
         const sprite = new THREE.Sprite(new THREE.SpriteMaterial(glowing(CYAN, 1, texture)));
+        sprite.userData.knowledge = n.kind === "knowledge";
         sprite.position.set(p.x, p.y, p.z);
         sprite.scale.setScalar((7 + Math.log2(1 + n.hits) * 2) * dense.star);
         anchors.add(sprite);
@@ -153,10 +155,11 @@ export function MemoryCore({ graph, fired, stored, forgotten = [], state, height
         const on = hot.has(s.id);
         const saving = fresh.has(s.id);
         const warm = primed.has(s.id);
-        s.sprite.material.color = saving ? VIOLET : on ? ACCENT : warm ? PRIMED : CYAN;
+        const kb = s.sprite.userData.knowledge === true;
+        s.sprite.material.color = saving ? VIOLET : on ? ACCENT : warm ? PRIMED : kb ? PALE : CYAN;
         s.sprite.material.opacity = on || saving ? 1 : warm ? 0.95 : 0.8 * dense.glow;
         const lit = Math.max(dense.star, 0.6); // firing notes stay easy to spot among many
-        s.sprite.scale.setScalar(on || saving ? 12 * flare * lit : warm ? (9 + Math.sin(time / 300)) * lit : 7 * dense.star);
+        s.sprite.scale.setScalar(on || saving ? 12 * flare * lit : warm ? (9 + Math.sin(time / 300)) * lit : 7 * dense.star * (kb ? 0.7 : 1));
       }
       // links: co-firing (both ends recalled) is brightest; spreading (one end) is dimmer; idle shows
       // how strongly the two are wired (similar meaning + how often they were recalled together)

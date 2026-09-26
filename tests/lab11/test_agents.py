@@ -27,3 +27,21 @@ def test_the_agent_knows_where_skill_files_are(tmp_path):
 
 def test_the_agent_knows_memories_are_saved_for_it():
     assert "saved automatically" in agents.INSTRUCTIONS
+
+
+def test_knowledge_store_comes_from_the_environment(tmp_path, monkeypatch):
+    monkeypatch.delenv("KNOWLEDGE_DIR", raising=False)
+    assert agents.knowledge_for(TurnHandlers([]), tmp_path) is None
+    (tmp_path / "Memory").mkdir()
+    monkeypatch.setenv("KNOWLEDGE_DIR", str(tmp_path / "Memory"))
+    monkeypatch.setenv("KNOWLEDGE_FOLDERS", "Technical, Reference")
+    store = agents.knowledge_for(TurnHandlers([]), tmp_path / "data")
+    assert store.folders == ["Technical", "Reference"] and store.cache.parent == tmp_path / "data"
+
+
+def test_the_agent_recalls_from_both_stores(tmp_path, monkeypatch):
+    (tmp_path / "Memory").mkdir()
+    monkeypatch.setenv("KNOWLEDGE_DIR", str(tmp_path / "Memory"))
+    agent = agents.make_agent(TurnHandlers([]), "abcdef012345", SETTINGS, tmp_path / "data")
+    names = [s.name for s in agent.memory_manager._stores]
+    assert names == ["memory", "knowledge"]

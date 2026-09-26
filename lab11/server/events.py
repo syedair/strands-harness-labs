@@ -88,14 +88,14 @@ class TurnHandlers:
         self.gate = WebGate(events)
         self.check = WebCheck(events)
         self.on_recall = None  # e.g. count hits per note
-        self.last_recall: list[str] | None = None
+        self.recalled: set[frozenset] = set()  # recalls already reported this turn
         self.forgot = False  # this turn deleted memories: don't save the request to forget as a new one
 
     def recall(self, ids: list[str], texts: list[str], scores: list[float] | None = None, query: str | None = None) -> None:
         """Called by the memory store when a search returns notes: which ones, how relevant, for what."""
-        if set(ids) == set(self.last_recall or []):  # the harness searches before every model call; report changes only
+        if frozenset(ids) in self.recalled:  # every store is searched before every model call; report each once
             return
-        self.last_recall = ids
+        self.recalled.add(frozenset(ids))
         self.gate.remembered = list(dict.fromkeys(self.gate.remembered + texts))
         shown = re.split(r"\s*<system-reminder>", query or "")[0].strip()  # drop context the harness appends
         self.events.append({"type": "memory", "ids": ids, "scores": scores or [], "query": shown})
@@ -108,7 +108,7 @@ class TurnHandlers:
 
     def start_turn(self, message: str) -> None:
         self.check.request = message
-        self.last_recall = None
+        self.recalled = set()
         self.gate.remembered = []
         self.gate.blocks = 0
         self.check.guides = 0

@@ -161,3 +161,12 @@ def test_forget_everything_deletes_every_note(tmp_path):
     result = events.forget_tool(turn, tmp_path, judge=never)(about="", everything=True)
     assert list(tmp_path.glob("*.md")) == [] and "Deleted 2" in result
     assert sorted(turn.events[0]["ids"]) == ["a.md", "b.md"]
+
+
+def test_two_stores_searched_before_every_call_report_each_recall_once():
+    turn = events.TurnHandlers([])
+    turn.start_turn("Is VPC peering transitive?")
+    for _ in range(3):  # three model calls, each searching both stores
+        turn.recall(["home.md"], ["The user lives in Dubai."], [0.7], "q")
+        turn.recall(["kb:Technical/AWS.md#0"], ["VPC peering is not transitive."], [0.9], "q")
+    assert [e["ids"] for e in turn.events if e["type"] == "memory"] == [["home.md"], ["kb:Technical/AWS.md#0"]]

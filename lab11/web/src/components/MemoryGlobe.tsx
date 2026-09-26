@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { MemoryGraph } from "../api";
 import { ConfirmButton } from "./ConfirmButton";
 import { MemoryCore, type CoreState } from "./MemoryCore";
-import { showingFor, withGhosts, type Burst, type Ghosts } from "../globe";
+import { memoriesOnly, recallLabel, showingFor, withGhosts, type Burst, type Ghosts } from "../globe";
 
 const STATES: CoreState[] = ["idle", "thinking", "working", "writing"];
 export type Recall = { query: string; ids: string[]; scores: number[] };
@@ -42,7 +42,7 @@ export default function MemoryGlobe({ graph, fired, stored, forgot, recall, stat
     <div className="flex flex-col gap-1.5">
       {firing.length > 0 && (
         <p className="animate-rise flex items-center gap-2 rounded-full border border-accent/40 bg-bg-1/80 px-3 py-1 text-xs text-accent">
-          <Brain size={14} /> Recalled {firing.length} {firing.length === 1 ? "memory" : "memories"}
+          <Brain size={14} /> Recalled {recallLabel(firing)}
         </p>
       )}
       {saving.length > 0 && (
@@ -75,7 +75,13 @@ export default function MemoryGlobe({ graph, fired, stored, forgot, recall, stat
         <div className="rounded-xl border border-white/10 px-3 py-2 text-xs">
           <p className="eyebrow text-[0.6rem] text-ink-2">Last recall</p>
           <p className="mt-1 text-ink-2">Searched for <span className="text-ink">"{recall.query}"</span></p>
-          <ul className="mt-1 space-y-0.5 font-mono">
+          {graph.knowledge && (
+        <p className="text-xs text-ink-2">
+          Also recalls from <span className="font-mono text-ink">{graph.knowledge.dir}</span> · {graph.knowledge.sections} sections,
+          read-only (the pale stars)
+        </p>
+      )}
+      <ul className="mt-1 space-y-0.5 font-mono">
             {recall.ids.map((id, i) => (
               <li key={id} className="flex justify-between gap-3">
                 <span className="truncate">{id.replace(/\.md$/, "")}</span>
@@ -87,7 +93,7 @@ export default function MemoryGlobe({ graph, fired, stored, forgot, recall, stat
       )}
 
       <ul className="space-y-1.5">
-        {graph.nodes.map((n) => (
+        {memoriesOnly(graph).map((n) => (
           <li key={n.id} className={`group relative rounded-lg px-3 py-2 pr-9 transition ${
             saving.includes(n.id) ? "bg-violet/15 text-violet" : firing.includes(n.id) ? "bg-accent/15 text-accent" : "bg-black/20"}`}>
             {confirming === n.id ? (
@@ -112,9 +118,11 @@ export default function MemoryGlobe({ graph, fired, stored, forgot, recall, stat
           </li>
         ))}
       </ul>
-      {graph.nodes.length > 0 && (
-        <ConfirmButton label="Clear all memory" onConfirm={onForgetAll}
-                       question={`Forget all ${graph.nodes.length} memories?`} />
+      {memoriesOnly(graph).length > 0 && (
+        <div className="sticky -bottom-4 -mx-4 bg-bg-1/95 px-4 py-3 backdrop-blur"> {/* pinned, like Clear all chats */}
+          <ConfirmButton label="Clear all memory" onConfirm={onForgetAll}
+                         question={`Forget all ${memoriesOnly(graph).length} memories?`} />
+        </div>
       )}
 
       {expanded && (
@@ -124,7 +132,7 @@ export default function MemoryGlobe({ graph, fired, stored, forgot, recall, stat
             <X size={18} />
           </button>
           <p className="eyebrow mt-10 text-xs">
-            Core · {state} · {graph.nodes.length} memories{firing.length > 0 ? ` · recalled ${firing.length}` : ""}
+            Core · {state} · {memoriesOnly(graph).length} memories{firing.length > 0 ? ` · recalled ${firing.length}` : ""}
             {saving.length > 0 ? " · storing" : ""}
           </p>
           <div className="w-full flex-1">{core(Math.round(window.innerHeight * 0.66), true)}</div>
