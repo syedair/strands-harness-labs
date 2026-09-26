@@ -7,7 +7,7 @@ from strands import tool
 from strands.interventions import Deny, Proceed
 
 from lab7_tool_call_gate import ToolCallGate
-from lab8_completion_check import CompletionCheck
+from lab8_completion_check import ASKED, CompletionCheck
 
 # Which probability explains each gate decision (the reasons come from lab 7's ToolCallGate.block).
 RULE_PROB = {
@@ -23,7 +23,10 @@ def decision(source: str, action, probs: dict[str, float], why: str | None = Non
         why = None
     elif why is None:
         why = getattr(action, "reason", None)
-    key = "answered_everything" if source == "check" else RULE_PROB.get(why, "args_grounded")
+    if source == "check":
+        key = "waiting" if why == ASKED else "answered_everything"
+    else:
+        key = RULE_PROB.get(why, "args_grounded")
     return {"type": "decision", "source": source, "action": kind, "why": why,
             "p": round(probs[key], 2) if key in probs else None, "probs": {k: round(v, 2) for k, v in probs.items()}}
 
@@ -72,8 +75,9 @@ class WebCheck(CompletionCheck):
             event = SimpleNamespace(stop_response=event.stop_response, agent=SimpleNamespace(messages=[current]))
         action = super().after_model_call(event)
         if self.last_probs is not None:
-            gave_up = isinstance(action, Proceed) and self.last_probs["answered_everything"] < 0.6
-            why = f"gave up after {self.MAX_GUIDES} retries" if gave_up else None  # not a pass: out of retries
+            gave_up = (isinstance(action, Proceed) and self.last_why is None
+                       and self.last_probs["answered_everything"] < self.PASS)
+            why = self.last_why or (f"gave up after {self.MAX_GUIDES} retries" if gave_up else None)
             self.events.append(decision("check", action, self.last_probs, why=why))
         return action
 

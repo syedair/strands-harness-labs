@@ -108,7 +108,7 @@ def test_web_gate_records_tool_and_decision(monkeypatch):
 
 def test_web_check_records_only_judged_turns(monkeypatch):
     import lab8_completion_check as lab8
-    monkeypatch.setattr(lab8, "yes_no", lambda s, q: 0.2)
+    monkeypatch.setattr(lab8, "yes_no_many", lambda s, q: {"waiting": 0.05, "answered_everything": 0.2})
     events = []
     check = server.WebCheck(events)
     tool_turn = SimpleNamespace(stop_response=SimpleNamespace(stop_reason="tool_use", message={"content": []}),
@@ -268,3 +268,16 @@ def test_the_memory_graph_includes_knowledge_sections(client, monkeypatch, tmp_p
 def test_without_a_knowledge_folder_the_graph_is_just_memory(client, monkeypatch, tmp_path):
     monkeypatch.setattr(server, "DATA", tmp_path)
     assert client.get("/api/memory").json()["knowledge"] is None
+
+
+def test_web_check_says_when_the_model_asked_the_user(monkeypatch):
+    import lab8_completion_check as lab8
+    monkeypatch.setattr(lab8, "yes_no_many", lambda s, q: {"waiting": 0.93, "answered_everything": 0.1})
+    events = []
+    check = server.WebCheck(events)
+    check.request = "What should I pack, and what's the weather?"
+    final = SimpleNamespace(stop_response=SimpleNamespace(stop_reason="end_turn",
+                                                          message={"content": [{"text": "Which city?"}]}),
+                            agent=SimpleNamespace(messages=[]))
+    check.after_model_call(final)
+    assert events[0]["action"] == "proceed" and events[0]["why"] == lab8.ASKED and events[0]["p"] == 0.93
