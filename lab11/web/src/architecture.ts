@@ -13,7 +13,7 @@ export const NODES: ArchNode[] = [
   { id: "server", label: "App server", detail: "FastAPI, streams events", x: 330, y: 190, tone: "plain" },
   { id: "agent", label: "Agent", detail: "orchestrates every step", x: 730, y: 190, tone: "plain", inHarness: true, labelAbove: true }, // links leave downwards
   { id: "session", label: "Session", detail: "chat history on disk", x: 548, y: 420, tone: "plain", inHarness: true },
-  { id: "memory", label: "Memory", detail: "markdown notes", x: 730, y: 420, tone: "plain", inHarness: true },
+  { id: "memory", label: "Memory", detail: "notes + embeddings", x: 730, y: 420, tone: "plain", inHarness: true },
   { id: "skills", label: "Skills", detail: "packing-list, yours…", x: 912, y: 420, tone: "plain", inHarness: true },
   { id: "system1", label: "System 1", detail: "Qwen · Jev · Kev · Laya", x: 1236, y: 80, tone: "s1" },
   { id: "llm", label: "LLM", detail: "Kimi K2.5 on Bedrock", x: 1236, y: 250, tone: "llm" },
