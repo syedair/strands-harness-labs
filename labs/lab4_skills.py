@@ -25,7 +25,7 @@ def main() -> None:
         chat(agent)
         return
 
-    agent("I'm going to Istanbul next week for 4 days. What should I pack?")
+    agent("I'm going to Rome next week for 4 days. What should I pack?")
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ import { CloudSun, Luggage, MapPin, Sparkles } from "lucide-react";
 const SUGGESTIONS = [
   { text: "What's the weather?", Icon: CloudSun },
   { text: "What's the weather in Paris?", Icon: MapPin },
-  { text: "Pack for 4 days in Istanbul", Icon: Luggage },
+  { text: "Pack for 4 days in Rome", Icon: Luggage },
 ];
 
 export function EmptyState({ onPick }: { onPick: (text: string) => void }) {

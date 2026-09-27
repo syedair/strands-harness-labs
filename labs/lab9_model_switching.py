@@ -79,7 +79,7 @@ def main() -> None:
         return
 
     for question in ["What's the weather in Paris?",
-                     "Plan a 5-day Istanbul itinerary under $1000, with a day trip and where to stay."]:
+                     "Plan a 5-day Rome itinerary under $1000, with a day trip and where to stay."]:
         print(f"\nyou: {question}")
         agent(question)
 

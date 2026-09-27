@@ -140,7 +140,7 @@ COMMON = {"the", "and", "about", "user", "users", "my", "our", "me", "that", "th
 
 
 def topic_words(about: str) -> set[str]:
-    """The words that make a note obviously about the topic ("Istanbul", "John"); not "the" or "user"."""
+    """The words that make a note obviously about the topic ("Rome", "John"); not "the" or "user"."""
     return {w for w in re.findall(r"[a-z0-9]+", about.lower()) if len(w) >= 3 and w not in COMMON}
 
 

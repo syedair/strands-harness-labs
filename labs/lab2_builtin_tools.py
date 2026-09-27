@@ -26,7 +26,7 @@ def main() -> None:
         chat(agent)
         return
 
-    agent("What's the weather in Istanbul right now?")
+    agent("What's the weather in Rome right now?")
 
 
 if __name__ == "__main__":
