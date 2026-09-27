@@ -26,6 +26,24 @@ Measured on an Apple M4 Max (51 GB), Kev-4B as teacher, 764 Kev-labelled questio
 Labelling took 86 s; training 127 s; peak GPU memory 10.8 GB; speed unchanged (~18 ms per question).
 Beach barely improved with 164 destinations: the lab says so rather than hiding it.
 
+## Where the recipe comes from
+
+Laya's fine-tuning notebook is copied unchanged, with its Apache-2.0 licence and source commit, to
+`docs/reference/laya/` so viewers can open it. It trains on `LocalLLaMA/typed-decisions`, whose labels come from "a
+teacher endpoint of roughly 4B-class capability" (not named on the dataset card), sampled 3 times at temperature 0.7
+and averaged. Lab 10b follows the same recipe with Kev-4B as the teacher. The lab and README say two things plainly:
+
+- **We don't know which model labelled Laya's dataset.** We don't claim it was Kev.
+- **Kev is deterministic** (identical probabilities on repeat calls), so averaging 3 samples would change nothing; we
+  take one. The dataset card warns its scores measure agreement with the teacher, not correctness. Lab 10b tests
+  against lab 10's hand-checked answers instead, so its before/after measures being right.
+
+## Script, not notebook
+
+The lab is a Python script, like every other lab: it runs with `uv run`, pauses between steps for narration, is
+tested, and doesn't need Jupyter. The video opens the reference notebook to show where the recipe comes from, then
+runs the script.
+
 ## Hardware and requirements (stated in the README and printed by the lab)
 
 - **Measured:** Apple Silicon (M4 Max), PyTorch on the Apple GPU (MPS): ~2 minutes, 10.8 GB peak.
@@ -63,7 +81,7 @@ Flags: `--skip-train` re-runs step 4 with the saved model. `EPOCHS` env var (def
 - `labs/lab10b_finetune_laya.py`: the four steps, readable top to bottom, numbered comments like labs 6–10.
 - `labs/common/travel_data.py`: the destination list, message templates and `training_questions()`; no model code.
 - `labs/common/laya_train.py`: `train(items, out_dir, epochs, device)` and `fit_temperature()`, adapted from Laya's
-  notebook with a link and credit (Laya is MIT; the notebook's loop is credited in the file and README).
+  notebook, with a link and credit in the file and README (Laya is Apache-2.0).
 - `labs/common/system1.py`: a `laya-travel` backend (loads `laya.Agent(models/laya-travel)` once, cached).
 - `labs/common/showdown.py`: the optional fifth contender.
 
