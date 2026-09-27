@@ -5,7 +5,7 @@
 #   ollama/<name>  a small local chat model as a stand-in (one token + its logprobs)
 #   jev            TypeSafe's hosted System 1 model (TYPESAFE_API_KEY)
 #   kev            an open Jev-alike served on your machine (KEV_URL)
-#   laya           an open, BERT-based System 1 model (uv sync --extra laya)
+#   laya           an open, BERT-based System 1 model (uv sync --extra laya --inexact)
 #   laya-travel    Laya fine-tuned on travel questions by lab 10b
 import functools
 import importlib.util
@@ -13,6 +13,7 @@ import math
 import os
 import subprocess
 import sys
+import threading
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -22,6 +23,7 @@ import httpx
 from common import config
 
 JEV_URL = "https://api.typesafe.ai/v1/systemone"
+_LAYA_LOCK = threading.Lock()
 KEV_SCRIPT = Path(__file__).resolve().parents[2] / "kev.sh"
 
 
@@ -133,9 +135,11 @@ def _backend(model: str | None) -> tuple[str, str | None]:
 def _typed_answers(backend: str, state: str, questions: dict) -> dict:
     """Jev, Kev and Laya all take typed questions and answer them in one pass."""
     if backend == "laya-travel":
-        return _laya_travel().predict(state, questions)["answers"]
+        with _LAYA_LOCK:  # the same GPU rule as plain Laya: one caller at a time
+            return _laya_travel().predict(state, questions)["answers"]
     if backend == "laya":
-        return _laya_router().predict(state, questions)["answers"]
+        with _LAYA_LOCK:  # Laya runs on the GPU in this process: two callers at once crash Metal on a Mac
+            return _laya_router().predict(state, questions)["answers"]
     if backend == "jev":
         payload = {"state": state, "model": "jev-latest", "questions": questions}
         headers = {"Authorization": f"Bearer {os.environ['TYPESAFE_API_KEY']}"}

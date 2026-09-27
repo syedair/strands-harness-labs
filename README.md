@@ -49,7 +49,7 @@ Labs 6–9 use `SYSTEM1_MODEL` as the classifier. Pick one in `.env`:
 | `ollama/qwen3.5:4b` (default) | A small local chat model as a **stand-in**: one token + its probabilities | `ollama pull qwen3.5:4b` |
 | `jev` | TypeSafe's hosted System 1 model (paid) | `TYPESAFE_API_KEY=...` in `.env` ([typesafe.ai](https://typesafe.ai)) |
 | `kev` | [Kev](https://github.com/jaredpalmer/kev), an open Jev-alike on your machine (Kev-4B needs a 32 GB Mac) | `./kev.sh start` (the labs offer to run it) |
-| `laya` | [Laya](https://github.com/NandhaKishorM/laya), an open BERT-based System 1 model | `uv sync --extra laya` |
+| `laya` | [Laya](https://github.com/NandhaKishorM/laya), an open BERT-based System 1 model | `uv sync --extra laya --inexact` |
 | `laya-travel` | Laya fine-tuned on travel questions by lab 10b | run lab 10b once |
 
 The labs don't change: `yes_no()` and `choice()` in `labs/common/system1.py` send the same questions to
@@ -123,7 +123,7 @@ measures that. The same questions, five ways:
 |---|---|---|
 | `labs/lab6a_jev.py` | Jev, TypeSafe's hosted System 1 model, through its Python SDK | `TYPESAFE_API_KEY` in `.env` |
 | `labs/lab6b_kev.py` | Kev: same SDK, same questions — only the URL changes | Kev server running (below) |
-| `labs/lab6c_laya.py` | Laya: a different open model family, same question shapes | `uv sync --extra laya` |
+| `labs/lab6c_laya.py` | Laya: a different open model family, same question shapes | `uv sync --extra laya --inexact` |
 | `labs/lab6d_qwen_stand_in.py` | No System 1 model? Ask a small chat model for one token and read its probabilities | `ollama pull qwen3.5:4b` |
 | `labs/lab6e_standardized.py` | One helper (`yes_no`, `choice`) for all four; switch with `SYSTEM1_MODEL` | any of the above |
 
