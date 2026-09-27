@@ -12,3 +12,5 @@ lab11/seed_memory.py
 lab11/server.log
 models/
 lab11/web.log
+docs/video/
+.DS_Store
