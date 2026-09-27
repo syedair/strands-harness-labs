@@ -19,8 +19,9 @@ def test_training_questions_share_nothing_with_lab_10():
 
 def test_every_tool_call_is_asked_both_ways_and_covers_all_three_kinds():
     pairs = travel_data.training_questions()
+    lab10_format = lambda s: "web_fetch(url=" in s
     calls = [s for s, q in pairs if q == ABSTRACT_Q]
-    assert sorted(calls) == sorted(s for s, q in pairs if q == CONCRETE_Q)
+    assert sorted(calls) == sorted(s for s, q in pairs if q == CONCRETE_Q and lab10_format(s))
     kinds = set()
     for call in calls:
         user, city = re.match(r"user: (.*)\n\nProposed tool call: .*wttr\.in/(\w+)", call).groups()
@@ -53,3 +54,14 @@ def test_label_cache_is_rebuilt_when_questions_or_teacher_change(tmp_path):
 def test_no_training_place_is_part_of_a_held_out_one():
     # Waikiki is in Honolulu and Copacabana in Rio de Janeiro, both in lab 10's beach round
     assert not {"Waikiki", "Copacabana"} & set(travel_data.PLACES)
+
+
+def test_lab_7s_gate_questions_are_trained_in_lab_7s_own_format():
+    import lab7_tool_call_gate as lab7
+
+    pairs = travel_data.training_questions()
+    gate_format = r'user: .+\n\nProposed tool call: web_fetch\(\{"url": "https://wttr\.in/\w+\?format=3"\}\)'
+    for key, question in lab7.QUESTIONS.items():
+        states = [s for s, q in pairs if q == question and re.fullmatch(gate_format, s)]
+        assert len(states) == 300, key  # what before_tool_call shows System 1
+        assert not {re.search(r"wttr\.in/(\w+)", s).group(1) for s in states} & HELD_OUT_CITIES
