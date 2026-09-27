@@ -7,15 +7,13 @@
 import time
 
 from common.show import COIN_FLIP, brier_row, wait
-from common.showdown import BEACH, TOOL_CALLS, contenders, score
+from common.showdown import ABSTRACT_Q, BEACH, BEACH_Q, CONCRETE_Q, TOOL_CALLS, contenders, score
 
 ROUNDS = [
-    ("Beach destinations", BEACH, "Is this primarily a beach or tropical holiday destination?"),
+    ("Beach destinations", BEACH, BEACH_Q),
     # The same tool calls, asked two ways: small models need concrete questions.
-    ("Tool calls, abstract question", TOOL_CALLS,
-     "Are the tool's argument values based on facts the user actually provided?"),
-    ("Tool calls, concrete question", TOOL_CALLS,
-     "Did the user mention the same city that the tool call uses?"),
+    ("Tool calls, abstract question", TOOL_CALLS, ABSTRACT_Q),
+    ("Tool calls, concrete question", TOOL_CALLS, CONCRETE_Q),
 ]
 
 

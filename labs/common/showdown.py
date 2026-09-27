@@ -17,6 +17,12 @@ BEACH = {
 }
 
 
+# Lab 10's three questions (lab 10b trains on them too, with different examples).
+BEACH_Q = "Is this primarily a beach or tropical holiday destination?"
+ABSTRACT_Q = "Are the tool's argument values based on facts the user actually provided?"
+CONCRETE_Q = "Did the user mention the same city that the tool call uses?"
+
+
 def _call(user: str, city: str) -> str:
     return f'user: {user}\n\nProposed tool call: web_fetch(url="https://wttr.in/{city}?format=3")'
 
