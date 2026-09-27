@@ -6,14 +6,8 @@ Excalidraw app, VS Code or Obsidian, and edit freely. The `.png` next to each is
 
 Every number on them comes from a real run of the labs (September 2026) or a source printed on the diagram.
 
-## Rebuild
+## How they're made
 
-`make_diagrams.py` builds all of them with the
+They're built from Python with the
 [excalidraw-diagrams skill](https://github.com/syedair/syedair-skills/tree/main/excalidraw-diagrams), which also
-checks the layout. With the skill in `~/.claude/skills/excalidraw-diagrams` (or `EXCALIDRAW_DIAGRAMS` pointing at it),
-from the repo root:
-
-```bash
-uv run --with fonttools --with brotli --with playwright python docs/diagrams/make_diagrams.py
-uv run --with playwright python ~/.claude/skills/excalidraw-diagrams/scripts/render.py docs/diagrams/*.excalidraw
-```
+checks the layout; its `examples/lab_series.py` is the spec that makes these.
