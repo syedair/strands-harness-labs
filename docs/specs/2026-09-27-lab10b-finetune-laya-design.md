@@ -13,6 +13,13 @@ The message for the video, in order:
 3. We don't hand-label: Kev (slow, good) labels the examples, and Laya (fast) learns from it. That's distillation.
 4. On lab 10's held-out questions, fine-tuned Laya gets close to Kev at a fraction of the time.
 
+## Update after building it
+
+The final lab also trains on lab 7's four gate questions (in the gate's own format), so `SYSTEM1_MODEL=laya-travel`
+runs lab 7 properly: 1,955 questions, ~3 min labelling, ~6 min training, 14.1 GB peak on an M4 Max. Hardware
+guidance rose to Apple Silicon 24 GB+ / NVIDIA 16 GB+. Starting from `laya-typed-decisions` was measured and
+rejected (no better on travel). Numbers are in the README.
+
 ## Evidence (feasibility spike, 2026-09-27)
 
 Measured on an Apple M4 Max (51 GB), Kev-4B as teacher, 764 Kev-labelled questions, 4 epochs, lab 10's held-out sets:
