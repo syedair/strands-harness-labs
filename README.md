@@ -50,9 +50,10 @@ Labs 6–9 use `SYSTEM1_MODEL` as the classifier. Pick one in `.env`:
 | `jev` | TypeSafe's hosted System 1 model (paid) | `TYPESAFE_API_KEY=...` in `.env` ([typesafe.ai](https://typesafe.ai)) |
 | `kev` | [Kev](https://github.com/jaredpalmer/kev), an open Jev-alike on your machine (Kev-4B needs a 32 GB Mac) | `./kev.sh start` (the labs offer to run it) |
 | `laya` | [Laya](https://github.com/NandhaKishorM/laya), an open BERT-based System 1 model | `uv sync --extra laya` |
+| `laya-travel` | Laya fine-tuned on travel questions by lab 10b | run lab 10b once |
 
 The labs don't change: `yes_no()` and `choice()` in `labs/common/system1.py` send the same questions to
-whichever you pick. Lab 10 runs all four side by side.
+whichever you pick. Lab 10 runs all four side by side (five, once lab 10b has trained Laya).
 
 ## 📚 Lab Overview
 
@@ -169,6 +170,39 @@ Contenders you haven't set up are skipped with a one-line hint.
 **Video:** _coming soon_
 **Setup:** the same as lab 6a–6d; each contender is optional.
 **Run:** `uv run labs/lab10_system1_showdown.py`
+
+### Lab 10b: Fine-tune Laya on Travel Data
+**File:** `labs/lab10b_finetune_laya.py`
+Laya is the fastest System 1 model here and the weakest out of the box. Its own docs say to treat it as a fast base
+to specialise. So we do: Kev labels a few hundred travel questions, Laya learns from Kev's probabilities
+(distillation), and we re-run lab 10's rounds on questions it never trained on.
+**What's new:** fine-tuning a System 1 model on your own data; `SYSTEM1_MODEL=laya-travel` to use it in labs 6e–9
+**Needs:** `uv sync --extra laya --inexact`; a teacher (Kev running, or `TEACHER=jev` with `TYPESAFE_API_KEY`)
+
+| Hardware | Status |
+|---|---|
+| Apple M4 Max (51 GB), Apple GPU | measured: ~2 min training, 12.2 GB peak |
+| Apple Silicon with 16 GB+ | should work (not measured) |
+| NVIDIA GPU with 12 GB+ | should work (not measured) |
+| CPU only | works, slowly (not measured) |
+
+Measured on an M4 Max, Kev-4B as teacher, 757 new travel questions (Brier · accuracy on lab 10's held-out questions,
+none used in training):
+
+| Round | Base Laya | Fine-tuned Laya | Kev (teacher) |
+|---|---|---|---|
+| Beach destinations (44) | 0.137 · 80% | 0.092 · 86% | 0.032 · 98% |
+| Tool calls, abstract (12) | 0.240 · 67% | 0.133 · 92% | 0.098 · 83% |
+| Tool calls, concrete (12) | 0.230 · 67% | 0.018 · 100% | 0.015 · 100% |
+
+Labelling took 80 s (cached for re-runs), training 122 s; Laya stays at ~15–20 ms per question, Kev ~100–130 ms.
+It learns the questions it was trained on: with `SYSTEM1_MODEL=laya-travel`, lab 7's other gate questions are still
+zero-shot.
+
+The recipe is Laya's own: its fine-tuning notebook is in `docs/reference/laya/` (Apache-2.0), with notes on how
+lab 10b differs.
+**Video:** _coming soon_
+**Run:** `uv run labs/lab10b_finetune_laya.py` (then `--skip-train` to only compare; `EPOCHS=` to change the length)
 
 ### Lab 11: The Harness App
 **Folder:** `lab11/` — `server/` (FastAPI) and `web/` (React + Vite + Tailwind, lucide icons)
@@ -295,6 +329,7 @@ inputs until the API returned `max_tokens_exceeded`.
 - The lab 11 UI uses the Developer Studio theme from the author's ContentCreationKit.
 - [Mike Chambers — jev-strands-video](https://github.com/mikegc-aws/jev-strands-video) (MIT): the System 1 + Strands interventions pattern that labs 7–9 rebuild on the harness.
 - [TypeSafe Jev](https://typesafe.ai), [Kev](https://github.com/jaredpalmer/kev), [Laya](https://github.com/NandhaKishorM/laya).
+- [Laya](https://github.com/NandhaKishorM/laya) (Apache-2.0): lab 10b adapts its fine-tuning notebook (copy in `docs/reference/laya/`).
 - The beach-destination set in lab 10 comes from the author's `systemone-model-typesafeai` demo.
 - [Strands Agents](https://strandsagents.com) and the [Strands harness](https://github.com/strands-agents/harness-sdk/tree/main/harness-py),
   built on the [Strands Harness SDK](https://github.com/strands-agents/harness-sdk).
