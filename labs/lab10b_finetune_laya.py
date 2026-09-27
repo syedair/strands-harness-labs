@@ -6,7 +6,7 @@
 # That's distillation. Then we re-run lab 10's rounds on questions Laya never trained on.
 #
 # Needs: Laya (uv sync --extra laya --inexact), a teacher (Kev running, or TEACHER=jev with TYPESAFE_API_KEY),
-# and a GPU: measured ~2 minutes and ~11 GB on an Apple M4 Max. On CPU it runs, but slowly.
+# and a GPU: measured ~2 minutes and ~11 GB of GPU memory on an Apple M4 Max. On CPU it runs, but slowly.
 # The recipe comes from Laya's own notebook: docs/reference/laya/.
 import os
 import sys
@@ -16,7 +16,7 @@ from functools import partial
 from common import config
 from common.show import brier_row, wait
 from common.showdown import score
-from common.system1 import check_system1, display_name, laya_installed, unavailable, yes_no
+from common.system1 import check_system1, display_name, laya_installed, quiet_laya, unavailable, yes_no
 from common.travel_data import label, training_questions
 from lab10_system1_showdown import ROUNDS, verdict
 
@@ -47,6 +47,7 @@ def main() -> None:
     if not laya_installed():  # a cheap check: loading Laya here would sit on the GPU during training
         print("Laya isn't installed. Run: uv sync --extra laya --inexact")
         sys.exit(1)
+    quiet_laya()  # no download bars or calibration warnings on screen
     import laya
 
     from common import laya_train  # needs torch, which the laya extra brings

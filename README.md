@@ -181,21 +181,22 @@ to specialise. So we do: Kev labels a few hundred travel questions, Laya learns 
 
 | Hardware | Status |
 |---|---|
-| Apple M4 Max (51 GB), Apple GPU | measured: ~2 min training, 12.2 GB peak |
+| Apple M4 Max, Apple GPU | measured: ~2 min training, 10.9 GB peak GPU memory |
 | Apple Silicon with 16 GB+ | should work (not measured) |
 | NVIDIA GPU with 12 GB+ | should work (not measured) |
 | CPU only | works, slowly (not measured) |
 
-Measured on an M4 Max, Kev-4B as teacher, 757 new travel questions (Brier · accuracy on lab 10's held-out questions,
-none used in training):
+Measured on an M4 Max, Kev-4B as teacher, 755 new travel questions (Brier · accuracy on lab 10's held-out questions).
+None of those questions is in the training data: new places and new cities, though the tool calls use similar
+phrasings ("What's the weather in …?"), so read round 3 as "learned this kind of question":
 
 | Round | Base Laya | Fine-tuned Laya | Kev (teacher) |
 |---|---|---|---|
-| Beach destinations (44) | 0.137 · 80% | 0.092 · 86% | 0.032 · 98% |
-| Tool calls, abstract (12) | 0.240 · 67% | 0.133 · 92% | 0.098 · 83% |
-| Tool calls, concrete (12) | 0.230 · 67% | 0.018 · 100% | 0.015 · 100% |
+| Beach destinations (44) | 0.137 · 80% | 0.104 · 84% | 0.032 · 98% |
+| Tool calls, abstract (12) | 0.240 · 67% | 0.121 · 92% | 0.098 · 83% |
+| Tool calls, concrete (12) | 0.230 · 67% | 0.028 · 100% | 0.015 · 100% |
 
-Labelling took 80 s (cached for re-runs), training 122 s; Laya stays at ~15–20 ms per question, Kev ~100–130 ms.
+Labelling took 83 s (cached for re-runs), training 121 s; Laya stays at ~15–20 ms per question, Kev ~100–130 ms.
 It learns the questions it was trained on: with `SYSTEM1_MODEL=laya-travel`, lab 7's other gate questions are still
 zero-shot.
 

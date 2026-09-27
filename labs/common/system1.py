@@ -163,7 +163,7 @@ def laya_installed() -> bool:
     return importlib.util.find_spec("laya") is not None
 
 
-def _quiet_laya() -> None:
+def quiet_laya() -> None:
     os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")  # quiet the model download check
     # Laya warns that its confidence values are uncalibrated; we only use its probabilities.
     warnings.filterwarnings("ignore", message="laya: this checkpoint")
@@ -171,7 +171,7 @@ def _quiet_laya() -> None:
 
 @functools.cache
 def _laya_router():
-    _quiet_laya()
+    quiet_laya()
     try:
         from laya import Router
     except ImportError:
@@ -182,7 +182,7 @@ def _laya_router():
 @functools.cache
 def _laya_travel():
     """Lab 10b's fine-tuned Laya, loaded once."""
-    _quiet_laya()
+    quiet_laya()
     import laya
 
     return laya.Agent(str(config.LAYA_TRAVEL_DIR))
