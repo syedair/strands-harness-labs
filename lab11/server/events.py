@@ -132,7 +132,7 @@ def forget_tool(turn: TurnHandlers, notes: Path, judge=None):
 
         Args:
             about: The topic in the user's own words, plus any names or values you remember for it,
-                e.g. "Istanbul" or "my name (John, Syed)". Don't narrow it to one memory.
+                e.g. "Rome" or "my name (John, Syed)". Don't narrow it to one memory.
             everything: True only when the user clearly asks you to forget everything you know about them.
         """
         before = {p.name: p.read_text().strip() for p in Path(notes).glob("*.md")}

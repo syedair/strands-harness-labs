@@ -29,7 +29,7 @@ questions = {
 more = [
     """user: What's the weather in Paris?
 assistant wants to call: web_fetch(url="https://wttr.in/Paris?format=3")""",
-    "user: I'm flying to Istanbul tomorrow morning, what should I pack?",
+    "user: I'm flying to Rome tomorrow morning, what should I pack?",
     "user: Maybe plan a trip to Japan next year?",
 ]
 

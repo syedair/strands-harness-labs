@@ -36,7 +36,7 @@ def user_turns(messages: list[dict]) -> list[str]:
 
 
 def request_state(turns: list[str], answer: str) -> str:
-    """What System 1 reads. A short reply like "Istanbul" only makes sense with what came before it."""
+    """What System 1 reads. A short reply like "Rome" only makes sense with what came before it."""
     earlier = "".join(f"Earlier, the user said: {t}\n" for t in turns[-3:-1])
     return f"{earlier}User request: {turns[-1] if turns else ''}\n\nAssistant answer: {answer}"
 
@@ -113,7 +113,7 @@ def main() -> None:
         chat(agent, print_reply=True)
         return
 
-    question = "What's the weather in Istanbul, and what should I pack for 4 days there?"
+    question = "What's the weather in Rome, and what should I pack for 4 days there?"
     print(f"\nyou: {question}")
     print(f"\nassistant: {str(agent(question)).strip()}")
 

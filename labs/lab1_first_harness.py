@@ -31,7 +31,7 @@ def main() -> None:
         chat(agent)
         return
 
-    agent("I have a free weekend in March. Suggest one city break from Dubai and why.")
+    agent("I have a free weekend in March. Suggest one city break from London and why.")
 
 
 if __name__ == "__main__":

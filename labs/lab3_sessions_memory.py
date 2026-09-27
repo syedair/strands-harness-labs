@@ -31,7 +31,7 @@ def main() -> None:
     # Run 1: uv run labs/lab3_sessions_memory.py tell
     # Run 2: uv run labs/lab3_sessions_memory.py ask   (a fresh process — nothing in RAM)
     if sys.argv[1:] == ["tell"]:
-        agent("By the way, I live in Dubai.")
+        agent("By the way, I live in London.")
     else:
         agent("What's the weather like at home today?")
 
