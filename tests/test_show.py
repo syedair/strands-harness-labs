@@ -94,3 +94,14 @@ def test_checklist_can_show_a_rule_that_isnt_judged(capsys):
     checklist([("answered everything?", 0.10, None)], threshold=0.6)
     line = capsys.readouterr().out
     assert "0.10" in line and "not judged" in line and "✗" not in line and "✓" not in line
+
+
+def test_brier_row_draws_the_score_against_a_coin_flip(capsys):
+    from common.show import brier_row
+
+    brier_row("jev (paid)", 0.048, 0.93, 363, width=20)
+    brier_row("qwen3.5 (stand-in)", 0.341, 0.58, 136, width=20)
+    good, bad = capsys.readouterr().out.splitlines()
+    assert "jev (paid)" in good and "0.048" in good and "93%" in good and "363 ms" in good
+    assert good.count("│") == 1  # the coin-flip mark
+    assert "worse than a coin flip" in bad and "worse than a coin flip" not in good

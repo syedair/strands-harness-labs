@@ -11,6 +11,7 @@ import math
 import os
 import subprocess
 import sys
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -148,6 +149,9 @@ def _kev_up() -> bool:
 
 @functools.cache
 def _laya_router():
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")  # quiet the model download check
+    # Laya warns that its confidence values are uncalibrated; we only use its probabilities.
+    warnings.filterwarnings("ignore", message="laya: this checkpoint")
     try:
         from laya import Router
     except ImportError:

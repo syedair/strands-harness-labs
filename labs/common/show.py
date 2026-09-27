@@ -77,3 +77,14 @@ def show(conversation: str, questions: dict, answers: dict, threshold: float = 0
                 print(f"          {legend[level]:14}{_paint(bar(p), 'dim')}  {p:.2f}")
             top = max(legend)
             print(f"          {'score':14}{_get(answer, 'score'):.2f}  (0 = {legend[0]}, {top} = {legend[top]})")
+
+
+COIN_FLIP = 0.25  # the Brier score of always answering 0.5
+
+
+def brier_row(name: str, brier: float, accuracy: float, ms: float, width: int = 20, scale: float = 0.4) -> None:
+    """One model's score: a bar for its Brier score (shorter is better), with a coin flip marked."""
+    worse = brier >= COIN_FLIP
+    drawn = _paint(bar(min(brier, scale) / scale, threshold=COIN_FLIP / scale), "red" if worse else "green")
+    note = _paint("  ✗ worse than a coin flip", "red") if worse else ""
+    print(f"  {name:{width}}{drawn}  {brier:.3f}   {accuracy:4.0%}   {ms:4.0f} ms{note}")

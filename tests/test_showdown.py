@@ -46,3 +46,13 @@ def test_contender_asks_its_own_backend(monkeypatch):
     for _, ask in showdown.contenders():
         ask("state", "Q?")
     assert seen == ["jev", "kev", "laya", "ollama/qwen3.5:4b"]
+
+
+def test_verdict_names_the_best_and_anyone_worse_than_a_coin_flip():
+    import lab10_system1_showdown as lab10
+
+    rows = [("jev (paid)", 0.029), ("kev-4b (open)", 0.098), ("qwen3.5 (stand-in)", 0.341)]
+    text = lab10.verdict(rows)
+    assert "jev (paid)" in text.split("\n")[0]
+    assert "qwen3.5 (stand-in)" in text and "coin flip" in text
+    assert "worse than a coin flip" not in lab10.verdict(rows[:2])
