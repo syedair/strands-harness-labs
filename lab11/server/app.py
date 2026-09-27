@@ -25,7 +25,8 @@ from common.config import MAIN_MODEL, check_ollama  # noqa: E402
 from common.system1 import unavailable  # noqa: E402
 from events import TurnHandlers, WebCheck, WebGate, decision  # noqa: E402,F401  (re-exported for tests)
 
-SYSTEM1_CHOICES = [("ollama/qwen3.5:4b", "Qwen stand-in"), ("jev", "Jev"), ("kev", "Kev"), ("laya", "Laya")]
+SYSTEM1_CHOICES = [("ollama/qwen3.5:4b", "Qwen stand-in"), ("jev", "Jev"), ("kev", "Kev"), ("laya", "Laya"),
+                   ("laya-travel", "Laya (fine-tuned)")]
 MODEL_CHOICES = [
     ("bedrock/moonshotai.kimi-k2.5", "Kimi K2.5"),
     ("bedrock/nvidia.nemotron-super-3-120b", "Nemotron Super"),

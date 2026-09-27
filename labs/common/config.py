@@ -1,6 +1,7 @@
 # Shared settings for every lab, read from .env.
 import os
 import sys
+from pathlib import Path
 
 import httpx
 from dotenv import load_dotenv
@@ -13,6 +14,9 @@ SMALL_MODEL = os.environ.get("SMALL_MODEL", "bedrock/moonshotai.kimi-k2.5")
 BIG_MODEL = os.environ.get("BIG_MODEL", "bedrock/us.moonshotai.kimi-k3")
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
 KEV_URL = os.environ.get("KEV_URL", "http://127.0.0.1:8009")
+# Lab 10b: who labels the training data (kev or jev); where it saves the fine-tuned Laya (gitignored).
+TEACHER = os.environ.get("TEACHER", "kev")
+LAYA_TRAVEL_DIR = Path(__file__).resolve().parents[2] / "models" / "laya-travel"
 
 
 def _pulled_models() -> set[str]:
