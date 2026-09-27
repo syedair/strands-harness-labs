@@ -15,3 +15,6 @@ lab11/web.log
 docs/video/
 .DS_Store
 docs/diagrams/make_diagrams.py
+docs/specs/
+docs/plans/
+docs/superpowers/
