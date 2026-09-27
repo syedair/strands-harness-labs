@@ -74,3 +74,15 @@ def test_the_web_app_gate_never_waits_for_enter():
     from events import WebGate
 
     assert lab7.ToolCallGate.PAUSE is True and WebGate.PAUSE is False
+
+
+@pytest.mark.parametrize("probs_seen", [
+    {"matches_intent": 0.1, "missing_info": 0.1, "args_grounded": 0.9, "premature": 0.1},
+    {"matches_intent": 0.9, "missing_info": 0.1, "args_grounded": 0.1, "premature": 0.1},
+    {"matches_intent": 0.9, "missing_info": 0.1, "args_grounded": 0.9, "premature": 0.9},
+])
+def test_feedback_names_the_blocked_call_and_works_for_any_tool(monkeypatch, probs_seen):
+    monkeypatch.setattr(lab7, "yes_no_many", lambda s, q: probs_seen)
+    action = lab7.ToolCallGate().before_tool_call(event("Seattle"))
+    assert 'web_fetch({"url": "https://wttr.in/Seattle?format=3"})' in action.feedback  # the model sees what it tried
+    assert "city" not in action.feedback.lower()  # nothing weather-specific: the same gate fits any tool
