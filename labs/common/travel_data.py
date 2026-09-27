@@ -77,6 +77,29 @@ def training_questions(seed: int = 7, n_calls: int = 300) -> list[tuple[str, str
             + [(s, q) for s in gate_calls(seed, n_calls) for q in GATE.values()])
 
 
+# Labels Kev made for this repo, so you can train without running a teacher yourself.
+REPO_LABELS = Path(__file__).resolve().parents[2] / "data" / "lab10b-labels.json"
+
+
+def labels_for(pairs: list[tuple[str, str]], teacher: str, cache: Path, teacher_ready: bool,
+               ask=yes_no) -> tuple[list[dict], str]:
+    """Label live with the teacher when it can answer; otherwise use the repo's labels. Returns (rows, source)."""
+    if teacher_ready:
+        return label(pairs, teacher, cache, ask), "teacher"
+    saved = json.loads(REPO_LABELS.read_text())
+    return saved["rows"], "repo"
+
+
+def examples(rows: list[dict], questions: list[str]) -> list[dict]:
+    """For each question: its clearest yes, its clearest no, and the one closest to 50/50."""
+    picked = []
+    for q in questions:
+        mine = [r for r in rows if r["question"] == q]
+        picked += [max(mine, key=lambda r: r["p"]), min(mine, key=lambda r: r["p"]),
+                   min(mine, key=lambda r: abs(r["p"] - 0.5))]
+    return picked
+
+
 def label(pairs: list[tuple[str, str]], teacher: str, cache: Path, ask=yes_no) -> list[dict]:
     """The teacher's probability for each question. Cached: the same questions and teacher skip the teacher."""
     wanted = [[s, q] for s, q in pairs]

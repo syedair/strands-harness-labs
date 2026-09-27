@@ -65,3 +65,34 @@ def test_lab_7s_gate_questions_are_trained_in_lab_7s_own_format():
         states = [s for s, q in pairs if q == question and re.fullmatch(gate_format, s)]
         assert len(states) == 300, key  # what before_tool_call shows System 1
         assert not {re.search(r"wttr\.in/(\w+)", s).group(1) for s in states} & HELD_OUT_CITIES
+
+
+REPO_LABELS = travel_data.REPO_LABELS
+
+
+def test_the_labels_in_the_repo_match_the_training_questions():
+    saved = json.loads(REPO_LABELS.read_text())
+    assert saved["teacher"] == "kev"
+    assert [(r["state"], r["question"]) for r in saved["rows"]] == travel_data.training_questions()
+    assert all(0 <= r["p"] <= 1 for r in saved["rows"])
+
+
+def test_without_a_teacher_the_repo_labels_are_used(tmp_path):
+    pairs = travel_data.training_questions()
+    rows, source = travel_data.labels_for(pairs, "kev", tmp_path / "labels.json", teacher_ready=False,
+                                          ask=lambda *a, **k: 1 / 0)
+    assert source == "repo" and len(rows) == len(pairs)
+
+
+def test_with_a_teacher_it_labels_live(tmp_path):
+    pairs = [("Boracay", BEACH_Q)]
+    rows, source = travel_data.labels_for(pairs, "kev", tmp_path / "labels.json", teacher_ready=True,
+                                          ask=lambda *a, **k: 0.9)
+    assert source == "teacher" and rows[0]["p"] == 0.9
+
+
+def test_examples_show_a_yes_a_no_and_a_borderline_label_per_question():
+    rows = [{"state": f"s{i}", "question": q, "p": p} for q in ("Q1", "Q2")
+            for i, p in enumerate([0.02, 0.48, 0.55, 0.97, 0.7])]
+    picked = travel_data.examples(rows, ["Q1", "Q2"])
+    assert [r["p"] for r in picked] == [0.97, 0.02, 0.48, 0.97, 0.02, 0.48]

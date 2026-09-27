@@ -5,24 +5,32 @@
 # it: Kev (slow, good) labels a few hundred travel questions, and Laya (fast) learns to copy those probabilities.
 # That's distillation. Then we re-run lab 10's rounds on questions Laya never trained on.
 #
-# Needs: Laya (uv sync --extra laya --inexact), a teacher (Kev running, or TEACHER=jev with TYPESAFE_API_KEY),
+# Needs: Laya (uv sync --extra laya --inexact), a teacher (Kev running, or TEACHER=jev with TYPESAFE_API_KEY;
+# without one, or with --repo-labels, it uses the labels Kev made for this repo in data/lab10b-labels.json),
 # and a GPU: measured ~6 minutes and ~14 GB of GPU memory on an Apple M4 Max. On CPU it runs, but slowly.
 # The recipe comes from Laya's own notebook: docs/reference/laya/.
 import os
+import re
 import sys
 import time
 from functools import partial
 
 from common import config
-from common.show import brier_row, wait
-from common.showdown import score
-from common.system1 import check_system1, display_name, laya_installed, quiet_laya, unavailable, yes_no
-from common.travel_data import label, training_questions
+from common.show import bar, brier_row, wait
+from common.showdown import BEACH_Q, CONCRETE_Q, score
+from common.system1 import display_name, laya_installed, quiet_laya, unavailable, yes_no
+from common.travel_data import REPO_LABELS, examples, labels_for, training_questions
 from lab10_system1_showdown import ROUNDS, verdict
 
-TEACHER = os.environ.get("TEACHER", "kev")
+TEACHER = config.TEACHER  # set in .env (kev or jev)
 EPOCHS = int(os.environ.get("EPOCHS", "4"))
 OUT = config.LAYA_TRAVEL_DIR
+
+
+def short(state: str) -> str:
+    """A place as it is; a tool call as what the user said and the city the tool asks for."""
+    city = re.search(r"wttr\.in/(\w+)", state)
+    return f"{state.splitlines()[0]}  → tool asks for {city.group(1)}" if city else state
 
 
 def showdown(players) -> None:
@@ -60,8 +68,11 @@ def main() -> None:
     print(f"Training device: {device}" + ("   (no GPU found: this will be slow)" if device == "cpu" else ""))
 
     if retrain:
-        check_system1(TEACHER)
+        # Label live when the teacher can answer; otherwise (or with --repo-labels) use the labels Kev made for this repo.
+        teacher_ready = "--repo-labels" not in sys.argv and unavailable(TEACHER) is None
         teacher = display_name(TEACHER)
+        if not teacher_ready and "--repo-labels" not in sys.argv:
+            print(f"{unavailable(TEACHER)}\nUsing the labels Kev made for this repo instead ({REPO_LABELS.name}).")
 
         # 1. Travel questions that share nothing with lab 10's held-out rounds.
         pairs = training_questions()
@@ -69,13 +80,19 @@ def main() -> None:
               "given, was a different one, or was a guess, asked lab 10's questions and lab 7's gate questions.")
         for state, question in (pairs[0], pairs[-2], pairs[-1]):
             print(f"    {' · '.join(line for line in state.splitlines() if line)}\n      → {question}")
-        wait(f"press Enter to have {teacher} label them")
+        wait(f"press Enter to have {teacher} label them" if teacher_ready else "press Enter to load the labels")
 
         # 2. The teacher labels them. We keep its probability, not just yes or no.
         start = time.perf_counter()
-        rows = label(pairs, TEACHER, OUT / "labels.json")
-        print(f"\n2 · {teacher} labelled {len(rows)} questions in {time.perf_counter() - start:.0f}s "
-              f"(cached in {OUT.relative_to(config.LAYA_TRAVEL_DIR.parents[1])}/labels.json)")
+        rows, source = labels_for(pairs, TEACHER, OUT / "labels.json", teacher_ready)
+        if source == "teacher":
+            print(f"\n2 · {teacher} labelled {len(rows)} questions in {time.perf_counter() - start:.0f}s "
+                  f"(cached in {OUT.relative_to(config.LAYA_TRAVEL_DIR.parents[1])}/labels.json)")
+        else:
+            print(f"\n2 · Loaded {len(rows)} labels Kev made for this repo (data/{REPO_LABELS.name})")
+        print("    Some of them (Kev's probability that the answer is yes):")
+        for row in examples(rows, [BEACH_Q, CONCRETE_Q]):
+            print(f"    {bar(row['p'])}  {row['p']:.2f}  {short(row['state'])}")
         wait(f"press Enter to train Laya on {device}")
 
         # 3. Train: Laya learns to give the teacher's probabilities. Then calibrate on held-out questions.

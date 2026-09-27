@@ -178,7 +178,9 @@ to specialise. So we do: Kev labels a few hundred travel questions, Laya learns 
 (distillation), and we re-run lab 10's rounds on questions it never trained on. It also learns lab 7's four gate
 questions, so `SYSTEM1_MODEL=laya-travel` can run the gate.
 **What's new:** fine-tuning a System 1 model on your own data; `SYSTEM1_MODEL=laya-travel` to use it in labs 6e–9
-**Needs:** `uv sync --extra laya --inexact`; a teacher (Kev running, or `TEACHER=jev` with `TYPESAFE_API_KEY`)
+**Needs:** `uv sync --extra laya --inexact`. A teacher is optional: with Kev running (or `TEACHER=jev` and
+`TYPESAFE_API_KEY` in `.env`) it labels live; without one, or with `--repo-labels`, it trains on the labels Kev made
+for this repo: [`data/lab10b-labels.json`](data/lab10b-labels.json) (1,955 questions, each with Kev's probability).
 
 | Hardware | Status |
 |---|---|
