@@ -526,7 +526,7 @@ def test_the_fine_tuned_contender_joins_only_once_it_exists(monkeypatch):
     assert [n for n, _ in showdown.contenders()][-1] == "laya-travel (fine-tuned)"
 ```
 
-In the same file, make the two existing "all contenders" tests independent of whether a model has been trained on this machine: add `monkeypatch.setattr(showdown, "fine_tuned_ready", lambda: False)` as the first line of `test_all_contenders_when_available` and of `test_contender_asks_its_own_backend`.
+In the same file, make the three existing contender tests independent of whether a model has been trained on this machine: add `monkeypatch.setattr(showdown, "fine_tuned_ready", lambda: False)` as the first line of `test_unavailable_contenders_are_skipped_with_reason`, `test_all_contenders_when_available` and `test_contender_asks_its_own_backend`.
 
 - [ ] **Step 2: Run to verify they fail**
 
