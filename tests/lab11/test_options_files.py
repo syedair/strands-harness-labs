@@ -40,7 +40,7 @@ def test_options_list_models_system1_and_availability(client):
                    "bedrock/us.anthropic.claude-sonnet-5", "bedrock/us.moonshotai.kimi-k3", "ollama/gpt-oss:20b"]
     local = body["models"][-1]
     assert local["available"] is False and local["reason"] == "Model isn't pulled"
-    assert [o["id"] for o in body["system1"]["options"]] == ["ollama/qwen3.5:4b", "jev", "kev", "laya"]
+    assert [o["id"] for o in body["system1"]["options"]] == ["ollama/qwen3.5:4b", "jev", "kev", "laya", "laya-travel"]
 
 
 def test_upload_saves_file_and_next_message_mentions_it(client, tmp_path):

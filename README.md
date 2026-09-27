@@ -1,6 +1,7 @@
 # Strands Harness Labs
 
-Hands-on labs for the open-source [Strands Harness SDK](https://strandsagents.com/docs/user-guide/harness/)
+Hands-on labs for the open-source [Strands harness](https://strandsagents.com/docs/user-guide/harness/)
+(`pip install strands-harness`, `create_harness`)
 and the **System 1** pattern. You build one travel assistant, one idea per lab: the harness
 basics first, then a fast classifier that watches the agent and lets plain Python decide.
 By lab 9 the assistant looks up the forecast, remembers where you live, writes a packing
@@ -49,9 +50,10 @@ Labs 6–9 use `SYSTEM1_MODEL` as the classifier. Pick one in `.env`:
 | `jev` | TypeSafe's hosted System 1 model (paid) | `TYPESAFE_API_KEY=...` in `.env` ([typesafe.ai](https://typesafe.ai)) |
 | `kev` | [Kev](https://github.com/jaredpalmer/kev), an open Jev-alike on your machine (Kev-4B needs a 32 GB Mac) | `./kev.sh start` (the labs offer to run it) |
 | `laya` | [Laya](https://github.com/NandhaKishorM/laya), an open BERT-based System 1 model | `uv sync --extra laya --inexact` |
+| `laya-travel` | Laya fine-tuned on travel questions by lab 10b | run lab 10b once |
 
 The labs don't change: `yes_no()` and `choice()` in `labs/common/system1.py` send the same questions to
-whichever you pick. Lab 10 runs all four side by side.
+whichever you pick. Lab 10 runs all four side by side (five, once lab 10b has trained Laya).
 
 ## 📚 Lab Overview
 
@@ -60,7 +62,7 @@ Each lab is one short file. Lab N adds exactly one idea to lab N-1, so a diff sh
 ### Chat with any lab
 
 Every agent lab (1–5, 7–9) runs a short scripted demo. Add `--chat` to talk to it instead — the
-System 1 traces (`[gate]`, `[check]`, `[router]`) print live between turns:
+System 1 traces (`gate`, `check`, `router`, each with its bars) print live between turns:
 
 ```bash
 uv run labs/lab7_tool_call_gate.py --chat
@@ -112,8 +114,9 @@ uv run labs/lab5_interventions.py policy   # a policy decides
 ### Lab 6: System 1 Basics (6a–6e)
 A System 1 model answers typed questions — yes/no (`Noul`), pick one (`Choice`), rate (`Score`) — with
 probabilities, and plain Python decides. Each lab asks the same questions about four conversations
-(a guessed city, Paris, a packing request, a vague trip idea) and prints one row each, so you can watch
-the probabilities move. Jev and Kev get all four right; Laya and the Qwen stand-in miss some — lab 10
+(a guessed city, Paris, a packing request, a vague trip idea). Each one reads as the same steps (the
+conversation, the questions, one call, then plain Python decides), pauses on each conversation until you
+press Enter, and draws every probability as a bar. Jev and Kev get all four right; Laya and the Qwen stand-in miss some — lab 10
 measures that. The same questions, five ways:
 
 | File | What it shows | Needs |
@@ -146,8 +149,9 @@ and the agent asks you instead. A real city goes straight through.
 **File:** `labs/lab8_completion_check.py`
 The agent answers only half the question; the classifier notices and sends it back.
 **What's new:** `after_model_call` returning `Guide` (capped at two retries)
-A reply that ends by asking the user a question isn't judged — asking back is a fine way to end a turn
-(it prints `[check] -> Proceed (asked the user a question)`).
+Lab 8 doesn't stream: you see the draft being judged, and the answer only once it passes.
+A reply that asks the user a question ("which city?") isn't judged — asking back is a fine way to end a turn
+(it prints `check → Proceed: it asked you a question, nothing to judge`).
 **Video:** _coming soon_
 **Run:** `uv run labs/lab8_completion_check.py`
 
@@ -166,6 +170,50 @@ Contenders you haven't set up are skipped with a one-line hint.
 **Video:** _coming soon_
 **Setup:** the same as lab 6a–6d; each contender is optional.
 **Run:** `uv run labs/lab10_system1_showdown.py`
+
+### Lab 10b: Fine-tune Laya on Travel Data
+**File:** `labs/lab10b_finetune_laya.py`
+Laya is the fastest System 1 model here and the weakest out of the box. Its own docs say to treat it as a fast base
+to specialise. So we do: Kev labels a few hundred travel questions, Laya learns from Kev's probabilities
+(distillation), and we re-run lab 10's rounds on questions it never trained on. It also learns lab 7's four gate
+questions, so `SYSTEM1_MODEL=laya-travel` can run the gate.
+**What's new:** fine-tuning a System 1 model on your own data; `SYSTEM1_MODEL=laya-travel` to use it in labs 6e–9
+**Needs:** `uv sync --extra laya --inexact`. A teacher is optional: with Kev running (or `TEACHER=jev` and
+`TYPESAFE_API_KEY` in `.env`) it labels live; without one, or with `--repo-labels`, it trains on the labels Kev made
+for this repo: [`data/lab10b-labels.json`](data/lab10b-labels.json) (1,955 questions, each with Kev's probability).
+
+| Hardware | Status |
+|---|---|
+| Apple M4 Max, Apple GPU | measured: ~6 min training, 14.1 GB peak GPU memory |
+| Apple Silicon with 24 GB+ | should work (not measured) |
+| NVIDIA GPU with 16 GB+ | should work (not measured) |
+| CPU only | works, slowly (not measured) |
+
+Measured on an M4 Max, Kev-4B as teacher, 1,955 new travel questions (Brier · accuracy on lab 10's held-out questions).
+None of those questions is in the training data: new places and new cities, though the tool calls use similar
+phrasings ("What's the weather in …?"), so read round 3 as "learned this kind of question":
+
+| Round | Base Laya | Fine-tuned Laya | Kev (teacher) |
+|---|---|---|---|
+| Beach destinations (44) | 0.137 · 80% | 0.079–0.105 · 82–89% | 0.032 · 98% |
+| Tool calls, abstract (12) | 0.240 · 67% | 0.103–0.111 · 92% | 0.098 · 83% |
+| Tool calls, concrete (12) | 0.230 · 67% | 0.012–0.015 · 100% | 0.015 · 100% |
+
+The fine-tuned column is two runs on the same labels: training on a GPU isn't bit-for-bit repeatable, so your
+numbers will land close to these, not exactly on them.
+Labelling took ~3 min (cached for re-runs), training ~6 min; Laya stays at ~15–25 ms per question, Kev ~100–160 ms.
+With `SYSTEM1_MODEL=laya-travel`, lab 7 blocks the guessed Seattle on "same city as the user?" (0.17) and lets
+Paris through (0.98).
+
+Why not start from Laya's own fine-tuned checkpoint (`laya-typed-decisions`, trained on invoices, support tickets,
+security alerts and agent traces)? We measured it: zero-shot it's no better on travel (0.145 · 0.206 · 0.208), and
+fine-tuned on the same travel labels it ends up about level on tool calls and worse on beach (0.129 · 0.114 · 0.011).
+Train on your own domain.
+
+The recipe is Laya's own: its fine-tuning notebook is in `docs/reference/laya/` (Apache-2.0), with notes on how
+lab 10b differs.
+**Video:** _coming soon_
+**Run:** `uv run labs/lab10b_finetune_laya.py` (then `--skip-train` to only compare; `EPOCHS=` to change the length)
 
 ### Lab 11: The Harness App
 **Folder:** `lab11/` — `server/` (FastAPI) and `web/` (React + Vite + Tailwind, lucide icons)
@@ -292,8 +340,10 @@ inputs until the API returned `max_tokens_exceeded`.
 - The lab 11 UI uses the Developer Studio theme from the author's ContentCreationKit.
 - [Mike Chambers — jev-strands-video](https://github.com/mikegc-aws/jev-strands-video) (MIT): the System 1 + Strands interventions pattern that labs 7–9 rebuild on the harness.
 - [TypeSafe Jev](https://typesafe.ai), [Kev](https://github.com/jaredpalmer/kev), [Laya](https://github.com/NandhaKishorM/laya).
+- [Laya](https://github.com/NandhaKishorM/laya) (Apache-2.0): lab 10b adapts its fine-tuning notebook (copy in `docs/reference/laya/`).
 - The beach-destination set in lab 10 comes from the author's `systemone-model-typesafeai` demo.
-- [Strands Agents](https://strandsagents.com) and the [Strands Harness SDK](https://github.com/strands-agents/harness-sdk).
+- [Strands Agents](https://strandsagents.com) and the [Strands harness](https://github.com/strands-agents/harness-sdk/tree/main/harness-py),
+  built on the [Strands Harness SDK](https://github.com/strands-agents/harness-sdk).
 
 ## 📄 License
 

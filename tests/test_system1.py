@@ -48,6 +48,7 @@ def fake_post(tokens, sent):
 
 def test_yes_no_sends_single_token_no_thinking_request(monkeypatch):
     sent = []
+    monkeypatch.setattr(system1.config, "SYSTEM1_MODEL", "ollama/qwen3.5:4b")  # not whatever .env says
     monkeypatch.setattr(system1, "_post", fake_post([("yes", 0.8), ("no", 0.2)], sent))
     assert system1.yes_no("user: hi", "Is this a greeting?") == pytest.approx(0.8)
     payload = sent[0]
@@ -59,6 +60,7 @@ def test_yes_no_sends_single_token_no_thinking_request(monkeypatch):
 
 def test_choice_maps_letters_back_to_option_names(monkeypatch):
     sent = []
+    monkeypatch.setattr(system1.config, "SYSTEM1_MODEL", "ollama/qwen3.5:4b")  # not whatever .env says
     monkeypatch.setattr(system1, "_post", fake_post([("b", 0.6), ("A", 0.4)], sent))
     probs = system1.choice("text", "How hard?", ["easy", "hard"])
     assert probs == pytest.approx({"easy": 0.4, "hard": 0.6})
@@ -140,7 +142,7 @@ def test_unavailable_reasons(monkeypatch):
 
 
 def test_unknown_backend_is_rejected():
-    with pytest.raises(ValueError, match="ollama/<name>, jev, kev or laya"):
+    with pytest.raises(ValueError, match="ollama/<name>, jev, kev, laya or laya-travel"):
         system1.yes_no("s", "Q?", model="gpt")
 
 
@@ -203,6 +205,54 @@ def test_ensure_kev_treats_no_answer_as_no(monkeypatch, capsys, error):
     monkeypatch.setattr("builtins.input", no_answer)
     assert system1.ensure_kev() is False
     assert "./kev.sh start" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("model, name", [
+    ("jev", "Jev"), ("kev", "Kev"), ("laya", "Laya"),
+    ("ollama/qwen3.5:4b", "Qwen stand-in (qwen3.5:4b)"), ("qwen3.5:9b", "Qwen stand-in (qwen3.5:9b)"),
+    ("ollama/gemma3:4b", "gemma3:4b stand-in"),
+])
+def test_display_name(model, name):
+    assert system1.display_name(model) == name
+
+
+def test_display_name_defaults_to_the_configured_model(monkeypatch):
+    monkeypatch.setattr(system1.config, "SYSTEM1_MODEL", "kev")
+    assert system1.display_name() == "Kev"
+
+
+def test_laya_travel_before_training_says_how_to_make_it(monkeypatch, tmp_path):
+    monkeypatch.setattr(system1.config, "LAYA_TRAVEL_DIR", tmp_path / "nothing-here")
+    monkeypatch.setattr(system1, "laya_installed", lambda: True)  # Laya itself is installed
+    assert system1.unavailable("laya-travel") == (
+        "No fine-tuned Laya yet. Train it with: uv run labs/lab10b_finetune_laya.py")
+
+
+def test_laya_travel_is_named_and_answers_through_its_own_agent(monkeypatch):
+    class FakeAgent:
+        def predict(self, state, questions):
+            return {"answers": {k: {"noul": 0.9} for k in questions}}
+
+    monkeypatch.setattr(system1, "_laya_travel", lambda: FakeAgent())
+    assert system1.display_name("laya-travel") == "Laya (fine-tuned on travel)"
+    assert system1.yes_no("user: hi", "Greeting?", model="laya-travel") == 0.9
+
+
+def test_laya_install_hint_keeps_the_other_extras():
+    # without --inexact, uv sync would remove lab 11's web extra
+    import inspect
+    assert "uv sync --extra laya --inexact" in inspect.getsource(system1.unavailable)
+    assert "uv sync --extra laya\"" not in inspect.getsource(system1.unavailable)
+
+
+def test_checking_laya_travel_does_not_load_the_base_model(monkeypatch, tmp_path):
+    (tmp_path / "model.safetensors").write_text("x")
+    monkeypatch.setattr(system1.config, "LAYA_TRAVEL_DIR", tmp_path)
+    monkeypatch.setattr(system1, "_laya_router", lambda: (_ for _ in ()).throw(AssertionError("loaded Laya's Router")))
+    monkeypatch.setattr(system1, "laya_installed", lambda: True)
+    assert system1.unavailable("laya-travel") is None
+    monkeypatch.setattr(system1, "laya_installed", lambda: False)
+    assert "uv sync --extra laya --inexact" in system1.unavailable("laya-travel")
 
 
 def test_laya_answers_one_caller_at_a_time(monkeypatch):

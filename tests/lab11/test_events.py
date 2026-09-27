@@ -13,7 +13,7 @@ def final(answer, first_user="What's the weather?"):
 
 def test_check_judges_the_current_message(monkeypatch):
     seen = []
-    monkeypatch.setattr(lab8, "yes_no", lambda state, q: seen.append(state) or 0.9)
+    monkeypatch.setattr(lab8, "yes_no_many", lambda state, q: seen.append(state) or {"waiting": 0.05, "answered_everything": 0.9})
     turn = events.TurnHandlers([])
     turn.start_turn("Pack for 4 days in Istanbul and check the weather")
     turn.check.after_model_call(final("Here is your list."))
@@ -106,7 +106,7 @@ def test_the_app_leaves_out_the_environment_plugin():
 ])
 def test_check_only_judges_requests_with_more_than_one_part(monkeypatch, request_text, judged):
     asked = []
-    monkeypatch.setattr(lab8, "yes_no", lambda state, q: asked.append(state) or 0.2)
+    monkeypatch.setattr(lab8, "yes_no_many", lambda state, q: asked.append(state) or {"waiting": 0.05, "answered_everything": 0.2})
     turn = events.TurnHandlers([])
     turn.start_turn(request_text)
     turn.check.after_model_call(final("An answer."))
@@ -114,7 +114,7 @@ def test_check_only_judges_requests_with_more_than_one_part(monkeypatch, request
 
 
 def test_a_check_that_hits_its_retry_limit_says_it_gave_up(monkeypatch):
-    monkeypatch.setattr(lab8, "yes_no", lambda state, q: 0.2)
+    monkeypatch.setattr(lab8, "yes_no_many", lambda state, q: {"waiting": 0.05, "answered_everything": 0.2})
     log = []
     turn = events.TurnHandlers(log)
     turn.start_turn("Weather in Istanbul and what to pack?")
