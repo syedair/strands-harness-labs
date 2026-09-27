@@ -16,7 +16,7 @@ from functools import partial
 from common import config
 from common.show import brier_row, wait
 from common.showdown import score
-from common.system1 import check_system1, display_name, unavailable, yes_no
+from common.system1 import check_system1, display_name, laya_installed, unavailable, yes_no
 from common.travel_data import label, training_questions
 from lab10_system1_showdown import ROUNDS, verdict
 
@@ -44,9 +44,8 @@ def showdown(players) -> None:
 
 
 def main() -> None:
-    problem = unavailable("laya")
-    if problem:
-        print(problem)
+    if not laya_installed():  # a cheap check: loading Laya here would sit on the GPU during training
+        print("Laya isn't installed. Run: uv sync --extra laya --inexact")
         sys.exit(1)
     import laya
 

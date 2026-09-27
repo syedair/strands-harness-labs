@@ -85,7 +85,7 @@ def test_system1_options_report_availability(client, monkeypatch):
     body = client.get("/api/system1").json()
     kev = next(o for o in body["options"] if o["id"] == "kev")
     assert kev == {"id": "kev", "label": "Kev", "available": False, "reason": "Kev isn't running"}
-    assert [o["id"] for o in body["options"]] == ["ollama/qwen3.5:4b", "jev", "kev", "laya"]
+    assert [o["id"] for o in body["options"]] == ["ollama/qwen3.5:4b", "jev", "kev", "laya", "laya-travel"]
 
 
 def test_decision_maps_actions():

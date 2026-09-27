@@ -48,3 +48,8 @@ def test_label_cache_is_rebuilt_when_questions_or_teacher_change(tmp_path):
     assert rows[0]["state"] == "Madrid" and rows[0]["p"] == 0.1
     rows = travel_data.label([("Madrid", BEACH_Q)], "jev", cache, ask=lambda *a, **k: 0.2)
     assert rows[0]["p"] == 0.2 and json.loads(cache.read_text())["teacher"] == "jev"
+
+
+def test_no_training_place_is_part_of_a_held_out_one():
+    # Waikiki is in Honolulu and Copacabana in Rio de Janeiro, both in lab 10's beach round
+    assert not {"Waikiki", "Copacabana"} & set(travel_data.PLACES)

@@ -10,12 +10,12 @@ from common.system1 import yes_no
 # New destinations for the beach question: beach getaways, inland and mountain cities, coastal cities.
 PLACES = [
     "Boracay", "Langkawi", "Koh Samui", "Krabi", "Bora Bora", "Tahiti", "Aruba", "Barbados", "Punta Cana",
-    "Montego Bay", "Nassau", "Tulum", "Playa del Carmen", "Cabo San Lucas", "Maui", "Waikiki", "Gold Coast",
+    "Montego Bay", "Nassau", "Tulum", "Playa del Carmen", "Cabo San Lucas", "Maui", "Gold Coast",
     "Byron Bay", "Cairns", "Mykonos", "Santorini", "Ibiza", "Mallorca", "Tenerife", "Gran Canaria", "Crete",
     "Rhodes", "Antalya", "Bodrum", "Hurghada", "Sharm El Sheikh", "Mombasa", "Diani Beach", "Praslin", "Lombok",
     "Gili Islands", "Palawan", "Cebu", "Nha Trang", "Da Nang", "Mirissa", "Varkala", "Andaman Islands",
     "Fort Lauderdale", "Key West", "San Juan", "Curaçao", "St Lucia", "Antigua", "Florianópolis",
-    "Salvador de Bahia", "Punta del Este", "Copacabana", "Jeffreys Bay", "Zakynthos", "Sardinia", "Corsica",
+    "Salvador de Bahia", "Punta del Este", "Jeffreys Bay", "Zakynthos", "Sardinia", "Corsica",
     "Lagos (Algarve)", "Madrid", "Budapest", "Warsaw", "Krakow", "Brussels", "Amsterdam", "Stockholm", "Oslo",
     "Helsinki", "Copenhagen", "Dublin", "Edinburgh", "Florence", "Milan", "Salzburg", "Bern", "Lucerne",
     "Interlaken", "St. Moritz", "Banff", "Whistler", "Denver", "Salt Lake City", "Las Vegas", "Phoenix",

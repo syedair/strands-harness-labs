@@ -8,6 +8,7 @@
 #   laya           an open, BERT-based System 1 model (uv sync --extra laya)
 #   laya-travel    Laya fine-tuned on travel questions by lab 10b
 import functools
+import importlib.util
 import math
 import os
 import subprocess
@@ -62,9 +63,9 @@ def unavailable(model: str | None = None) -> str | None:
     if backend == "kev" and not _kev_up():
         return f"Kev isn't running on {config.KEV_URL}. Start it with: ./kev.sh start"
     if backend == "laya" and _laya_router() is None:
-        return "Laya isn't installed. Run: uv sync --extra laya"
+        return "Laya isn't installed. Run: uv sync --extra laya --inexact"
     if backend == "laya-travel":
-        if _laya_router() is None:
+        if not laya_installed():
             return "Laya isn't installed. Run: uv sync --extra laya --inexact"
         if not (config.LAYA_TRAVEL_DIR / "model.safetensors").exists():
             return "No fine-tuned Laya yet. Train it with: uv run labs/lab10b_finetune_laya.py"
@@ -155,6 +156,11 @@ def _kev_up() -> bool:
         return True
     except httpx.HTTPError:
         return False
+
+
+def laya_installed() -> bool:
+    """Is the laya package installed? (Cheap: doesn't load a model.)"""
+    return importlib.util.find_spec("laya") is not None
 
 
 def _quiet_laya() -> None:

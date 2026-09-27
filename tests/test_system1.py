@@ -223,7 +223,7 @@ def test_display_name_defaults_to_the_configured_model(monkeypatch):
 
 def test_laya_travel_before_training_says_how_to_make_it(monkeypatch, tmp_path):
     monkeypatch.setattr(system1.config, "LAYA_TRAVEL_DIR", tmp_path / "nothing-here")
-    monkeypatch.setattr(system1, "_laya_router", lambda: object())  # Laya itself is installed
+    monkeypatch.setattr(system1, "laya_installed", lambda: True)  # Laya itself is installed
     assert system1.unavailable("laya-travel") == (
         "No fine-tuned Laya yet. Train it with: uv run labs/lab10b_finetune_laya.py")
 
@@ -236,3 +236,20 @@ def test_laya_travel_is_named_and_answers_through_its_own_agent(monkeypatch):
     monkeypatch.setattr(system1, "_laya_travel", lambda: FakeAgent())
     assert system1.display_name("laya-travel") == "Laya (fine-tuned on travel)"
     assert system1.yes_no("user: hi", "Greeting?", model="laya-travel") == 0.9
+
+
+def test_laya_install_hint_keeps_the_other_extras():
+    # without --inexact, uv sync would remove lab 11's web extra
+    import inspect
+    assert "uv sync --extra laya --inexact" in inspect.getsource(system1.unavailable)
+    assert "uv sync --extra laya\"" not in inspect.getsource(system1.unavailable)
+
+
+def test_checking_laya_travel_does_not_load_the_base_model(monkeypatch, tmp_path):
+    (tmp_path / "model.safetensors").write_text("x")
+    monkeypatch.setattr(system1.config, "LAYA_TRAVEL_DIR", tmp_path)
+    monkeypatch.setattr(system1, "_laya_router", lambda: (_ for _ in ()).throw(AssertionError("loaded Laya's Router")))
+    monkeypatch.setattr(system1, "laya_installed", lambda: True)
+    assert system1.unavailable("laya-travel") is None
+    monkeypatch.setattr(system1, "laya_installed", lambda: False)
+    assert "uv sync --extra laya --inexact" in system1.unavailable("laya-travel")
