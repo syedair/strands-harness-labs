@@ -1321,7 +1321,7 @@
   {
    "id": "lab05-interventions-36-120e0a",
    "type": "rectangle",
-   "x": 100,
+   "x": 919.0,
    "y": 880.0,
    "width": 312.56,
    "height": 103.75,
@@ -1355,7 +1355,7 @@
     },
     {
      "type": "arrow",
-     "id": "lab05-interventions-73-b3e278"
+     "id": "lab05-interventions-75-e895a5"
     }
    ],
    "updated": 1,
@@ -1365,7 +1365,7 @@
   {
    "id": "lab05-interventions-37-515347",
    "type": "image",
-   "x": 124.0,
+   "x": 943.0,
    "y": 914.875,
    "width": 34,
    "height": 34,
@@ -1400,7 +1400,7 @@
   {
    "id": "lab05-interventions-38-f01f57",
    "type": "text",
-   "x": 168.0,
+   "x": 987.0,
    "y": 898.0,
    "width": 176.862,
    "height": 26.25,
@@ -1439,7 +1439,7 @@
   {
    "id": "lab05-interventions-39-31d311",
    "type": "text",
-   "x": 168.0,
+   "x": 987.0,
    "y": 928.25,
    "width": 220.56,
    "height": 37.5,
@@ -1478,7 +1478,7 @@
   {
    "id": "lab05-interventions-40-b740d5",
    "type": "rectangle",
-   "x": 919.0,
+   "x": 100,
    "y": 880.0,
    "width": 351.005,
    "height": 103.75,
@@ -1512,7 +1512,7 @@
     },
     {
      "type": "arrow",
-     "id": "lab05-interventions-74-ddfc88"
+     "id": "lab05-interventions-76-014c49"
     }
    ],
    "updated": 1,
@@ -1522,7 +1522,7 @@
   {
    "id": "lab05-interventions-41-270b46",
    "type": "image",
-   "x": 943.0,
+   "x": 124.0,
    "y": 914.875,
    "width": 34,
    "height": 34,
@@ -1557,7 +1557,7 @@
   {
    "id": "lab05-interventions-42-0e59c1",
    "type": "text",
-   "x": 987.0,
+   "x": 168.0,
    "y": 898.0,
    "width": 234.549,
    "height": 26.25,
@@ -1596,7 +1596,7 @@
   {
    "id": "lab05-interventions-43-1bf44d",
    "type": "text",
-   "x": 987.0,
+   "x": 168.0,
    "y": 928.25,
    "width": 259.005,
    "height": 37.5,
@@ -2157,10 +2157,10 @@
   {
    "id": "lab05-interventions-57-b27f4a",
    "type": "arrow",
-   "x": 646.2874933114585,
-   "y": 697.8738846161463,
-   "width": 296.68794127964986,
-   "height": 178.01019306296905,
+   "x": 777.68506930545,
+   "y": 701.4175722347363,
+   "width": 224.28240209672867,
+   "height": 173.6842269443041,
    "angle": 0,
    "strokeColor": "#1e1e1e",
    "backgroundColor": "transparent",
@@ -2188,8 +2188,8 @@
      0
     ],
     [
-     -296.68794127964986,
-     178.01019306296905
+     224.28240209672867,
+     173.6842269443041
     ]
    ],
    "lastCommittedPoint": null,
@@ -2210,8 +2210,8 @@
   {
    "id": "lab05-interventions-58-0b4876",
    "type": "ellipse",
-   "x": 481.9435226716336,
-   "y": 770.8789811476308,
+   "x": 873.8262703538144,
+   "y": 772.2596857068884,
    "width": 32,
    "height": 32,
    "angle": 0,
@@ -2242,8 +2242,8 @@
   {
    "id": "lab05-interventions-59-9780c5",
    "type": "text",
-   "x": 492.5035226716336,
-   "y": 775.8789811476308,
+   "x": 884.3862703538143,
+   "y": 777.2596857068884,
    "width": 10.88,
    "height": 21,
    "angle": 0,
@@ -2279,10 +2279,10 @@
   {
    "id": "lab05-interventions-60-39ec71",
    "type": "arrow",
-   "x": 779.9540931423547,
-   "y": 700.7167877581454,
-   "width": 237.51307607538445,
-   "height": 174.54578326475792,
+   "x": 648.2865622839121,
+   "y": 698.4858814850265,
+   "width": 283.1452647211754,
+   "height": 177.26890827922568,
    "angle": 0,
    "strokeColor": "#1e1e1e",
    "backgroundColor": "transparent",
@@ -2310,8 +2310,8 @@
      0
     ],
     [
-     237.51307607538445,
-     174.54578326475792
+     -283.1452647211754,
+     177.26890827922568
     ]
    ],
    "lastCommittedPoint": null,
@@ -2332,8 +2332,8 @@
   {
    "id": "lab05-interventions-61-7f6f68",
    "type": "ellipse",
-   "x": 882.7106311800469,
-   "y": 771.9896793905243,
+   "x": 490.7139299233244,
+   "y": 771.1203356246394,
    "width": 32,
    "height": 32,
    "angle": 0,
@@ -2364,8 +2364,8 @@
   {
    "id": "lab05-interventions-62-b4d635",
    "type": "text",
-   "x": 893.2706311800468,
-   "y": 776.9896793905243,
+   "x": 501.2739299233244,
+   "y": 776.1203356246394,
    "width": 10.88,
    "height": 21,
    "angle": 0,
@@ -2401,10 +2401,10 @@
   {
    "id": "lab05-interventions-63-9e3255",
    "type": "arrow",
-   "x": 369.1045185037358,
-   "y": 987.2761317343837,
-   "width": 242.7464351332909,
-   "height": 119.19773653123264,
+   "x": 974.5784830744813,
+   "y": 987.6247543181911,
+   "width": 214.04900133957824,
+   "height": 118.5004913636177,
    "angle": 0,
    "strokeColor": "#2f9e44",
    "backgroundColor": "transparent",
@@ -2432,8 +2432,8 @@
      0
     ],
     [
-     242.7464351332909,
-     119.19773653123264
+     -214.04900133957824,
+     118.5004913636177
     ]
    ],
    "lastCommittedPoint": null,
@@ -2454,10 +2454,10 @@
   {
    "id": "lab05-interventions-64-d2c96f",
    "type": "arrow",
-   "x": 989.0446963164131,
-   "y": 987.4813425394909,
-   "width": 225.28094395247433,
-   "height": 118.78731492101815,
+   "x": 383.58298102415614,
+   "y": 987.4060120568681,
+   "width": 231.48999396341804,
+   "height": 118.93797588626376,
    "angle": 0,
    "strokeColor": "#2f9e44",
    "backgroundColor": "transparent",
@@ -2485,8 +2485,8 @@
      0
     ],
     [
-     -225.28094395247433,
-     118.78731492101815
+     231.48999396341804,
+     118.93797588626376
     ]
    ],
    "lastCommittedPoint": null,
@@ -2510,7 +2510,7 @@
    "x": 1528.0,
    "y": 360.0,
    "width": 720.859375,
-   "height": 398.5,
+   "height": 451.0,
    "angle": 0,
    "strokeColor": "#495057",
    "backgroundColor": "#f8f9fa",
@@ -2620,7 +2620,7 @@
    "id": "lab05-interventions-68-cfe3b1",
    "type": "rectangle",
    "x": 1536.0,
-   "y": 444.0,
+   "y": 409.0,
    "width": 704.859375,
    "height": 19.5,
    "angle": 0,
@@ -2649,7 +2649,7 @@
    "id": "lab05-interventions-69-ea890d",
    "type": "rectangle",
    "x": 1536.0,
-   "y": 461.5,
+   "y": 426.5,
    "width": 704.859375,
    "height": 19.5,
    "angle": 0,
@@ -2678,7 +2678,7 @@
    "id": "lab05-interventions-70-01aaa6",
    "type": "rectangle",
    "x": 1536.0,
-   "y": 549.0,
+   "y": 496.5,
    "width": 704.859375,
    "height": 19.5,
    "angle": 0,
@@ -2707,7 +2707,7 @@
    "id": "lab05-interventions-71-3e51dd",
    "type": "rectangle",
    "x": 1536.0,
-   "y": 706.5,
+   "y": 514.0,
    "width": 704.859375,
    "height": 19.5,
    "angle": 0,
@@ -2734,18 +2734,18 @@
   },
   {
    "id": "lab05-interventions-72-0e567e",
-   "type": "text",
-   "x": 1548.0,
-   "y": 410.0,
-   "width": 680.859375,
-   "height": 332.5,
+   "type": "rectangle",
+   "x": 1536.0,
+   "y": 601.5,
+   "width": 704.859375,
+   "height": 19.5,
    "angle": 0,
-   "strokeColor": "#1e1e1e",
-   "backgroundColor": "transparent",
+   "strokeColor": "transparent",
+   "backgroundColor": "#ffec99",
    "fillStyle": "solid",
-   "strokeWidth": 2,
+   "strokeWidth": 1,
    "strokeStyle": "solid",
-   "roughness": 1,
+   "roughness": 0,
    "opacity": 100,
    "groupIds": [
     "lab05-interventions-65-263523"
@@ -2759,9 +2759,67 @@
    "boundElements": [],
    "updated": 1,
    "link": null,
+   "locked": false
+  },
+  {
+   "id": "lab05-interventions-73-b3e278",
+   "type": "rectangle",
+   "x": 1536.0,
+   "y": 759.0,
+   "width": 704.859375,
+   "height": 19.5,
+   "angle": 0,
+   "strokeColor": "transparent",
+   "backgroundColor": "#ffec99",
+   "fillStyle": "solid",
+   "strokeWidth": 1,
+   "strokeStyle": "solid",
+   "roughness": 0,
+   "opacity": 100,
+   "groupIds": [
+    "lab05-interventions-65-263523"
+   ],
+   "frameId": null,
+   "roundness": null,
+   "seed": 1978772447,
+   "version": 1,
+   "versionNonce": 2145789697,
+   "isDeleted": false,
+   "boundElements": [],
+   "updated": 1,
+   "link": null,
+   "locked": false
+  },
+  {
+   "id": "lab05-interventions-74-ddfc88",
+   "type": "text",
+   "x": 1548.0,
+   "y": 410.0,
+   "width": 680.859375,
+   "height": 385.0,
+   "angle": 0,
+   "strokeColor": "#1e1e1e",
+   "backgroundColor": "transparent",
+   "fillStyle": "solid",
+   "strokeWidth": 2,
+   "strokeStyle": "solid",
+   "roughness": 1,
+   "opacity": 100,
+   "groupIds": [
+    "lab05-interventions-65-263523"
+   ],
+   "frameId": null,
+   "roundness": null,
+   "seed": 4437566,
+   "version": 1,
+   "versionNonce": 728443308,
+   "isDeleted": false,
+   "boundElements": [],
+   "updated": 1,
+   "link": null,
    "locked": false,
-   "text": "if sys.argv[1:] == [\"policy\"]:\n    # Part B: a plain-English rule.\n    interventions = resolve_interventions(\n        \"Reading and fetching are fine. Writing files is only fine under ./trips.\",\n        ask=\"stdio\",\n    )\nelse:\n    # Part A: approve every tool call in the terminal.\n    interventions = HumanInTheLoop(ask=\"stdio\")\n\nagent = create_harness(\n    model=MAIN_MODEL,\n    instructions=INSTRUCTIONS,\n    builtin_tools=[\"web_fetch\", \"write\"],\n    session=False,\n    memory=False,\n    skills=True,\n    interventions=interventions,  # NEW\n)",
-   "originalText": "if sys.argv[1:] == [\"policy\"]:\n    # Part B: a plain-English rule.\n    interventions = resolve_interventions(\n        \"Reading and fetching are fine. Writing files is only fine under ./trips.\",\n        ask=\"stdio\",\n    )\nelse:\n    # Part A: approve every tool call in the terminal.\n    interventions = HumanInTheLoop(ask=\"stdio\")\n\nagent = create_harness(\n    model=MAIN_MODEL,\n    instructions=INSTRUCTIONS,\n    builtin_tools=[\"web_fetch\", \"write\"],\n    session=False,\n    memory=False,\n    skills=True,\n    interventions=interventions,  # NEW\n)",
+   "text": "from strands.vended_interventions.hitl import HumanInTheLoop  # NEW\nfrom strands_harness import create_harness, resolve_interventions  # NEW\n\nif sys.argv[1:] == [\"policy\"]:\n    # Part B: a plain-English rule.\n    interventions = resolve_interventions(\n        \"Reading and fetching are fine. Writing files is only fine under ./trips.\",\n        ask=\"stdio\",\n    )\nelse:\n    # Part A: approve every tool call in the terminal.\n    interventions = HumanInTheLoop(ask=\"stdio\")\n\nagent = create_harness(\n    model=MAIN_MODEL,\n    instructions=INSTRUCTIONS,\n    builtin_tools=[\"web_fetch\", \"write\"],\n    session=False,\n    memory=False,\n    skills=True,\n    interventions=interventions,  # NEW\n)",
+   "originalText": "from strands.vended_interventions.hitl import HumanInTheLoop  # NEW\nfrom strands_harness import create_harness, resolve_interventions  # NEW\n\nif sys.argv[1:] == [\"policy\"]:\n    # Part B: a plain-English rule.\n    interventions = resolve_interventions(\n        \"Reading and fetching are fine. Writing files is only fine under ./trips.\",\n        ask=\"stdio\",\n    )\nelse:\n    # Part A: approve every tool call in the terminal.\n    interventions = HumanInTheLoop(ask=\"stdio\")\n\nagent = create_harness(\n    model=MAIN_MODEL,\n    instructions=INSTRUCTIONS,\n    builtin_tools=[\"web_fetch\", \"write\"],\n    session=False,\n    memory=False,\n    skills=True,\n    interventions=interventions,  # NEW\n)",
    "fontSize": 14,
    "fontFamily": 3,
    "textAlign": "left",
@@ -2772,12 +2830,12 @@
    "baseline": 13
   },
   {
-   "id": "lab05-interventions-73-b3e278",
+   "id": "lab05-interventions-75-e895a5",
    "type": "arrow",
    "x": 1522.0,
-   "y": 558.75,
-   "width": 1101.44,
-   "height": 373.125,
+   "y": 611.25,
+   "width": 282.44000000000005,
+   "height": 320.625,
    "angle": 0,
    "strokeColor": "#495057",
    "backgroundColor": "transparent",
@@ -2791,9 +2849,9 @@
    "roundness": {
     "type": 2
    },
-   "seed": 1978772447,
+   "seed": 1952311954,
    "version": 1,
-   "versionNonce": 2145789697,
+   "versionNonce": 1614418107,
    "isDeleted": false,
    "boundElements": [],
    "updated": 1,
@@ -2805,8 +2863,8 @@
      0
     ],
     [
-     -1101.44,
-     373.125
+     -282.44000000000005,
+     320.625
     ]
    ],
    "lastCommittedPoint": null,
@@ -2821,12 +2879,12 @@
    "elbowed": false
   },
   {
-   "id": "lab05-interventions-74-ddfc88",
+   "id": "lab05-interventions-76-014c49",
    "type": "arrow",
    "x": 1522.0,
-   "y": 453.75,
-   "width": 243.9949999999999,
-   "height": 478.125,
+   "y": 506.25,
+   "width": 1062.995,
+   "height": 425.625,
    "angle": 0,
    "strokeColor": "#495057",
    "backgroundColor": "transparent",
@@ -2840,9 +2898,9 @@
    "roundness": {
     "type": 2
    },
-   "seed": 4437566,
+   "seed": 1496288364,
    "version": 1,
-   "versionNonce": 728443308,
+   "versionNonce": 1936843484,
    "isDeleted": false,
    "boundElements": [],
    "updated": 1,
@@ -2854,8 +2912,8 @@
      0
     ],
     [
-     -243.9949999999999,
-     478.125
+     -1062.995,
+     425.625
     ]
    ],
    "lastCommittedPoint": null,
