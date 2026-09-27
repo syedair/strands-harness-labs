@@ -195,10 +195,12 @@ phrasings ("What's the weather in …?"), so read round 3 as "learned this kind 
 
 | Round | Base Laya | Fine-tuned Laya | Kev (teacher) |
 |---|---|---|---|
-| Beach destinations (44) | 0.137 · 80% | 0.079 · 89% | 0.032 · 98% |
-| Tool calls, abstract (12) | 0.240 · 67% | 0.103 · 92% | 0.098 · 83% |
-| Tool calls, concrete (12) | 0.230 · 67% | 0.015 · 100% | 0.015 · 100% |
+| Beach destinations (44) | 0.137 · 80% | 0.079–0.105 · 82–89% | 0.032 · 98% |
+| Tool calls, abstract (12) | 0.240 · 67% | 0.103–0.111 · 92% | 0.098 · 83% |
+| Tool calls, concrete (12) | 0.230 · 67% | 0.012–0.015 · 100% | 0.015 · 100% |
 
+The fine-tuned column is two runs on the same labels: training on a GPU isn't bit-for-bit repeatable, so your
+numbers will land close to these, not exactly on them.
 Labelling took ~3 min (cached for re-runs), training ~6 min; Laya stays at ~15–25 ms per question, Kev ~100–160 ms.
 With `SYSTEM1_MODEL=laya-travel`, lab 7 blocks the guessed Seattle on "same city as the user?" (0.17) and lets
 Paris through (0.98).
