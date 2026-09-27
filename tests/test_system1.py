@@ -142,7 +142,7 @@ def test_unavailable_reasons(monkeypatch):
 
 
 def test_unknown_backend_is_rejected():
-    with pytest.raises(ValueError, match="ollama/<name>, jev, kev or laya"):
+    with pytest.raises(ValueError, match="ollama/<name>, jev, kev, laya or laya-travel"):
         system1.yes_no("s", "Q?", model="gpt")
 
 
@@ -219,3 +219,20 @@ def test_display_name(model, name):
 def test_display_name_defaults_to_the_configured_model(monkeypatch):
     monkeypatch.setattr(system1.config, "SYSTEM1_MODEL", "kev")
     assert system1.display_name() == "Kev"
+
+
+def test_laya_travel_before_training_says_how_to_make_it(monkeypatch, tmp_path):
+    monkeypatch.setattr(system1.config, "LAYA_TRAVEL_DIR", tmp_path / "nothing-here")
+    monkeypatch.setattr(system1, "_laya_router", lambda: object())  # Laya itself is installed
+    assert system1.unavailable("laya-travel") == (
+        "No fine-tuned Laya yet. Train it with: uv run labs/lab10b_finetune_laya.py")
+
+
+def test_laya_travel_is_named_and_answers_through_its_own_agent(monkeypatch):
+    class FakeAgent:
+        def predict(self, state, questions):
+            return {"answers": {k: {"noul": 0.9} for k in questions}}
+
+    monkeypatch.setattr(system1, "_laya_travel", lambda: FakeAgent())
+    assert system1.display_name("laya-travel") == "Laya (fine-tuned on travel)"
+    assert system1.yes_no("user: hi", "Greeting?", model="laya-travel") == 0.9

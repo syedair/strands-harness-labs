@@ -1,6 +1,7 @@
 # Lab 10 helpers: labelled travel questions and four System 1 contenders.
 from functools import partial
 
+from common import config
 from common.system1 import ensure_kev, unavailable, yes_no
 
 # 1 = primarily a beach / tropical getaway. From the systemone-model-typesafeai demo.
@@ -56,13 +57,21 @@ CONTENDERS = [
     ("kev-4b (open)", "kev"),
     ("laya (open)", "laya"),
     ("qwen3.5 (stand-in)", "ollama/qwen3.5:4b"),
+    ("laya-travel (fine-tuned)", "laya-travel"),  # only after lab 10b has trained it
 ]
+
+
+def fine_tuned_ready() -> bool:
+    """Has lab 10b saved a fine-tuned Laya on this machine?"""
+    return (config.LAYA_TRAVEL_DIR / "model.safetensors").exists()
 
 
 def contenders() -> list[tuple[str, object]]:
     """Every contender that can run here; the rest are skipped with the fix."""
     found = []
     for name, model in CONTENDERS:
+        if model == "laya-travel" and not fine_tuned_ready():
+            continue  # not trained yet: lab 10b makes it
         problem = unavailable(model)
         if problem and model == "kev" and ensure_kev():  # offer to start the local Kev server
             problem = None

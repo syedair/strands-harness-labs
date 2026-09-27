@@ -6,6 +6,7 @@
 #   jev            TypeSafe's hosted System 1 model (TYPESAFE_API_KEY)
 #   kev            an open Jev-alike served on your machine (KEV_URL)
 #   laya           an open, BERT-based System 1 model (uv sync --extra laya)
+#   laya-travel    Laya fine-tuned on travel questions by lab 10b
 import functools
 import math
 import os
@@ -62,6 +63,11 @@ def unavailable(model: str | None = None) -> str | None:
         return f"Kev isn't running on {config.KEV_URL}. Start it with: ./kev.sh start"
     if backend == "laya" and _laya_router() is None:
         return "Laya isn't installed. Run: uv sync --extra laya"
+    if backend == "laya-travel":
+        if _laya_router() is None:
+            return "Laya isn't installed. Run: uv sync --extra laya --inexact"
+        if not (config.LAYA_TRAVEL_DIR / "model.safetensors").exists():
+            return "No fine-tuned Laya yet. Train it with: uv run labs/lab10b_finetune_laya.py"
     if backend == "ollama":
         try:
             pulled = config._pulled_models()
@@ -75,6 +81,8 @@ def unavailable(model: str | None = None) -> str | None:
 def display_name(model: str | None = None) -> str:
     """How to say which System 1 model is answering, e.g. "Kev" or "Qwen stand-in (qwen3.5:4b)"."""
     backend, name = _backend(model or config.SYSTEM1_MODEL)
+    if backend == "laya-travel":
+        return "Laya (fine-tuned on travel)"
     if backend != "ollama":
         return backend.capitalize()
     return f"Qwen stand-in ({name})" if name.startswith("qwen") else f"{name} stand-in"
@@ -112,17 +120,19 @@ def ensure_kev() -> bool:
 
 def _backend(model: str | None) -> tuple[str, str | None]:
     model = model or config.SYSTEM1_MODEL
-    if model in ("jev", "kev", "laya"):
+    if model in ("jev", "kev", "laya", "laya-travel"):
         return model, None
     if model.startswith("ollama/"):
         return "ollama", model.removeprefix("ollama/")
     if "/" not in model and ":" in model:  # a bare Ollama tag like qwen3.5:4b
         return "ollama", model
-    raise ValueError(f"SYSTEM1_MODEL {model!r} must be ollama/<name>, jev, kev or laya")
+    raise ValueError(f"SYSTEM1_MODEL {model!r} must be ollama/<name>, jev, kev, laya or laya-travel")
 
 
 def _typed_answers(backend: str, state: str, questions: dict) -> dict:
     """Jev, Kev and Laya all take typed questions and answer them in one pass."""
+    if backend == "laya-travel":
+        return _laya_travel().predict(state, questions)["answers"]
     if backend == "laya":
         return _laya_router().predict(state, questions)["answers"]
     if backend == "jev":
@@ -147,16 +157,29 @@ def _kev_up() -> bool:
         return False
 
 
-@functools.cache
-def _laya_router():
+def _quiet_laya() -> None:
     os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")  # quiet the model download check
     # Laya warns that its confidence values are uncalibrated; we only use its probabilities.
     warnings.filterwarnings("ignore", message="laya: this checkpoint")
+
+
+@functools.cache
+def _laya_router():
+    _quiet_laya()
     try:
         from laya import Router
     except ImportError:
         return None
     return Router()
+
+
+@functools.cache
+def _laya_travel():
+    """Lab 10b's fine-tuned Laya, loaded once."""
+    _quiet_laya()
+    import laya
+
+    return laya.Agent(str(config.LAYA_TRAVEL_DIR))
 
 
 def _post(payload: dict) -> dict:
