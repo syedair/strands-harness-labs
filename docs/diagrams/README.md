@@ -10,4 +10,4 @@ Every number on them comes from a real run of the labs (September 2026) or a sou
 
 They're built from Python with the
 [excalidraw-diagrams skill](https://github.com/syedair/syedair-skills/tree/main/excalidraw-diagrams), which also
-checks the layout; its `examples/lab_series.py` is the spec that makes these.
+checks the layout. The build script is kept locally, out of the repo.
