@@ -6,7 +6,7 @@
 # That's distillation. Then we re-run lab 10's rounds on questions Laya never trained on.
 #
 # Needs: Laya (uv sync --extra laya --inexact), a teacher (Kev running, or TEACHER=jev with TYPESAFE_API_KEY),
-# and a GPU: measured ~2 minutes and ~11 GB of GPU memory on an Apple M4 Max. On CPU it runs, but slowly.
+# and a GPU: measured ~6 minutes and ~14 GB of GPU memory on an Apple M4 Max. On CPU it runs, but slowly.
 # The recipe comes from Laya's own notebook: docs/reference/laya/.
 import os
 import sys
@@ -66,7 +66,7 @@ def main() -> None:
         # 1. Travel questions that share nothing with lab 10's held-out rounds.
         pairs = training_questions()
         print(f"\n1 · {len(pairs)} training questions: new destinations, and weather tool calls where the city was "
-              "given, was a different one, or was a guess.")
+              "given, was a different one, or was a guess, asked lab 10's questions and lab 7's gate questions.")
         for state, question in (pairs[0], pairs[-2], pairs[-1]):
             print(f"    {' · '.join(line for line in state.splitlines() if line)}\n      → {question}")
         wait(f"press Enter to have {teacher} label them")

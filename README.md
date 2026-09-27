@@ -175,30 +175,36 @@ Contenders you haven't set up are skipped with a one-line hint.
 **File:** `labs/lab10b_finetune_laya.py`
 Laya is the fastest System 1 model here and the weakest out of the box. Its own docs say to treat it as a fast base
 to specialise. So we do: Kev labels a few hundred travel questions, Laya learns from Kev's probabilities
-(distillation), and we re-run lab 10's rounds on questions it never trained on.
+(distillation), and we re-run lab 10's rounds on questions it never trained on. It also learns lab 7's four gate
+questions, so `SYSTEM1_MODEL=laya-travel` can run the gate.
 **What's new:** fine-tuning a System 1 model on your own data; `SYSTEM1_MODEL=laya-travel` to use it in labs 6e–9
 **Needs:** `uv sync --extra laya --inexact`; a teacher (Kev running, or `TEACHER=jev` with `TYPESAFE_API_KEY`)
 
 | Hardware | Status |
 |---|---|
-| Apple M4 Max, Apple GPU | measured: ~2 min training, 10.9 GB peak GPU memory |
-| Apple Silicon with 16 GB+ | should work (not measured) |
-| NVIDIA GPU with 12 GB+ | should work (not measured) |
+| Apple M4 Max, Apple GPU | measured: ~6 min training, 14.1 GB peak GPU memory |
+| Apple Silicon with 24 GB+ | should work (not measured) |
+| NVIDIA GPU with 16 GB+ | should work (not measured) |
 | CPU only | works, slowly (not measured) |
 
-Measured on an M4 Max, Kev-4B as teacher, 755 new travel questions (Brier · accuracy on lab 10's held-out questions).
+Measured on an M4 Max, Kev-4B as teacher, 1,955 new travel questions (Brier · accuracy on lab 10's held-out questions).
 None of those questions is in the training data: new places and new cities, though the tool calls use similar
 phrasings ("What's the weather in …?"), so read round 3 as "learned this kind of question":
 
 | Round | Base Laya | Fine-tuned Laya | Kev (teacher) |
 |---|---|---|---|
-| Beach destinations (44) | 0.137 · 80% | 0.104 · 84% | 0.032 · 98% |
-| Tool calls, abstract (12) | 0.240 · 67% | 0.121 · 92% | 0.098 · 83% |
-| Tool calls, concrete (12) | 0.230 · 67% | 0.028 · 100% | 0.015 · 100% |
+| Beach destinations (44) | 0.137 · 80% | 0.079 · 89% | 0.032 · 98% |
+| Tool calls, abstract (12) | 0.240 · 67% | 0.103 · 92% | 0.098 · 83% |
+| Tool calls, concrete (12) | 0.230 · 67% | 0.015 · 100% | 0.015 · 100% |
 
-Labelling took 83 s (cached for re-runs), training 121 s; Laya stays at ~15–20 ms per question, Kev ~100–130 ms.
-It learns the questions it was trained on: with `SYSTEM1_MODEL=laya-travel`, lab 7's other gate questions are still
-zero-shot.
+Labelling took ~3 min (cached for re-runs), training ~6 min; Laya stays at ~15–25 ms per question, Kev ~100–160 ms.
+With `SYSTEM1_MODEL=laya-travel`, lab 7 blocks the guessed Seattle on "same city as the user?" (0.17) and lets
+Paris through (0.98).
+
+Why not start from Laya's own fine-tuned checkpoint (`laya-typed-decisions`, trained on invoices, support tickets,
+security alerts and agent traces)? We measured it: zero-shot it's no better on travel (0.145 · 0.206 · 0.208), and
+fine-tuned on the same travel labels it ends up about level on tool calls and worse on beach (0.129 · 0.114 · 0.011).
+Train on your own domain.
 
 The recipe is Laya's own: its fine-tuning notebook is in `docs/reference/laya/` (Apache-2.0), with notes on how
 lab 10b differs.
