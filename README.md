@@ -8,6 +8,8 @@ By lab 9 the assistant looks up the forecast, remembers where you live, writes a
 list, asks before saving it, blocks guessed tool calls, finishes what it started, and uses
 the expensive model only when the request needs it.
 
+📺 **Watch the full walkthrough:** [Same Model, Better Agent: Build an Agent Harness in 11 Labs](https://youtu.be/bA2WYOTOC14)
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -72,21 +74,21 @@ uv run labs/lab7_tool_call_gate.py --chat
 **File:** `labs/lab1_first_harness.py`
 One `create_harness()` call next to a hand-built `Agent`.
 **What's new:** `create_harness(model=..., instructions=...)`
-**Video:** _coming soon_
+**Video:** [watch from 23:21](https://youtu.be/bA2WYOTOC14?t=1401)
 **Run:** `uv run labs/lab1_first_harness.py`
 
 ### Lab 2: Built-in Tools
 **File:** `labs/lab2_builtin_tools.py`
 The assistant fetches the real forecast without you writing a tool.
 **What's new:** `builtin_tools=["web_fetch", "read", "write"]`
-**Video:** _coming soon_
+**Video:** [watch from 25:11](https://youtu.be/bA2WYOTOC14?t=1511)
 **Run:** `uv run labs/lab2_builtin_tools.py`
 
 ### Lab 3: Sessions & Memory
 **File:** `labs/lab3_sessions_memory.py`
 Tell it where you live once; a new process still knows.
 **What's new:** `session={"id": "travel"}`, `memory=True`
-**Video:** _coming soon_
+**Video:** [watch from 26:35](https://youtu.be/bA2WYOTOC14?t=1595)
 **Run:** (`./reset.sh` first, so it doesn't already remember you)
 ```bash
 uv run labs/lab3_sessions_memory.py tell
@@ -97,14 +99,14 @@ uv run labs/lab3_sessions_memory.py ask
 **File:** `labs/lab4_skills.py`
 A packing-list skill written in markdown (`.agent/skills/packing-list/SKILL.md`), not code.
 **What's new:** `skills=True`
-**Video:** _coming soon_
+**Video:** [watch from 29:42](https://youtu.be/bA2WYOTOC14?t=1782)
 **Run:** `uv run labs/lab4_skills.py`
 
 ### Lab 5: Interventions
 **File:** `labs/lab5_interventions.py`
 Approve tool calls in the terminal, then replace the prompts with a plain-English rule.
 **What's new:** `interventions=HumanInTheLoop(ask="stdio")`, `resolve_interventions("<policy>")`
-**Video:** _coming soon_
+**Video:** [watch from 31:25](https://youtu.be/bA2WYOTOC14?t=1885)
 **Run:**
 ```bash
 uv run labs/lab5_interventions.py          # approve every call
@@ -134,7 +136,7 @@ measures that. The same questions, five ways:
 ./kev.sh stop
 ```
 Kev-4B needs a 32 GB Mac; on a smaller machine use `KEV_MODEL=jaredpalmer/kev-0.8b ./kev.sh start`.
-**Video:** _coming soon_
+**Video:** [watch from 35:08](https://youtu.be/bA2WYOTOC14?t=2108)
 **Run:** `uv run labs/lab6a_jev.py` (and so on); `SYSTEM1_MODEL=kev uv run labs/lab6e_standardized.py`
 
 ### Lab 7: Tool-Call Gate
@@ -142,7 +144,7 @@ Kev-4B needs a 32 GB Mac; on a smaller machine use `KEV_MODEL=jaredpalmer/kev-0.
 "What's the weather?" with no city: the agent guesses Seattle, the classifier catches the guess,
 and the agent asks you instead. A real city goes straight through.
 **What's new:** a custom `InterventionHandler.before_tool_call` returning `Guide` / `Proceed`
-**Video:** _coming soon_
+**Video:** [watch from 46:59](https://youtu.be/bA2WYOTOC14?t=2819)
 **Run:** `uv run labs/lab7_tool_call_gate.py`
 
 ### Lab 8: Completion Check
@@ -152,14 +154,14 @@ The agent answers only half the question; the classifier notices and sends it ba
 Lab 8 doesn't stream: you see the draft being judged, and the answer only once it passes.
 A reply that asks the user a question ("which city?") isn't judged — asking back is a fine way to end a turn
 (it prints `check → Proceed: it asked you a question, nothing to judge`).
-**Video:** _coming soon_
+**Video:** [watch from 54:47](https://youtu.be/bA2WYOTOC14?t=3287)
 **Run:** `uv run labs/lab8_completion_check.py`
 
 ### Lab 9: Model Switching
 **File:** `labs/lab9_model_switching.py`
 Quick questions go to Kimi K2.5, big planning requests to Kimi K3.
 **What's new:** `create_harness(model=ModelRouter([...], strategy=...))`
-**Video:** _coming soon_
+**Video:** [watch from 56:48](https://youtu.be/bA2WYOTOC14?t=3408)
 **Run:** `uv run labs/lab9_model_switching.py`
 
 ### Lab 10: System 1 Showdown
@@ -167,7 +169,7 @@ Quick questions go to Kimi K2.5, big planning requests to Kimi K3.
 Jev (paid) vs Kev (open) vs Laya (open) vs our Qwen stand-in, on labelled travel questions.
 Contenders you haven't set up are skipped with a one-line hint.
 **What's new:** Brier score and accuracy; abstract vs concrete questions
-**Video:** _coming soon_
+**Video:** [watch from 59:42](https://youtu.be/bA2WYOTOC14?t=3582)
 **Setup:** the same as lab 6a–6d; each contender is optional.
 **Run:** `uv run labs/lab10_system1_showdown.py`
 
@@ -212,7 +214,7 @@ Train on your own domain.
 
 The recipe is Laya's own: its fine-tuning notebook is in `docs/reference/laya/` (Apache-2.0), with notes on how
 lab 10b differs.
-**Video:** _coming soon_
+**Video:** [watch from 1:04:04](https://youtu.be/bA2WYOTOC14?t=3844)
 **Run:** `uv run labs/lab10b_finetune_laya.py` (then `--skip-train` to only compare; `EPOCHS=` to change the length)
 
 ### Lab 11: The Harness App
@@ -278,7 +280,7 @@ sequenceDiagram
 
 **What's new:** `create_harness(session={"id", "dir"}, memory={"stores": [...]}, mcp_servers=..., tools=[...])`,
 `agent.stream_async()` as a stream of JSON events, a tool gate and a completion check as `interventions=[...]`
-**Video:** _coming soon_
+**Video:** [watch from 1:05:37](https://youtu.be/bA2WYOTOC14?t=3937)
 **Run:**
 ```bash
 ./lab11/start.sh    # checks Ollama, pulls nomic-embed-text once, installs, starts both, opens the browser
