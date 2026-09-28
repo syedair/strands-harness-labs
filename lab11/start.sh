@@ -9,6 +9,7 @@ cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 API_PORT=${LAB11_API_PORT:-8000}  # change these if the ports are taken
 UI_PORT=${LAB11_UI_PORT:-5173}
+UI_HOST=${LAB11_HOST:-}  # 0.0.0.0 opens the UI to your Wi-Fi (e.g. a phone); the API stays on this Mac
 export LAB11_API_PORT=$API_PORT  # the server listens here and the UI's dev proxy points here
 OLLAMA=${OLLAMA_HOST:-http://localhost:11434}
 API_LOG=lab11/server.log
@@ -115,7 +116,7 @@ done
 curl -sf "http://127.0.0.1:$API_PORT/api/options" >/dev/null || fail "The API didn't answer within 90 s. See $API_LOG"
 
 echo "→ Starting the UI on http://localhost:$UI_PORT"
-(cd lab11/web && exec npm run dev -- --port "$UI_PORT" --strictPort) > "$UI_LOG" 2>&1 &
+(cd lab11/web && exec npm run dev -- --port "$UI_PORT" --strictPort ${UI_HOST:+--host "$UI_HOST"}) > "$UI_LOG" 2>&1 &
 UI_PID=$!
 for _ in $(seq 1 60); do
   curl -sf "http://localhost:$UI_PORT" >/dev/null && break
@@ -134,6 +135,10 @@ curl -s "http://localhost:$UI_PORT/src/index.css" | grep -q "tailwindcss v4" ||
   fail "The UI's styles didn't build (Tailwind). See $UI_LOG"
 
 echo "✓ Open http://localhost:$UI_PORT   (Ctrl-C stops both; logs: $API_LOG, $UI_LOG)"
+if [ -n "$UI_HOST" ]; then
+  lan=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || hostname -I 2>/dev/null | cut -d" " -f1)
+  echo "  On your network: http://${lan:-your-mac-ip}:$UI_PORT   (anyone on this Wi-Fi can use the app)"
+fi
 command -v open >/dev/null 2>&1 && open "http://localhost:$UI_PORT" || true
 
 # keep an eye on both: if one stops, say so instead of leaving half an app running

@@ -283,7 +283,10 @@ sequenceDiagram
 ```bash
 ./lab11/start.sh    # checks Ollama, pulls nomic-embed-text once, installs, starts both, opens the browser
 ```
-Ports taken? `LAB11_API_PORT=8001 LAB11_UI_PORT=5174 ./lab11/start.sh`. To run the two halves yourself:
+Ports taken? `LAB11_API_PORT=8001 LAB11_UI_PORT=5174 ./lab11/start.sh`.
+On your phone or another device on the same Wi-Fi: `LAB11_HOST=0.0.0.0 ./lab11/start.sh`, then open the "On your network"
+address it prints. Only the UI opens up (the API stays on this machine), but anyone on that Wi-Fi can use the app: do this
+at home, not on shared Wi-Fi. To run the two halves yourself:
 `uv run --extra web lab11/server/app.py` and `cd lab11/web && npm install && npm run dev`.
 **Extending it:** add routes in `lab11/server/app.py`, an event type in `lab11/server/events.py`, and
 a `case` in `lab11/web/src/chat.ts`. The UI only reads events, so any web framework can replace `lab11/web/`.
