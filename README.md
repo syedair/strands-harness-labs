@@ -8,7 +8,7 @@ By lab 9 the assistant looks up the forecast, remembers where you live, writes a
 list, asks before saving it, blocks guessed tool calls, finishes what it started, and uses
 the expensive model only when the request needs it.
 
-📺 **Watch the full walkthrough:** [Build Agent Harness + System 1 Models: Full Tutorial (Jev, Kev, Laya)](https://youtu.be/bA2WYOTOC14)
+📺 **Watch the full walkthrough:** [I Built a Full Strands Harness - Jev Guards Tool Calls](https://youtu.be/bA2WYOTOC14)
 
 ## 🚀 Quick Start
 
